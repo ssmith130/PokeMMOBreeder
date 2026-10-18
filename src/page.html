@@ -483,15 +483,9 @@ function hatchLabel(line, gender) {
 const hatchSprite = (line, gender) => sprite(dex.hatchName(line, gender));
 let uid = 1;
 
-// What a first-time visitor sees.
-function torkoalExample() {
-  return {
-    target: { species: 'Torkoal', ivs: [31, 31, null, null, null, null], gender: 'A', nature: 'Modest', ability: 'Drought', wantMoves: false, moves: [] }, extras: [],
-    mons: [
-      { id: uid++, species: 'Torkoal', gender: 'F', ivs: [31, null, null, null, null, null], nature: 'Modest', ability: 'Drought', moves: [], qty: 1 },
-      { id: uid++, species: 'Sandshrew', gender: 'M', ivs: [null, 31, null, null, null, null], nature: '', ability: '', moves: [], qty: 1 },
-    ],
-  };
+// What a first-time visitor sees: no goal and no Pokémon yet. "None, fill in my own" goes back to it too.
+function emptySetup() {
+  return { target: { species: '', ivs: [null, null, null, null, null, null], gender: 'A', nature: '', ability: '', wantMoves: false, moves: [] }, mons: [], extras: [] };
 }
 
 // Everything a saved build or build code holds, cleaned up so a damaged or old copy can't break the page.
@@ -515,7 +509,7 @@ function normalizeData(d) {
 // The current setup in the same shape, so it can be saved or compared with a saved build.
 function buildData() { return normalizeData(state); }
 
-let state = load() || { ...torkoalExample(), prices: defaultPrices(), mode: 'breeds', buy: false, exact: false, treeDir: 'lr', buildId: null, done: [] };
+let state = load() || { ...emptySetup(), prices: defaultPrices(), mode: 'breeds', buy: false, exact: false, treeDir: 'lr', buildId: null, done: [] };
 function save() { try { localStorage.setItem('pokemmo-breeding-v1', JSON.stringify(state)); } catch (e) {} }
 function load() {
   try {
@@ -794,8 +788,8 @@ function applyPreset(p) {
 }
 // "None" empties the goal, otherwise the preset would still match it and the dropdown would jump back.
 function clearGoal() {
-  startGoal({ species: '', ivs: [null, null, null, null, null, null], gender: 'A', nature: '', ability: '', wantMoves: false, moves: [] }, [], [],
-    'Cleared, fill in your own goal and Pokémon.');
+  const e = emptySetup();
+  startGoal(e.target, e.mons, e.extras, 'Cleared, fill in your own goal and Pokémon.');
   $('t-species').focus();
 }
 $('t-preset').addEventListener('change', (e) => { const p = PRESETS.find((x) => x.key === e.target.value); if (p) applyPreset(p); else clearGoal(); });
