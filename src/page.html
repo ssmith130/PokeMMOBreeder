@@ -1021,22 +1021,27 @@ window.addEventListener('resize', placeCombo);
 window.addEventListener('scroll', placeCombo, true);
 
 // ---------- planning (in a worker so the page stays responsive) ----------
-let worker = null, jobId = 0, timer = null;
+// A plan that is still running when the inputs change is thrown away: the worker is replaced
+// rather than left to finish a search nobody will see.
+let worker = null, workerUrl = null, busy = false, jobId = 0, timer = null;
+function startWorker() {
+  worker = new Worker(workerUrl);
+  worker.onmessage = (e) => { busy = false; if (e.data.id === jobId) showResult(e.data.out, e.data.retry); };
+  worker.onerror = () => { worker = null; busy = false; schedule(); };
+}
 try {
   const src = $('planner-src').textContent + `
-    let dex = null;
+    const dex = Planner.buildDex(${JSON.stringify(SPECIES)});
     onmessage = (e) => {
       const d = e.data;
-      if (!dex) dex = Planner.buildDex(d.species);
       const out = Planner.plan({ ...d.input, dex });
       let retry = null;
       if (!out.error && !out.result && !d.input.opts.buy) retry = Planner.plan({ ...d.input, dex, opts: { ...d.input.opts, buy: true } });
       postMessage({ id: d.id, out: strip(out), retry: retry && strip(retry) });
     };
     function strip(o) { return { error: o.error, result: o.result, truncated: o.truncated, calls: o.calls, tLine: o.tLine }; }`;
-  worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
-  worker.onmessage = (e) => { if (e.data.id === jobId) showResult(e.data.out, e.data.retry); };
-  worker.onerror = () => { worker = null; schedule(); };
+  workerUrl = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+  startWorker();
 } catch (e) { worker = null; }
 
 function buildInput() {
@@ -1073,7 +1078,8 @@ function run() {
   jobId++;
   if (obtainNote && !obtainNote.job) obtainNote.job = jobId;
   $('plan-status').innerHTML = '<span class="spin"></span>Planning';
-  if (worker) worker.postMessage({ id: jobId, species: SPECIES, input });
+  if (worker && busy) { worker.terminate(); try { startWorker(); } catch (e) { worker = null; } }
+  if (worker) { busy = true; worker.postMessage({ id: jobId, input }); }
   else setTimeout(() => {
     const out = Planner.plan({ ...input, dex });
     const retry = !out.error && !out.result && !input.opts.buy ? Planner.plan({ ...input, dex, opts: { ...input.opts, buy: true } }) : null;

@@ -67,7 +67,8 @@
     const { dex, target, pool: rawPool, prices, opts } = input;
     const tLine = dex.lineOf(target.species);
     if (!tLine) return { error: `Unknown species "${target.species}".` };
-    if (dex.lines.get(tLine).groups.size === 0 && tLine !== 'Ditto')
+    if (tLine === 'Ditto') return { error: "Ditto can't be bred, so the planner can't make one. Look for one with the IVs you want on the GTL." };
+    if (dex.lines.get(tLine).groups.size === 0)
       return { error: `${target.species} can't breed (Undiscovered egg group), so it can't be bred for IVs.` };
 
     const tIV = target.ivs; // per stat: required minimum, or null
@@ -96,16 +97,23 @@
     }).filter((p) => p.line);
     if (pool.length > 63) return { error: 'The planner handles up to 63 Pokémon at a time.' };
     // Identical Pokémon are interchangeable, so the search tracks how many of each
-    // kind are left (6 bits per kind packed in a BigInt) instead of which ones.
+    // kind are left (6 bits per kind packed in a BigInt, plus a spare bit) instead of which ones.
     const kinds = [];
     const bySig = new Map();
     for (const p of pool) {
-      const sig = [p.line, p.gender, p.mask, p.natured, p.abil, p.moves, p.iv.join(','), p.baby ? p.name : ''].join('|');
+      // Only the IVs that meet the goal show in the plan, so the others don't split kinds.
+      const ivs = p.iv.map((v, s) => (p.mask & (1 << s) ? v : '')).join(',');
+      const sig = [p.line, p.gender, p.mask, p.natured, p.abil, p.moves, ivs, p.baby ? p.name : ''].join('|');
       let c = bySig.get(sig);
-      if (!c) { c = { ...p, members: [], shift: BigInt(kinds.length * 6) }; c.bit = 1n << c.shift; bySig.set(sig, c); kinds.push(c); }
+      if (!c) { c = { ...p, members: [], shift: BigInt(kinds.length * 7) }; c.bit = 1n << c.shift; bySig.set(sig, c); kinds.push(c); }
       c.members.push(p);
     }
     const has = (avail, c) => ((avail >> c.shift) & 63n) > 0n;
+    // within(x, y): every count in x is at most the one in y. The spare bit in each field stops
+    // one count's subtraction from borrowing from the next.
+    let SPARE = 0n;
+    for (const c of kinds) SPARE |= 64n << c.shift;
+    const within = (x, y) => (((y | SPARE) - x) & SPARE) === SPARE;
 
     const lineInfo = (l) => dex.lines.get(l);
     function compat(a, b) {
@@ -140,13 +148,18 @@
     // kind 'L' = exactly this line; kind 'C' = any line that can breed with this line.
     function rank(req) { return (req.kind === 'C' ? 4 : 0) + (req.gender === 'M' ? 2 : req.gender === 'F' ? 1 : 0); }
     // Every request a breed splits into must be smaller, so the search ends. Only the goal needs an
-    // incense, so anything without one is smaller than it.
-    function size(req) { return (req.incense ? 1e6 : 0) + (popcount(req.need) * 2 + (req.nat ? 1 : 0)) * 8 + rank(req); }
+    // incense, so anything without one is smaller than it. Dropping the egg moves (the mother's side)
+    // or the ability (the father's side) also counts, so a parent can carry the goal's one IV.
+    function size(req) {
+      return (req.incense ? 1e6 : 0) + ((popcount(req.need) * 2 + (req.nat ? 1 : 0)) * 4 + (req.mv ? 2 : 0) + (req.abil ? 1 : 0)) * 8 + rank(req);
+    }
     function key(req) { return `${req.kind}${req.line}|${req.gender}|${req.need}|${+req.nat}|${+req.abil}|${+req.mv}|${req.incense || ''}|${+!!req.top}`; }
 
     let calls = 0, truncated = false;
     const LIMIT = opts.limit || 600000;
-    const memo = new Map();
+    // Stop searching after this long and show the best plan found so far.
+    const deadline = Date.now() + (opts.timeLimit || 6000);
+    const memo = new Map(); // request -> [{avail, best}]
     const dittoMemo = new Map();
 
     function leafOwned(p) {
@@ -178,10 +191,24 @@
       return best;
     }
 
-    function solve(req, avail) {
-      const k = key(req) + '#' + avail;
-      if (memo.has(k)) return memo.get(k);
-      if (++calls > LIMIT) { truncated = true; return null; }
+    // relaxed: a quick pass that may use each Pokémon you own any number of times. It can't need more
+    // breeds or cost more than the real plan, so the real search skips breeds it shows can't win.
+    function solve(req, avail, relaxed) {
+      const k = (relaxed ? 'R' : '') + key(req);
+      let seen = memo.get(k);
+      if (!seen) memo.set(k, seen = { exact: new Map(), recent: [] });
+      if (seen.exact.has(avail)) return seen.exact.get(avail);
+      // A plan found with more Pokémon to spare is still the best one if it only uses Pokémon still
+      // left (and no plan with more means none with fewer). Only the latest few are checked.
+      for (let i = seen.recent.length - 1; i >= 0 && i >= seen.recent.length - 24; i--) {
+        const e = seen.recent[i];
+        if (within(avail, e.avail) && (!e.best || within(e.best.used, avail))) return e.best;
+      }
+      const remember = (best) => { seen.exact.set(avail, best); seen.recent.push({ avail, best }); return best; };
+      const bound = relaxed ? null : solve(req, full, true);
+      if (!relaxed && !bound) return remember(null);
+      if (!relaxed && (++calls > LIMIT || ((calls & 1023) === 0 && Date.now() > deadline))) calls = LIMIT + 1;
+      if (!relaxed && calls > LIMIT) { truncated = true; return null; }
       let best = null;
 
       // 1. A Pokémon you already own.
@@ -199,7 +226,7 @@
       }
 
       // Nothing beats a Pokémon you already have.
-      if (best) { memo.set(k, best); return best; }
+      if (best) return remember(best);
 
       // 2. Buy a 1x31 off the GTL to fill a gap.
       if (opts.buy && popcount(req.need) <= 1 && !req.abil && !req.mv && !req.incense) {
@@ -218,7 +245,8 @@
       }
       const R = bitsOf(req.need);
       const mySize = size(req);
-      for (const m of lines) {
+      const beats = (lb) => !best || (opts.mode === 'cost' ? lb.cost <= best.cost : lb.breeds <= best.breeds);
+      search: for (const m of lines) {
         const L = lineInfo(m);
         if (!L || L.groups.size === 0) continue;
         const ratio = req.incense ? tSpecies.g : L.ratio; // what hatches: the baby, or the line
@@ -248,17 +276,22 @@
             }
             const items = (bA >= 0 ? 1 : 0) + (bB >= 0 ? 1 : 0);
             const stepCost = items * prices.brace + (req.nat ? prices.everstone : 0) + (inc ? prices.incense || 0 : 0) + gCost;
-            const solveB = (av) => pairing === 'mf' ? solve(reqB, av) : solveDitto(needB, holder === 'B', av);
+            const solveB = (av, r) => pairing === 'mf' ? solve(reqB, av, r) : solveDitto(needB, holder === 'B', av);
+            // The best each side could do with unlimited Pokémon: skip the breed if even that can't win.
+            const lbA = relaxed ? null : solve(reqA, full, true);
+            const lbB = relaxed ? null : solveB(full, true);
+            if (!relaxed && (!lbA || !lbB || !beats(sum(lbA, lbB, stepCost)))) continue;
             // Solve the mother's side first; only if the father's side then runs
             // short, try the other way round.
-            for (const order of [0, 1]) {
+            for (const order of relaxed ? [0] : [0, 1]) {
               let a, b;
               if (order === 0) {
-                a = solve(reqA, avail); if (!a) break;
-                if (best && opts.mode !== 'cost' && a.breeds + 1 > best.breeds) break;
-                b = solveB(avail - a.used); if (!b) continue;
+                a = solve(reqA, avail, relaxed); if (!a) break;
+                if (!relaxed && !beats(sum(a, lbB, stepCost))) break;
+                b = solveB(relaxed ? avail : avail - a.used, relaxed); if (!b) continue;
               } else {
                 b = solveB(avail); if (!b) break;
+                if (!beats(sum(lbA, b, stepCost))) break;
                 a = solve(reqA, avail - b.used); if (!a) continue;
               }
               const iv = [];
@@ -271,14 +304,16 @@
                   inc: inc || null, incense: inc ? req.incense : null, baby: inc ? tSpecies.n : null },
               };
               best = pick(best, res);
+              // nothing can beat the unlimited pass, so stop once the plan matches it
+              if (bound && better(best, bound) <= 0) break search;
               break;
             }
           }
         }
       }
-      memo.set(k, best);
-      return best;
+      return remember(best);
     }
+    const sum = (a, b, step) => ({ breeds: a.breeds + b.breeds + 1, cost: a.cost + b.cost + step });
 
     // Which parent holds which item. Returns [braceA, braceB, everstoneHolder, incenseHolder].
     function braceCombos(R, nat, incense) {
@@ -313,14 +348,16 @@
       nat: !!target.nature, abil: !!target.ability, mv: tMoves.length > 0, incense, top: true };
     let full = 0n;
     for (const c of kinds) full += BigInt(c.members.length) << c.shift;
-    const result = solve(topReq, full);
-    // Hand out the actual Pokémon to the leaves of the tree.
+    let result = solve(topReq, full);
+    // Hand out the actual Pokémon to the leaves of the tree. The search can reuse one plan for two
+    // parents, so this copies the tree as it goes.
     if (result) {
       const left = new Map(kinds.map((c) => [c, c.members.slice()]));
-      (function assign(r) {
+      result = (function assign(r) {
         const n = r.node;
-        if (n.t === 'own') n.p = left.get(n.p).shift();
-        else if (n.t === 'breed') { assign(n.a); assign(n.b); }
+        if (n.t === 'own') return { ...r, node: { ...n, p: left.get(n.p).shift() } };
+        if (n.t === 'breed') return { ...r, node: { ...n, a: assign(n.a), b: assign(n.b) } };
+        return { ...r };
       })(result);
     }
     return { result, truncated, calls, tLine, pool };
