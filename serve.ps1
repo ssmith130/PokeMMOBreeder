@@ -22,7 +22,10 @@ Start-Process $url
 $types = @{
   '.html' = 'text/html; charset=utf-8'; '.js' = 'text/javascript; charset=utf-8'; '.css' = 'text/css; charset=utf-8'
   '.json' = 'application/json'; '.png' = 'image/png'; '.svg' = 'image/svg+xml'; '.ico' = 'image/x-icon'
+  '.woff2' = 'font/woff2'; '.webmanifest' = 'application/manifest+json'; '.txt' = 'text/plain; charset=utf-8'
+  '.xml' = 'application/xml'
 }
+$notFound = Join-Path $root '404.html'
 while ($listener.IsListening) {
   $ctx = $listener.GetContext()
   $res = $ctx.Response
@@ -37,7 +40,14 @@ while ($listener.IsListening) {
       $res.ContentLength64 = $bytes.Length
       $res.OutputStream.Write($bytes, 0, $bytes.Length)
     } else {
+      # Like GitHub Pages: unknown addresses get the site's own 404 page.
       $res.StatusCode = 404
+      if (Test-Path -LiteralPath $notFound -PathType Leaf) {
+        $bytes = [IO.File]::ReadAllBytes($notFound)
+        $res.ContentType = $types['.html']
+        $res.ContentLength64 = $bytes.Length
+        $res.OutputStream.Write($bytes, 0, $bytes.Length)
+      }
     }
   } catch {
     $res.StatusCode = 500

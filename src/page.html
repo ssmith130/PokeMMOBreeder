@@ -296,7 +296,6 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
       <p class="alpha-note"><b>Alpha.</b> The planner is new and still being checked against the game, so double-check a plan before you spend money on it, and <a href="https://github.com/ssmith130/PokeMMOBreeder/issues/new" target="_blank" rel="noopener">report a problem</a> if something looks wrong.</p>
     </div>
     <div class="row">
-      <button class="btn" id="ex-5x31" type="button">Load 5×31 example</button>
       <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
     </div>
   </header>
@@ -493,17 +492,6 @@ function torkoalExample() {
       { id: uid++, species: 'Sandshrew', gender: 'M', ivs: [null, 31, null, null, null, null], nature: '', ability: '', moves: [], qty: 1 },
     ],
   };
-}
-function fiveExample() {
-  const mons = [];
-  // 8 females and 8 males with one 31 each: exactly the 16 parents a 5x31 needs
-  const stat = [0, 1, 2, 3, 5], fem = [2, 2, 2, 1, 1], male = [2, 2, 1, 1, 2];
-  stat.forEach((s, j) => {
-    const iv = [null, null, null, null, null, null]; iv[s] = 31;
-    mons.push({ id: uid++, species: 'Torkoal', gender: 'F', ivs: iv.slice(), nature: '', ability: '', moves: [], qty: fem[j] });
-    mons.push({ id: uid++, species: 'Sandshrew', gender: 'M', ivs: iv.slice(), nature: '', ability: '', moves: [], qty: male[j] });
-  });
-  return { target: { species: 'Torkoal', ivs: [31, 31, 31, 31, null, 31], gender: 'A', nature: '', ability: '', wantMoves: false, moves: [] }, mons, extras: [] };
 }
 
 // Everything a saved build or build code holds, cleaned up so a damaged or old copy can't break the page.
@@ -741,14 +729,6 @@ $('add-mon').addEventListener('click', () => {
   renderMons(); changed(); focusField(state.mons[state.mons.length - 1].id, 'species');
 });
 $('clear-mons').addEventListener('click', () => { state.mons = []; renderMons(); changed(); });
-function loadExample(ex) {
-  const prev = { data: buildData(), buildId: state.buildId, name: $('build-name').value };
-  Object.assign(state, ex, { buildId: null, done: [] });
-  $('build-name').value = '';
-  renderAll(); save(); renderBuilds();
-  say('Loaded the example.', () => restoreSetup(prev, 'Back to your previous setup.'));
-}
-$('ex-5x31').addEventListener('click', () => loadExample(fiveExample()));
 
 function changed() { save(); schedule(); syncBuildUi(); renderPreset(); }
 

@@ -11,7 +11,7 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
 
 **Use it at [smearguru.org](https://smearguru.org).**
 
-![The planner with the 5×31 Torkoal example loaded: the goal on the left, the 15-breed plan and its cost on the right](docs/screenshot.png)
+![The planner with a 5×31 Torkoal plan: the goal on the left, the 15-breed plan and its cost on the right](docs/screenshot.png)
 
 ## Features
 
