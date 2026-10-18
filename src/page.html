@@ -1,4 +1,4 @@
-<title>PokeMMO Breeding Planner</title>
+<title>PokeMMO Breeding Planner (Alpha)</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -263,6 +263,12 @@ ol.steps li.is-next .stepno { box-shadow: 0 0 0 4px var(--accent-soft); }
 .tabs .tabs-end { margin-left: auto; align-self: center; font-size: 13px; }
 .site-foot { color: var(--muted); font-size: 12.5px; text-align: center; }
 .site-foot a { color: var(--accent); }
+/* Alpha: a badge by the title and a note under the intro */
+.alpha { flex: none; font-family: var(--f-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--cost); border: 1px solid currentColor; border-radius: 999px; padding: 1px 8px; line-height: 1.6; }
+header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
+.alpha-note b { color: var(--cost); }
+.alpha-note a { color: var(--accent); }
 /* Phones: the plan sits below the inputs, so a button jumps down to it */
 .to-plan { position: fixed; z-index: 20; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px));
   border: 0; border-radius: 999px; padding: 10px 16px; background: var(--accent); color: var(--on-accent); font-weight: 600; font-size: 14px;
@@ -285,8 +291,9 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
 <div class="wrap">
   <header class="top">
     <div>
-      <h1><img class="logo" src="/*LOGO*/" alt="" width="56" height="46">PokeMMO Breeding Planner</h1>
+      <h1><img class="logo" src="/*LOGO*/" alt="" width="56" height="46">PokeMMO Breeding Planner <span class="alpha">Alpha</span></h1>
       <p>Enter the Pokémon you have and the one you want. The planner finds the breeding tree with the fewest breeds, which braces and Everstones each parent holds, and what it (roughly) costs.</p>
+      <p class="alpha-note"><b>Alpha.</b> The planner is new and still being checked against the game, so double-check a plan before you spend money on it, and <a href="https://github.com/ssmith130/PokeMMOBreeder/issues/new" target="_blank" rel="noopener">report a problem</a> if something looks wrong.</p>
     </div>
     <div class="row">
       <button class="btn" id="ex-5x31" type="button">Load 5×31 example</button>
@@ -389,7 +396,7 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
     </ul>
     <p class="muted small">Sources: <a href="https://pokemmo.shoutwiki.com/wiki/Breeding" target="_blank" rel="noopener">PokeMMO Wiki: Breeding</a> and <a href="https://www.pikammo.fr/Pokemmo/en/tools/breeding" target="_blank" rel="noopener">PikaMMO breeding guide</a>. Species, egg groups, gender ratios, abilities, egg moves and who can learn each TM come from Pokémon Showdown's data, which can differ from PokeMMO in places; if you spot a mistake, <a href="https://github.com/ssmith130/PokeMMOBreeder/issues/new" target="_blank" rel="noopener">report it</a>. TM prices are mart prices from the PokeMMO Wiki; held item prices are guesses. Box icons, item icons and the Smeargle box icon behind the Smearguru logo are from or based on <a href="https://github.com/PokeAPI/sprites" target="_blank" rel="noopener">PokeAPI/sprites</a>. Unofficial fan tool, not affiliated with PokeMMO; Pokémon © Nintendo, Game Freak and The Pokémon Company.</p>
   </section>
-  <p class="site-foot">PokeMMO Breeding Planner · updated /*BUILT*/ · <a href="https://github.com/ssmith130/PokeMMOBreeder/issues/new" target="_blank" rel="noopener">Report a problem</a></p>
+  <p class="site-foot">PokeMMO Breeding Planner · Alpha · updated /*BUILT*/ · <a href="https://github.com/ssmith130/PokeMMOBreeder/issues/new" target="_blank" rel="noopener">Report a problem</a></p>
 </div>
 <button class="to-plan" type="button" id="to-plan" hidden>See the plan</button>
 

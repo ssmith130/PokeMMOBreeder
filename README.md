@@ -1,6 +1,10 @@
 <img src="public/icon-192.png" width="96" height="96" alt="">
 
-# PokeMMO Breeding Planner
+# PokeMMO Breeding Planner (Alpha)
+
+> **Alpha.** The planner is new and still being checked against the game. Plans, rules and prices may be
+> wrong in places, so double-check before spending in-game money, and please
+> [report anything that looks off](https://github.com/ssmith130/PokeMMOBreeder/issues/new).
 
 Tell it the Pokémon you have and the one you want, and it works out the breeding tree with the fewest
 breeds: which parents to pair, what each one holds, which gender to pay for, and what it all costs.

@@ -128,7 +128,7 @@ site = f"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="{DESCRIPTION}">
-<meta property="og:title" content="PokeMMO Breeding Planner">
+<meta property="og:title" content="PokeMMO Breeding Planner (Alpha)">
 <meta property="og:description" content="{DESCRIPTION}">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#eef1f4" media="(prefers-color-scheme: light)">
