@@ -1,0 +1,5 @@
+# Netlify: connect the repo and these settings are picked up automatically.
+# The site's address for link previews and the sitemap comes from site-url.txt.
+[build]
+  command = "python3 build.py"
+  publish = "dist"

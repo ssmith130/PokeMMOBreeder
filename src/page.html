@@ -1,0 +1,1804 @@
+<title>PokeMMO Breeding Planner</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: inputs on the left, the breeding plan on the right; one column on phones. */
+:root {
+  --bg: #eef1f4; --surface: #ffffff; --sunk: #f5f7f9; --ink: #18202b; --muted: #5b6676;
+  --line: #d5dce4; --line-strong: #9aa7b6; --accent: #1d7656; --accent-soft: #dcefe6; --on-accent: #ffffff;
+  --cost: #9a5a0c; --warn: #b3261e; --warn-soft: #fbe7e5;
+  /* Stat colours follow the power items in PokeMMO: Weight green, Bracer red, Belt orange, Lens pink, Band yellow, Anklet blue */
+  --hp: #3fb950; --atk: #e5484d; --def: #d4873a; --spa: #d24fdc; --spd: #d4b81e; --spe: #1fa6d9;
+  --f-display: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #10151b; --surface: #18202a; --sunk: #141b23; --ink: #e6ebf1; --muted: #93a0b0;
+  --line: #2a3542; --line-strong: #4e5d6e; --accent: #4cc195; --accent-soft: #173a2e; --on-accent: #0b1f17;
+  --cost: #e2a54b; --warn: #f2867d; --warn-soft: #3a1f1d; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #10151b; --surface: #18202a; --sunk: #141b23; --ink: #e6ebf1; --muted: #93a0b0;
+  --line: #2a3542; --line-strong: #4e5d6e; --accent: #4cc195; --accent-soft: #173a2e; --on-accent: #0b1f17;
+  --cost: #e2a54b; --warn: #f2867d; --warn-soft: #3a1f1d; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px; }
+.wrap { max-width: 1440px; margin: 0 auto; display: grid; gap: 20px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+h1 { font-size: 30px; font-weight: 700; line-height: 1.1; }
+h2 { font-size: 19px; font-weight: 600; }
+h3 { font-size: 15px; font-weight: 600; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+header.top p { max-width: 62ch; color: var(--muted); margin-top: 6px; }
+header.top h1 { display: flex; align-items: center; gap: 12px; }
+/* Smearguru's box icon (28x23), shown at exactly twice its size so the pixel art stays crisp */
+.logo { display: block; flex: none; width: 56px; height: 46px; image-rendering: pixelated; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (min-width: 1100px) { .cols { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); } .results { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow: auto; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
+#results { display: grid; gap: 14px; min-width: 0; }
+#results > *, #view-tree > * { min-width: 0; }
+#view-tree { display: grid; gap: 10px; }
+.panel-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+.eyebrow { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.f { display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); min-width: 0; }
+input, select, button { font: inherit; color: inherit; }
+input[type="text"], input[type="number"], select {
+  background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; min-width: 0; width: 100%; color: var(--ink); }
+input:focus-visible, select:focus-visible, button:focus-visible, .chip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: end; }
+.grid-target { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.btn { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 6px; padding: 7px 12px; cursor: pointer; font-size: 13.5px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); padding: 4px 8px; }
+.btn.ghost:hover { color: var(--warn); }
+.stats { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { --c: var(--line-strong); position: relative; display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line);
+  border-radius: 999px; padding: 3px 10px 3px 8px; font-family: var(--f-mono); font-size: 12.5px; cursor: pointer; user-select: none; background: var(--surface); }
+.chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c); opacity: 0.35; }
+.chip input { position: absolute; opacity: 0; pointer-events: none; }
+.chip:has(input:checked) { background: color-mix(in srgb, var(--c) 18%, var(--surface)); border-color: var(--c); }
+.chip:has(input:checked)::before { opacity: 1; }
+.chip .v { color: var(--muted); }
+.s-hp { --c: var(--hp); } .s-atk { --c: var(--atk); } .s-def { --c: var(--def); } .s-spa { --c: var(--spa); } .s-spd { --c: var(--spd); } .s-spe { --c: var(--spe); }
+.ivnum { display: inline-grid; gap: 2px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); text-align: center; }
+.ivnum input { width: 48px; text-align: center; padding: 5px 2px; font-family: var(--f-mono); border-bottom: 2px solid var(--c); }
+.mons { display: grid; gap: 10px; }
+.mon { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 10px; background: var(--sunk); }
+.mon-top { display: grid; gap: 10px; grid-template-columns: 40px minmax(130px, 1.6fr) minmax(90px, 0.8fr) minmax(64px, 0.5fr) auto; align-items: end; }
+.mon-idx { font-family: var(--f-mono); font-size: 12px; color: var(--muted); display: grid; justify-items: center; gap: 0; padding-bottom: 4px; }
+.mon-mid { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.mon-bot { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+@media (max-width: 560px) { .mon-top { grid-template-columns: 40px minmax(0, 1fr) minmax(0, 0.8fr); } .mon-top .qty, .mon-top .rm { grid-row: 2; } .mon-top .qty { grid-column: 2; } .mon-top .rm { grid-column: 3; justify-self: end; } }
+.check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+.prices { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.prices input { font-family: var(--f-mono); }
+details.prices-wrap > summary { cursor: pointer; list-style: none; }
+details.prices-wrap > summary::-webkit-details-marker { display: none; }
+details.prices-wrap > summary h2::after { content: " +"; color: var(--muted); }
+details.prices-wrap[open] > summary h2::after { content: " −"; }
+/* <details> doesn't lay its contents out as a grid, so space them here */
+details.prices-wrap > :not(summary) { margin-top: 14px; }
+details.prices-wrap > .extras { margin-top: 22px; }
+.est { font-family: var(--f-mono); font-size: 10.5px; color: var(--cost); letter-spacing: 0.05em; text-transform: uppercase; }
+/* TMs and held items: one row each, name and where to get it, price, remove */
+.extras { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 18px; }
+.extras-list { display: grid; gap: 8px; }
+.extras-list:empty { display: none; }
+.extra { display: grid; grid-template-columns: minmax(0, 1fr) 110px auto; gap: 6px 10px; align-items: center; }
+.extra-name { display: grid; gap: 1px; font-size: 14px; min-width: 0; }
+.extra input { font-family: var(--f-mono); }
+.warn-text { color: var(--warn); }
+.extra-add { max-width: 340px; }
+@media (max-width: 560px) { .extra { grid-template-columns: minmax(0, 1fr) auto; } .extra-name { grid-column: 1 / -1; } }
+.tm-hint { display: grid; gap: 6px; }
+/* results */
+/* One row of stats when it fits: each box is as wide as its contents, and they share any spare room */
+.summary { display: flex; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.sum { flex: 1 0 auto; background: var(--surface); padding: 10px 11px; display: grid; gap: 2px; align-content: start; box-shadow: 1px 0 0 var(--line), 0 1px 0 var(--line); }
+.sum b { font-family: var(--f-display); font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.sum b.money { color: var(--cost); }
+.sum .eyebrow, .sum b { white-space: nowrap; }
+.notice { border-radius: 8px; padding: 10px 12px; font-size: 14px; background: var(--warn-soft); color: var(--ink); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); }
+.notice.ok { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.notice strong { color: var(--warn); }
+.notice.ok strong { color: var(--accent); }
+.breakdown { display: grid; gap: 4px; font-size: 13.5px; }
+.breakdown div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed var(--line); padding-bottom: 3px; }
+.breakdown span:last-child { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--cost); white-space: nowrap; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.tab { border: 0; background: none; padding: 8px 12px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; font-weight: 500; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: step; }
+ol.steps li { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; }
+.stepno { font-family: var(--f-display); font-weight: 700; font-size: 15px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
+.stepbody { display: grid; gap: 6px; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: stretch; }
+@media (max-width: 520px) { .pair { grid-template-columns: minmax(0, 1fr); } .pair .x { justify-self: center; } }
+.x { align-self: center; font-family: var(--f-display); color: var(--muted); }
+.card { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface); display: grid; gap: 4px; align-content: start; min-width: 0; font-size: 13.5px; }
+.card.buy { border-style: dashed; border-color: var(--cost); }
+.card.result { border-color: var(--accent); background: var(--accent-soft); }
+.card .name { font-weight: 600; }
+.g-F { color: #d6457a; } .g-M { color: #3b78d8; }
+.hold { font-size: 12px; font-family: var(--f-mono); color: var(--muted); }
+.hold b { color: var(--ink); font-weight: 500; }
+.ivs { display: flex; flex-wrap: wrap; gap: 4px; }
+.iv { font-family: var(--f-mono); font-size: 11.5px; border-radius: 4px; padding: 0 5px; background: color-mix(in srgb, var(--c) 20%, transparent); border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag { font-size: 11.5px; border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; color: var(--muted); }
+.outcome { font-size: 13px; color: var(--muted); }
+.outcome .money { color: var(--cost); font-family: var(--f-mono); }
+.tree-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.tree-scroll { overflow: auto; max-height: 72vh; padding: 4px 2px 10px; }
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: var(--surface); padding: 6px 11px; cursor: pointer; font-size: 13px; color: var(--muted); }
+.seg button + button { border-left: 1px solid var(--line-strong); }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.preset { display: grid; gap: 8px; padding: 10px 12px; border-radius: 8px; background: var(--sunk); border: 1px solid var(--line); font-size: 13.5px; }
+.preset dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; margin: 0; align-items: baseline; }
+.preset dt { color: var(--muted); font-size: 12.5px; }
+.preset dd { margin: 0; min-width: 0; }
+.preset .seg button { padding: 4px 9px; font-size: 12.5px; }
+.preset ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; color: var(--muted); font-size: 13px; }
+.tree { width: max-content; }
+.tn { display: flex; align-items: center; width: max-content; }
+.tn-kids { display: flex; }
+.tk { position: relative; }
+.tn > .card { position: relative; }
+.tree .card { width: 230px; }
+/* Left to right: the two parents on the left, the egg they make on the right. Each parent sits right next
+   to its bracket, even when its partner's side of the tree goes back further, and the bracket feeds the
+   egg's card through a short line so the pair reads as one breed. */
+.lr .tn-kids { flex-direction: column; gap: 12px; padding-right: 40px; }
+.lr .tk { display: flex; justify-content: flex-end; }
+.lr .tk::after { content: ""; position: absolute; right: -20px; top: 50%; width: 20px; border-top: 1.5px solid var(--line-strong); }
+.lr .tk::before { content: ""; position: absolute; right: -20px; border-right: 1.5px solid var(--line-strong); }
+.lr .tk:first-child::before { top: 50%; bottom: -7px; }
+.lr .tk:last-child::before { top: -7px; bottom: 50%; }
+.lr .tn > .card::before { content: ""; position: absolute; left: -20px; top: 50%; width: 20px; border-top: 1.5px solid var(--line-strong); }
+/* Top down: your Pokémon on top, each breed's two parents below it */
+.td .tn { flex-direction: column-reverse; }
+.td .tn-kids { flex-direction: row; align-items: flex-start; gap: 14px; padding-top: 28px; }
+.td .tk::after { content: ""; position: absolute; left: 50%; top: -14px; height: 14px; border-left: 1.5px solid var(--line-strong); }
+.td .tk::before { content: ""; position: absolute; top: -14px; border-top: 1.5px solid var(--line-strong); }
+.td .tk:first-child::before { left: 50%; right: -7px; }
+.td .tk:last-child::before { left: -7px; right: 50%; }
+.td .tn > .card::after { content: ""; position: absolute; left: 50%; bottom: -15px; height: 14px; border-left: 1.5px solid var(--line-strong); }
+.td .card { width: 200px; }
+/* Pop-out: the tree on its own full screen */
+.pop { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: grid; grid-template-rows: auto minmax(0, 1fr);
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.pop-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding-block: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--surface); border-bottom: 1px solid var(--line); }
+.pop-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.zoom-label { font-family: var(--f-mono); font-size: 12px; color: var(--muted); min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; }
+.pop-body { overflow: auto; display: grid; cursor: grab; }
+.pop-body.dragging { cursor: grabbing; user-select: none; }
+.pop-tree { margin: auto; padding: 24px max(24px, env(safe-area-inset-right, 0px)) 24px max(24px, env(safe-area-inset-left, 0px)); }
+body.popped { overflow: hidden; }
+/* Type-ahead fields: one shared suggestion list that follows whichever field is focused */
+.combo-list { position: fixed; z-index: 60; max-height: 288px; overflow-y: auto; background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: 8px; box-shadow: 0 10px 28px rgb(0 0 0 / 0.18); padding: 4px; display: grid; }
+.opt { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 14px; min-height: 32px; }
+.opt[aria-selected="true"] { background: var(--accent-soft); }
+.opt .sub { margin-left: auto; padding-left: 12px; font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.opt .sub .up { color: var(--accent); } .opt .sub .down { color: var(--warn); }
+.opt mark { background: none; color: var(--accent); font-weight: 600; }
+.opt.none { color: var(--muted); cursor: default; }
+.multi { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; padding: 3px 5px; min-height: 37px; cursor: text; }
+.multi:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.multi input[type="text"] { flex: 1 1 90px; border: 0; background: transparent; padding: 4px 3px; min-width: 70px; width: auto; }
+.multi input[type="text"]:focus-visible { outline: none; }
+.pill { display: inline-flex; align-items: center; background: var(--accent-soft); border-radius: 999px; padding: 1px 2px 1px 9px; font-size: 12.5px; color: var(--ink); }
+.pill button { border: 0; background: none; cursor: pointer; color: var(--muted); padding: 0 6px; font-size: 15px; line-height: 1; }
+.pill button:hover { color: var(--warn); }
+.mon-warn { color: var(--warn); }
+/* Item icons: SVG symbols from src/items.py, the six power items in stat order, then the Everstone */
+.item-ic { display: inline-block; width: 20px; height: 20px; margin: -4px 3px -4px 0; vertical-align: middle; flex: none; overflow: visible; }
+.item-fan { display: inline-flex; vertical-align: middle; margin-right: 2px; }
+.item-fan .item-ic { margin: -4px 0; }
+.item-fan .item-ic + .item-ic { margin-left: -11px; }
+.nobr { white-space: nowrap; }
+.spr { --s: 1; display: inline-block; flex: none; width: calc(40px * var(--s)); height: calc(30px * var(--s)); background-image: var(--sheet);
+  background-repeat: no-repeat; background-size: calc(1000px * var(--s)) calc(780px * var(--s));
+  background-position: calc(var(--x) * var(--s) * -40px) calc(var(--y) * var(--s) * -30px); image-rendering: pixelated; }
+.who { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.who .name { min-width: 0; }
+.card.buy .who .spr { opacity: 0.55; }
+.btn.mini { padding: 3px 9px; font-size: 12.5px; }
+.linkbtn { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; }
+/* Saved builds */
+.save-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.builds { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 300px; overflow-y: auto; }
+.build { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); }
+.build.active { border-color: var(--accent); background: var(--accent-soft); }
+.bname { font-weight: 600; overflow-wrap: anywhere; }
+.bmeta { font-size: 12.5px; color: var(--muted); }
+.bact { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.badge { font-family: var(--f-mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent); margin-left: 8px; }
+.badge.edited { color: var(--cost); }
+.build-msg { font-size: 13px; }
+details.codes > summary { cursor: pointer; font-size: 13.5px; color: var(--muted); }
+details.codes[open] > summary { margin-bottom: 10px; }
+.codes-body { display: grid; gap: 10px; }
+textarea.code { width: 100%; min-height: 64px; resize: vertical; background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px;
+  font-family: var(--f-mono); font-size: 12px; color: var(--ink); word-break: break-all; }
+textarea.code:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Marking a Pokémon you'd buy or catch as obtained */
+.obtain { display: grid; gap: 6px; border-top: 1px dashed var(--line); padding-top: 7px; margin-top: 2px; }
+.ob-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ob-row input[type="text"] { flex: 1 1 100px; width: auto; padding: 5px 7px; }
+.obtain select { padding: 5px 7px; }
+.card [data-obtain] { justify-self: start; margin-top: 2px; }
+.card.fresh { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.rules { display: grid; gap: 10px; }
+/* Checking off breeds as you do them */
+.done-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 10px; }
+.done-row .check { font-size: 12.5px; }
+.step-state { font-size: 12.5px; color: var(--muted); }
+.step-state[data-status="next"] { color: var(--accent); font-weight: 600; }
+.step-state[data-status="done"] { color: var(--accent); }
+ol.steps li.is-done .pair { display: none; } /* a finished step shrinks to one line */
+ol.steps li.is-done .outcome { opacity: 0.6; }
+ol.steps li.is-done .stepno { background: var(--accent-soft); color: transparent; position: relative; }
+ol.steps li.is-done .stepno::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--accent); }
+ol.steps li.is-next .stepno { box-shadow: 0 0 0 4px var(--accent-soft); }
+.tn.is-done .tn-kids .card { opacity: 0.45; } /* on each card, so it doesn't compound down the tree */
+.tn.is-done > .card { background: var(--sunk); }
+.tn.is-next > .card { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.tabs .tabs-end { margin-left: auto; align-self: center; font-size: 13px; }
+.site-foot { color: var(--muted); font-size: 12.5px; text-align: center; }
+.rules ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 80ch; }
+.rules a { color: var(--accent); }
+.empty { color: var(--muted); padding: 16px; border: 1px dashed var(--line); border-radius: 8px; }
+.spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: s 0.8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+@keyframes s { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+</style>
+<script>
+// Apply a saved Light/Dark choice before the page draws, so it doesn't flash the other theme.
+try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+<noscript><p style="padding:16px">The PokeMMO Breeding Planner needs JavaScript turned on.</p></noscript>
+
+<!--ITEM-ICONS-->
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1><img class="logo" src="/*LOGO*/" alt="" width="56" height="46">PokeMMO Breeding Planner</h1>
+      <p>Enter the Pokémon you have and the one you want. The planner finds the breeding tree with the fewest breeds, which braces and Everstones each parent holds, and what it (roughly) costs.</p>
+    </div>
+    <div class="row">
+      <button class="btn" id="ex-5x31" type="button">Load 5×31 example</button>
+      <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
+    </div>
+  </header>
+
+  <div class="cols">
+    <div style="display:grid;gap:20px;min-width:0">
+      <section class="panel" aria-labelledby="h-builds">
+        <div class="panel-head"><h2 id="h-builds">Saved builds</h2><span class="eyebrow" id="builds-where">Saved in this browser</span></div>
+        <div class="save-row">
+          <label class="f">Name this setup<input type="text" id="build-name" maxlength="40" autocomplete="off"></label>
+          <button class="btn primary" type="button" id="build-save">Save</button>
+        </div>
+        <p class="build-msg" id="build-msg" role="status" hidden></p>
+        <ul class="builds" id="builds"></ul>
+        <details class="codes">
+          <summary>Move builds to another device or site with a code</summary>
+          <div class="codes-body">
+            <p class="muted small" id="codes-help"></p>
+            <div class="row"><button class="btn" type="button" id="code-this">Copy code for this setup</button><button class="btn" type="button" id="code-all">Copy code for all saved builds</button></div>
+            <textarea class="code" id="code-out" readonly hidden aria-label="Build code"></textarea>
+            <label class="f">Import a code<textarea class="code" id="code-in" spellcheck="false" placeholder="Paste a code that starts with PMB1"></textarea></label>
+            <div class="row"><button class="btn" type="button" id="code-import">Import</button></div>
+          </div>
+        </details>
+      </section>
+
+      <section class="panel" aria-labelledby="h-goal">
+        <div class="panel-head"><div class="who"><span id="t-sprite"></span><h2 id="h-goal">The Pokémon you want</h2></div><span class="eyebrow">Goal</span></div>
+        <label class="f">Common builds<select id="t-preset"></select></label>
+        <div class="preset" id="t-preset-info" hidden></div>
+        <div class="grid-target">
+          <label class="f">Species<input type="text" id="t-species" data-combo="species" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="combo-list" autocomplete="off" spellcheck="false" placeholder="Type a Pokémon"></label>
+          <label class="f">Nature<input type="text" id="t-nature" data-combo="nature" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="combo-list" autocomplete="off" spellcheck="false" placeholder="Any nature"></label>
+          <label class="f">Ability<select id="t-ability"></select></label>
+          <label class="f">Gender<select id="t-gender"><option value="A">Either</option><option value="F">♀ Female</option><option value="M">♂ Male</option></select></label>
+        </div>
+        <p class="small muted" id="t-incense" hidden></p>
+        <div style="display:grid;gap:6px">
+          <span class="eyebrow" id="t-ivs-label">IVs that must be 31</span>
+          <div class="stats" id="t-ivs"></div>
+        </div>
+        <div style="display:grid;gap:6px">
+          <label class="check"><input type="checkbox" id="t-want-moves"> I want egg moves</label>
+          <div class="stats" id="t-moves" hidden></div>
+          <div class="tm-hint" id="t-tm" hidden></div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-mons">
+        <div class="panel-head">
+          <h2 id="h-mons">Pokémon you have</h2>
+          <div class="row">
+            <label class="check"><input type="checkbox" id="exact"> Enter exact IV numbers</label>
+          </div>
+        </div>
+        <p class="muted small">Tick each stat that is 31, or switch to exact numbers. Mark the nature, ability and any egg moves a parent knows; they matter when they match your goal. Use Qty for several identical Pokémon.</p>
+        <div class="mons" id="mons"></div>
+        <div class="row"><button class="btn" id="add-mon" type="button">+ Add Pokémon</button><button class="btn ghost" id="clear-mons" type="button">Clear all</button></div>
+      </section>
+
+      <details class="panel prices-wrap" id="prices-wrap" open>
+        <summary class="panel-head"><h2>Prices and options</h2><span class="est">Prices are estimates, edit them</span></summary>
+        <div class="prices" id="prices"></div>
+        <div class="row">
+          <label class="f" style="min-width:200px">Plan for<select id="mode"><option value="breeds">Fewest breeds</option><option value="cost">Lowest cost</option></select></label>
+          <label class="check"><input type="checkbox" id="buy"> Allow buying 1×31 parents from the GTL</label>
+        </div>
+        <div class="extras">
+          <h3>TMs and held items</h3>
+          <p class="muted small">Add what the finished Pokémon needs and it goes into the total. A TM for one of your egg moves means that move no longer has to be bred in.</p>
+          <div class="extras-list" id="extras"></div>
+          <label class="f extra-add">Add a TM or held item<select id="extra-add"></select></label>
+        </div>
+      </details>
+    </div>
+
+    <section class="panel results" aria-labelledby="h-plan" id="results-panel">
+      <div class="panel-head"><h2 id="h-plan">Breeding plan</h2><span class="eyebrow" id="plan-status"></span></div>
+      <div id="results"><div class="empty">Add your Pokémon to see a plan.</div></div>
+    </section>
+  </div>
+
+  <section class="panel rules" aria-labelledby="h-rules">
+    <h2 id="h-rules">PokeMMO breeding rules this planner follows</h2>
+    <ul>
+      <li><b>Both parents are consumed.</b> The Daycare keeps both parents and any items they hold, so every parent in the tree is used up.</li>
+      <li><b>Compatibility.</b> Parents must be opposite genders and share an egg group. Ditto breeds with anything that can breed (not with another Ditto). Pokémon in the Undiscovered group can't breed. Genderless Pokémon breed only with Ditto.</li>
+      <li><b>Species.</b> The egg is the mother's species at its first evolution stage. With Ditto, it is the other parent's species.</li>
+      <li><b>Incense babies.</b> These babies only hatch when a parent holds the matching incense: <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-sea"/></svg>Sea Incense, Azurill</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-lax"/></svg>Lax Incense, Wynaut</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-full"/></svg>Full Incense, Munchlax</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-odd"/></svg>Odd Incense, Mime Jr.</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-rock"/></svg>Rock Incense, Bonsly</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-rose"/></svg>Rose Incense, Budew</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-pure"/></svg>Pure Incense, Chingling</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-luck"/></svg>Luck Incense, Happiny</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-wave"/></svg>Wave Incense, Mantyke</span>. Without it the egg is the next stage (Marill, Wobbuffet, Snorlax and so on). The incense uses that parent's item slot. When your goal is one of these babies, the plan puts the incense in the last breed. Each incense costs $9,600 at the mart.</li>
+      <li><b>One item per parent.</b> A Power item (brace) guarantees that parent's IV in its stat: <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-0"/></svg>Power Weight HP</span>, <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-1"/></svg>Power Bracer Attack</span>, <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-2"/></svg>Power Belt Defense</span>, <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-3"/></svg>Power Lens Sp. Atk</span>, <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-4"/></svg>Power Band Sp. Def</span>, <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-5"/></svg>Power Anklet Speed</span>. Two parents can lock two different stats.</li>
+      <li><b>Shared stats carry over.</b> Each IV the egg doesn't take from a parent becomes the parents' average, rounded down. So a stat where both parents are 31 is always 31. That is why every breed in the plan pairs parents that share all but one stat each, and why each extra 31 doubles the number of parents.</li>
+      <li><b>Nature.</b> A parent holding an <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-6"/></svg>Everstone</span> passes its nature. It can't hold a brace in the same breed, which is why a fixed nature roughly doubles the parents needed.</li>
+      <li><b>Ability.</b> The ability comes from the mother, or from the non-Ditto parent when breeding with Ditto. Hidden abilities pass about 60% of the time. The planner keeps the parent with your ability on the mother's side and shows the overall chance. The regular-ability chance (80%) is the main-series figure; PokeMMO's exact rate is unconfirmed.</li>
+      <li><b>Egg moves.</b> Egg moves come from the father. The planner puts a father who knows your egg moves in the final breed, and can chain them through other species that also have the move as an egg move.</li>
+      <li><b>Gender selection.</b> You can pay the Daycare to choose the egg's gender: $5,000 for 1:1 species, $10,000 for 3:1, $25,000 for 7:1. The plan picks a gender whenever the child is used as a parent later.</li>
+      <li><b>What the planner counts as guaranteed.</b> Only braced stats and stats both parents share. Any extra 31s from the random third inherited IV are luck and not counted.</li>
+    </ul>
+    <p class="muted small">Sources: <a href="https://pokemmo.shoutwiki.com/wiki/Breeding" target="_blank" rel="noopener">PokeMMO Wiki: Breeding</a> and <a href="https://www.pikammo.fr/Pokemmo/en/tools/breeding" target="_blank" rel="noopener">PikaMMO breeding guide</a>. Species, egg groups, gender ratios, abilities, egg moves and who can learn each TM come from Pokémon Showdown's data, which can differ from PokeMMO in places. TM prices are mart prices from the PokeMMO Wiki; held item prices are guesses. Box icons, item icons and the Smeargle box icon behind the Smearguru logo are from or based on <a href="https://github.com/PokeAPI/sprites" target="_blank" rel="noopener">PokeAPI/sprites</a>. Unofficial fan tool, not affiliated with PokeMMO; Pokémon © Nintendo, Game Freak and The Pokémon Company.</p>
+  </section>
+  <p class="site-foot">PokeMMO Breeding Planner · updated /*BUILT*/</p>
+</div>
+
+<div class="pop" id="tree-pop" role="dialog" aria-modal="true" aria-labelledby="pop-title" hidden>
+  <div class="pop-bar">
+    <h2 id="pop-title">Breeding tree</h2>
+    <div class="pop-tools">
+      <div class="seg" role="group" aria-label="Tree layout"><button type="button" data-dir="lr">Left to right</button><button type="button" data-dir="td">Top down</button></div>
+      <div class="seg" role="group" aria-label="Zoom"><button type="button" id="zoom-out" aria-label="Zoom out" title="Zoom out (Ctrl −)">−</button><button type="button" id="zoom-fit" title="Fit to screen (Ctrl 0)">Fit</button><button type="button" id="zoom-in" aria-label="Zoom in" title="Zoom in (Ctrl +)">+</button></div>
+      <span class="zoom-label" id="zoom-label">100%</span>
+      <button class="btn" type="button" id="pop-close">Close</button>
+    </div>
+  </div>
+  <div class="pop-body" id="pop-body"><div class="pop-tree" id="pop-tree"></div></div>
+</div>
+
+<div class="combo-list" id="combo-list" role="listbox" hidden></div>
+
+<script id="planner-src">
+/*PLANNER*/
+</script>
+<script>
+const SPECIES = /*SPECIES*/[];
+const SHEET = '/*SHEET*/';
+document.documentElement.style.setProperty('--sheet', `url(${SHEET})`);
+const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+const STAT_LABEL = ['HP', 'Atk', 'Def', 'SpA', 'SpD', 'Spe'];
+const BRACE = ['Power Weight', 'Power Bracer', 'Power Belt', 'Power Lens', 'Power Band', 'Power Anklet'];
+const EVERSTONE = 6; // its icon number, after the six braces
+const itemIcon = (i) => `<svg class="item-ic" aria-hidden="true"><use href="#it-${i}"/></svg>`;
+const incenseIcon = (name) => `<svg class="item-ic" aria-hidden="true"><use href="#it-in-${name.split(' ')[0].toLowerCase()}"/></svg>`;
+const braceFan = () => `<span class="item-fan" aria-hidden="true">${BRACE.map((_, i) => itemIcon(i)).join('')}</span>`;
+const NATURES = ['Adamant','Bashful','Bold','Brave','Calm','Careful','Docile','Gentle','Hardy','Hasty','Impish','Jolly','Lax','Lonely','Mild','Modest','Naive','Naughty','Quiet','Quirky','Rash','Relaxed','Sassy','Serious','Timid'];
+const PRICE_FIELDS = [
+  ['brace', 'Brace, any stat', 10000],
+  ['everstone', 'Everstone', 5000],
+  ['incense', 'Incense, any kind', 9600],
+  ['gender11', 'Gender pick, 1:1 species', 5000],
+  ['gender31', 'Gender pick, 3:1 species', 10000],
+  ['gender71', 'Gender pick, 7:1 species', 25000],
+  ['buy', 'Buy a 1×31 Pokémon', 5000],
+  ['buyNatured', 'Buy a 1×31 with your nature', 8000],
+  ['buyDitto', 'Buy a 1×31 Ditto', 15000],
+  ['haChance', 'Hidden ability pass chance %', 60],
+  ['abilityChance', 'Regular ability pass chance %', 80],
+];
+// TMs and held items the finished Pokémon can need. TM prices are mart prices from the PokeMMO Wiki.
+// Held items cost BP, so their dollar prices are rough GTL guesses.
+const EXTRAS = [
+  { key: 'tm-false-swipe', tm: 'False Swipe', price: 10000, where: 'Vermilion City or Slateport City mart' },
+  { key: 'tm-thunder-wave', tm: 'Thunder Wave', price: 25000, where: 'Cinnabar Island or Sootopolis City mart' },
+  { key: 'tm-thief', tm: 'Thief', price: 10000, where: 'Vermilion City or Slateport City mart' },
+  { key: 'tm-toxic', tm: 'Toxic', price: 25000, where: 'Cinnabar Island or Sootopolis City mart' },
+  { key: 'tm-substitute', tm: 'Substitute', price: 30000, where: 'Cinnabar Island or Sootopolis City mart' },
+  { key: 'tm-swords-dance', tm: 'Swords Dance', price: 30000, where: 'Cinnabar Island or Sootopolis City mart' },
+  { key: 'toxic-orb', item: 'Toxic Orb', price: 30000, where: 'BP shop or the GTL' },
+  { key: 'leftovers', item: 'Leftovers', price: 25000, where: 'BP shop or the GTL' },
+  { key: 'choice-scarf', item: 'Choice Scarf', price: 50000, where: 'BP shop or the GTL' },
+  { key: 'choice-specs', item: 'Choice Specs', price: 50000, where: 'BP shop or the GTL' },
+  { key: 'focus-sash', item: 'Focus Sash', price: 10000, where: 'BP shop or the GTL' },
+  { key: 'amulet-coin', item: 'Amulet Coin', price: 0, where: 'Free from an NPC, for example in Castelia City' },
+];
+const EXTRA = Object.fromEntries(EXTRAS.map((x) => [x.key, x]));
+const extraName = (x) => (x.tm ? `TM ${x.tm}` : x.item);
+// Dex numbers of the species that can learn each TM (data/tms.json).
+const TM_LEARNERS = Object.fromEntries(Object.entries(/*TMS*/{}).map(([mv, nums]) => [mv, new Set(nums)]));
+const defaultPrices = () => Object.fromEntries([...PRICE_FIELDS.map(([k, , v]) => [k, v]), ...EXTRAS.map((x) => [x.key, x.price])]);
+const dex = Planner.buildDex(SPECIES);
+const sp = (name) => dex.byName.get(String(name || '').trim().toLowerCase());
+const $ = (id) => document.getElementById(id);
+const money = (n) => '$' + Math.round(n).toLocaleString('en-US');
+// Box icon from the sprite sheet (25 per row, 40x30 each, ordered by dex number).
+// Unknown or empty species get the "?" icon at the end of the sheet.
+function sprite(name, scale = 2) {
+  const s = sp(name);
+  const i = s && s.i ? s.i - 1 : 649;
+  return `<span class="spr" style="--x:${i % 25};--y:${Math.floor(i / 25)};--s:${scale}" role="img" aria-label="${s ? esc(s.n) : 'Unknown Pokémon'}"></span>`;
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let uid = 1;
+
+// What a first-time visitor sees.
+function torkoalExample() {
+  return {
+    target: { species: 'Torkoal', ivs: [31, 31, null, null, null, null], gender: 'A', nature: 'Modest', ability: 'Drought', wantMoves: false, moves: [] }, extras: [],
+    mons: [
+      { id: uid++, species: 'Torkoal', gender: 'F', ivs: [31, null, null, null, null, null], nature: 'Modest', ability: 'Drought', moves: [], qty: 1 },
+      { id: uid++, species: 'Sandshrew', gender: 'M', ivs: [null, 31, null, null, null, null], nature: '', ability: '', moves: [], qty: 1 },
+    ],
+  };
+}
+function fiveExample() {
+  const mons = [];
+  // 8 females and 8 males with one 31 each: exactly the 16 parents a 5x31 needs
+  const stat = [0, 1, 2, 3, 5], fem = [2, 2, 2, 1, 1], male = [2, 2, 1, 1, 2];
+  stat.forEach((s, j) => {
+    const iv = [null, null, null, null, null, null]; iv[s] = 31;
+    mons.push({ id: uid++, species: 'Torkoal', gender: 'F', ivs: iv.slice(), nature: '', ability: '', moves: [], qty: fem[j] });
+    mons.push({ id: uid++, species: 'Sandshrew', gender: 'M', ivs: iv.slice(), nature: '', ability: '', moves: [], qty: male[j] });
+  });
+  return { target: { species: 'Torkoal', ivs: [31, 31, 31, 31, null, 31], gender: 'A', nature: '', ability: '', wantMoves: false, moves: [] }, mons, extras: [] };
+}
+
+// Everything a saved build or build code holds, cleaned up so a damaged or old copy can't break the page.
+const ivList = (a) => Array.from({ length: 6 }, (_, i) => { const v = Array.isArray(a) ? a[i] : null; return typeof v === 'number' && isFinite(v) ? Math.max(0, Math.min(31, Math.round(v))) : null; });
+const str = (v) => (typeof v === 'string' ? v.slice(0, 40) : '');
+const strs = (a) => (Array.isArray(a) ? a : String(a || '').split(',')).filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim().slice(0, 40)).slice(0, 30);
+function normalizeData(d) {
+  if (!d || typeof d !== 'object' || !d.target || typeof d.target !== 'object' || !Array.isArray(d.mons)) return null;
+  const t = d.target, P = d.prices && typeof d.prices === 'object' ? d.prices : {};
+  return {
+    target: { species: str(t.species), ivs: ivList(t.ivs), gender: t.gender === 'F' || t.gender === 'M' ? t.gender : 'A', nature: NATURES.includes(t.nature) ? t.nature : '',
+      ability: str(t.ability), wantMoves: !!t.wantMoves, moves: strs(t.moves) },
+    mons: d.mons.filter((m) => m && typeof m === 'object').slice(0, 63).map((m) => ({ species: str(m.species), gender: ['F', 'M', 'N'].includes(m.gender) ? m.gender : 'F',
+      ivs: ivList(m.ivs), nature: NATURES.includes(m.nature) ? m.nature : '', ability: str(m.ability), moves: strs(m.moves), qty: Math.max(1, Math.min(20, parseInt(m.qty, 10) || 1)) })),
+    prices: Object.fromEntries(Object.entries(defaultPrices()).map(([k, v]) => [k, typeof P[k] === 'number' && isFinite(P[k]) ? P[k] : v])),
+    extras: Array.isArray(d.extras) ? d.extras.filter((k, i, a) => EXTRA[k] && a.indexOf(k) === i) : [],
+    mode: d.mode === 'cost' ? 'cost' : 'breeds', buy: !!d.buy, exact: !!d.exact,
+    done: Array.isArray(d.done) ? d.done.filter((x) => typeof x === 'string' && /^[a-z0-9.]{1,24}$/.test(x)).slice(-300) : [],
+  };
+}
+// The current setup in the same shape, so it can be saved or compared with a saved build.
+function buildData() { return normalizeData(state); }
+
+let state = load() || { ...torkoalExample(), prices: defaultPrices(), mode: 'breeds', buy: false, exact: false, treeDir: 'lr', buildId: null, done: [] };
+function save() { try { localStorage.setItem('pokemmo-breeding-v1', JSON.stringify(state)); } catch (e) {} }
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem('pokemmo-breeding-v1'));
+    const d = normalizeData(s);
+    if (d) return { ...d, mons: d.mons.map((m) => ({ id: uid++, ...m })), treeDir: s.treeDir === 'td' ? 'td' : 'lr', buildId: typeof s.buildId === 'string' ? s.buildId : null };
+  } catch (e) {}
+  return null;
+}
+
+// ---------- inputs ----------
+
+function abilityOptions(name, anyLabel) {
+  const s = sp(name);
+  let h = `<option value="">${anyLabel}</option>`;
+  if (s) { for (const a of s.a) h += `<option value="${esc(a)}">${esc(a)}</option>`; if (s.h) h += `<option value="${esc(s.h)}">${esc(s.h)} (hidden)</option>`; }
+  return h;
+}
+function genderChoices(name) {
+  const s = sp(name);
+  if (!s) return ['F', 'M'];
+  if (s.n === 'Ditto' || s.g === 'N') return ['N'];
+  if (s.g === 'M') return ['M'];
+  if (s.g === 'F') return ['F'];
+  return ['F', 'M'];
+}
+const G_LABEL = { F: '♀ Female', M: '♂ Male', N: 'Genderless' };
+
+function ivControl(ivs, idx, prefix, exact, labelPrefix) {
+  const k = STAT_KEYS[idx], v = ivs[idx];
+  if (exact) return `<label class="ivnum s-${k}">${STAT_LABEL[idx]}<input type="number" min="0" max="31" inputmode="numeric" id="${prefix}-iv${idx}" data-iv="${idx}" value="${v == null ? '' : v}" placeholder="–" aria-label="${labelPrefix} ${STAT_LABEL[idx]} IV"></label>`;
+  return `<label class="chip s-${k}"><input type="checkbox" id="${prefix}-iv${idx}" data-iv="${idx}" ${v === 31 ? 'checked' : ''}>${STAT_LABEL[idx]} <span class="v">31</span></label>`;
+}
+
+function targetEggMoves() {
+  const s = sp(state.target.species), base = s ? sp(s.b || s.n) : null;
+  return (base && base.m) || [];
+}
+function renderTarget() {
+  const t = state.target;
+  $('t-species').value = t.species;
+  $('t-nature').value = t.nature;
+  $('t-gender').value = t.gender;
+  $('t-ivs-label').textContent = state.exact ? 'Minimum IVs you want (blank = don\'t care)' : 'IVs that must be 31';
+  $('t-ivs').innerHTML = STAT_KEYS.map((_, i) => ivControl(t.ivs, i, 't', state.exact, 'Target')).join('');
+  renderTargetSpecies();
+  renderPreset();
+}
+// The parts of the goal that depend on the species.
+function renderTargetSpecies() {
+  const t = state.target;
+  $('t-sprite').innerHTML = sprite(t.species, 1);
+  $('t-ability').innerHTML = abilityOptions(t.species, 'Any ability');
+  $('t-ability').value = t.ability;
+  $('t-want-moves').checked = t.wantMoves;
+  const moves = targetEggMoves();
+  $('t-moves').hidden = !t.wantMoves;
+  $('t-moves').innerHTML = moves.length
+    ? moves.map((m, i) => `<label class="chip"><input type="checkbox" id="t-move-${i}" data-move="${esc(m)}" ${t.moves.includes(m) ? 'checked' : ''}>${esc(m)}</label>`).join('')
+    : '<span class="muted small">No egg moves listed for this species.</span>';
+  const s = sp(t.species), inc = s && dex.incenseOf(s.n);
+  $('t-incense').hidden = !inc;
+  $('t-incense').innerHTML = inc ? `${esc(s.n)} only hatches when a parent holds a <span class="nobr">${incenseIcon(inc)}<b>${inc}</b></span>, so the plan gives one to a parent in the last breed. That parent can't also hold a brace or Everstone. Without it the egg would be a ${esc(Planner.INCENSE[s.n][0])}.` : '';
+  renderTmHint(); renderExtras();
+}
+// Wanted egg moves that a TM in the list takes care of, and the ones that still have to be bred in.
+const tmOf = (move) => EXTRAS.find((x) => x.tm === move);
+const tmMoves = () => (state.target.wantMoves ? state.target.moves.filter((mv) => tmOf(mv) && state.extras.includes(tmOf(mv).key)) : []);
+const bredMoves = () => (state.target.wantMoves ? state.target.moves.filter((mv) => !tmMoves().includes(mv)) : []);
+const canLearnTm = (species, move) => { const s = sp(species); return !s || !TM_LEARNERS[move] || TM_LEARNERS[move].has(s.i); };
+const tmWarning = (move) => (canLearnTm(state.target.species, move) ? '' : `The move data says ${esc(state.target.species)} can't learn ${esc(move)} from a TM, so check before buying it.`);
+// Under the egg moves: teach one with its TM instead of breeding it in.
+function renderTmHint() {
+  const t = state.target, tms = t.wantMoves ? t.moves.map(tmOf).filter(Boolean) : [];
+  $('t-tm').hidden = !tms.length;
+  $('t-tm').innerHTML = tms.map((x) => `<label class="check"><input type="checkbox" id="t-tm-${x.key}" data-tm="${x.key}" ${state.extras.includes(x.key) ? 'checked' : ''}> Teach ${esc(x.tm)} with the TM instead (${money(state.prices[x.key])})</label>`).join('');
+}
+function renderExtras() {
+  $('extras').innerHTML = state.extras.map((k) => {
+    const x = EXTRA[k], name = extraName(x);
+    const notes = [esc(x.where) + '.'];
+    if (x.tm) notes.push(tmMoves().includes(x.tm) ? `Taught after hatching, so ${esc(x.tm)} isn't bred in.` : 'Taught after hatching.');
+    const warn = x.tm ? tmWarning(x.tm) : '';
+    return `<div class="extra"><div class="extra-name"><b>${esc(name)}</b><span class="muted small">${notes.join(' ')}</span>${warn ? `<span class="small warn-text">${warn}</span>` : ''}</div>`
+      + `<input type="number" min="0" step="500" id="p-${k}" data-p="${k}" value="${state.prices[k]}" aria-label="${esc(name)} price">`
+      + `<button class="btn ghost" type="button" data-unextra="${k}" aria-label="Remove ${esc(name)}">Remove</button></div>`;
+  }).join('');
+  const left = EXTRAS.filter((x) => !state.extras.includes(x.key));
+  const group = (label, list) => (list.length ? `<optgroup label="${label}">${list.map((x) => `<option value="${x.key}">${esc(extraName(x))}</option>`).join('')}</optgroup>` : '');
+  $('extra-add').innerHTML = `<option value="">${left.length ? 'Choose one' : 'All added'}</option>` + group('TMs', left.filter((x) => x.tm)) + group('Held items', left.filter((x) => x.item));
+}
+function setExtra(key, on) {
+  state.extras = state.extras.filter((k) => k !== key);
+  if (on) state.extras.push(key);
+  renderTmHint(); renderExtras(); changed();
+}
+$('extra-add').addEventListener('change', (e) => { if (e.target.value) setExtra(e.target.value, true); });
+$('extras').addEventListener('click', (e) => { const b = e.target.closest('[data-unextra]'); if (b) { setExtra(b.dataset.unextra, false); $('extra-add').focus(); } });
+
+function genderOptions(m) {
+  const gs = genderChoices(m.species);
+  if (!gs.includes(m.gender)) m.gender = gs[0];
+  return gs.map((g) => `<option value="${g}" ${g === m.gender ? 'selected' : ''}>${G_LABEL[g]}</option>`).join('');
+}
+function monAbilityOptions(m) { return abilityOptions(m.species, 'Other / unknown').replace(`value="${esc(m.ability)}"`, `value="${esc(m.ability)}" selected`); }
+function monWarning(m) {
+  const s = sp(m.species);
+  if (s && s.e.includes('Undiscovered') && dex.lines.get(dex.lineOf(s.n)).groups.size) return 'Babies can\'t breed until they evolve, so this one is only used if it already is your goal.';
+  return s ? '' : m.species ? 'Unknown species. Pick one from the list.' : 'Type a species name.';
+}
+function movePills(m) {
+  return m.moves.map((mv) => `<span class="pill">${esc(mv)}<button type="button" data-unmove="${esc(mv)}" aria-label="Remove ${esc(mv)}">×</button></span>`).join('');
+}
+// Update one row after its species changes, without rebuilding the inputs around it.
+function refreshMonRow(m) {
+  const card = document.querySelector(`.mon[data-id="${m.id}"]`);
+  if (!card) return;
+  card.querySelector('.mon-idx .spr').outerHTML = sprite(m.species, 1);
+  $(`m${m.id}-gender`).innerHTML = genderOptions(m);
+  $(`m${m.id}-ability`).innerHTML = monAbilityOptions(m);
+  const w = card.querySelector('.mon-warn');
+  w.textContent = monWarning(m); w.hidden = !w.textContent;
+}
+function renderMons() {
+  $('mons').innerHTML = state.mons.map((m, n) => {
+    const warn = monWarning(m);
+    return `<div class="mon" data-id="${m.id}">
+      <div class="mon-top">
+        <span class="mon-idx">${sprite(m.species, 1)}#${n + 1}</span>
+        <label class="f">Species<input type="text" id="m${m.id}-species" data-combo="species" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="combo-list" autocomplete="off" spellcheck="false" placeholder="Type a Pokémon" value="${esc(m.species)}"></label>
+        <label class="f">Gender<select id="m${m.id}-gender" data-f="gender">${genderOptions(m)}</select></label>
+        <label class="f qty">Qty<input type="number" min="1" max="20" id="m${m.id}-qty" data-f="qty" value="${m.qty}"></label>
+        <button class="btn ghost rm" type="button" data-rm="${m.id}" aria-label="Remove #${n + 1}">Remove</button>
+      </div>
+      <p class="small mon-warn" ${warn ? '' : 'hidden'}>${warn}</p>
+      <div class="mon-mid">
+        <div class="stats">${STAT_KEYS.map((_, i) => ivControl(m.ivs, i, 'm' + m.id, state.exact, '#' + (n + 1))).join('')}</div>
+        <label class="check"><input type="checkbox" id="m${m.id}-all" data-all="1" ${m.ivs.every((v) => v === 31) ? 'checked' : ''}> All 31</label>
+      </div>
+      <div class="mon-bot">
+        <label class="f">Nature<input type="text" id="m${m.id}-nature" data-combo="nature" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="combo-list" autocomplete="off" spellcheck="false" placeholder="Other / unknown" value="${esc(m.nature)}"></label>
+        <label class="f">Ability<select id="m${m.id}-ability" data-f="ability">${monAbilityOptions(m)}</select></label>
+        <div class="f"><span id="m${m.id}-moves-l">Egg moves it knows</span><div class="multi">${movePills(m)}<input type="text" id="m${m.id}-moves" data-combo="moves" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="combo-list" aria-labelledby="m${m.id}-moves-l" autocomplete="off" spellcheck="false" placeholder="Add egg move"></div></div>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty">No Pokémon yet. Add the ones you plan to breed with.</div>';
+}
+
+function renderPrices() {
+  const icon = { brace: braceFan(), everstone: itemIcon(EVERSTONE), incense: incenseIcon('Sea Incense') };
+  $('prices').innerHTML = PRICE_FIELDS.map(([k, label]) => `<label class="f"><span>${icon[k] || ''}${label}</span><input type="number" min="0" step="${k.endsWith('Chance') ? 5 : 500}" id="p-${k}" data-p="${k}" value="${state.prices[k]}"></label>`).join('');
+  $('mode').value = state.mode;
+  $('buy').checked = state.buy;
+  $('exact').checked = state.exact;
+}
+
+function renderAll() { renderTarget(); renderMons(); renderPrices(); schedule(); }
+
+function readIv(el) { if (el.type === 'checkbox') return el.checked ? 31 : null; const v = el.value.trim(); if (v === '') return null; return Math.max(0, Math.min(31, parseInt(v, 10) || 0)); }
+
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  if (el.dataset.combo) return;
+  if (el.id === 'build-name') return syncBuildUi();
+  if (el.closest('#t-ivs')) { state.target.ivs[+el.dataset.iv] = readIv(el); return changed(); }
+  if (el.dataset.move) { const t = state.target; t.moves = t.moves.filter((x) => x !== el.dataset.move); if (el.checked) t.moves.push(el.dataset.move); renderTmHint(); renderExtras(); return changed(); }
+  if (el.dataset.tm) return setExtra(el.dataset.tm, el.checked);
+  if (el.dataset.p) { state.prices[el.dataset.p] = parseFloat(el.value) || 0; if (EXTRA[el.dataset.p]) renderTmHint(); return changed(); }
+  const card = el.closest('.mon');
+  if (card) {
+    const m = state.mons.find((x) => x.id === +card.dataset.id);
+    if (el.dataset.iv != null) { m.ivs[+el.dataset.iv] = readIv(el); const all = card.querySelector('[data-all]'); all.checked = m.ivs.every((v) => v === 31); return changed(); }
+    if (el.dataset.all) { m.ivs = m.ivs.map(() => (el.checked ? 31 : null)); renderMons(); return changed(); }
+    const f = el.dataset.f;
+    if (f === 'qty') m.qty = Math.max(1, Math.min(20, parseInt(el.value, 10) || 1));
+    else if (f) m[f] = el.value;
+    return changed();
+  }
+});
+document.addEventListener('change', (e) => {
+  const el = e.target;
+  if (el.id === 't-ability') { state.target.ability = el.value; return changed(); }
+  if (el.id === 't-gender') { state.target.gender = el.value; return changed(); }
+  if (el.id === 't-want-moves') { state.target.wantMoves = el.checked; renderTarget(); return changed(); }
+  if (el.id === 'mode') { state.mode = el.value; return changed(); }
+  if (el.id === 'buy') { state.buy = el.checked; return changed(); }
+  if (el.id === 'exact') { state.exact = el.checked; renderTarget(); renderMons(); return changed(); }
+});
+function focusField(id, f) { const el = $(`m${id}-${f}`); if (el) { el.focus(); const n = el.value.length; try { el.setSelectionRange(n, n); } catch (e) {} } }
+document.addEventListener('click', (e) => {
+  const rm = e.target.closest('[data-rm]');
+  if (rm) { state.mons = state.mons.filter((m) => m.id !== +rm.dataset.rm); renderMons(); changed(); return; }
+  const un = e.target.closest('[data-unmove]');
+  if (un) {
+    const m = monOf(un);
+    m.moves = m.moves.filter((x) => x !== un.dataset.unmove);
+    renderPills(m); changed(); $(`m${m.id}-moves`).focus(); return;
+  }
+  const multi = e.target.closest('.multi');
+  if (multi && e.target === multi) multi.querySelector('input').focus();
+});
+$('add-mon').addEventListener('click', () => {
+  const t = sp(state.target.species);
+  state.mons.push({ id: uid++, species: t ? t.n : '', gender: 'F', ivs: [null, null, null, null, null, null], nature: '', ability: '', moves: [], qty: 1 });
+  renderMons(); changed(); focusField(state.mons[state.mons.length - 1].id, 'species');
+});
+$('clear-mons').addEventListener('click', () => { state.mons = []; renderMons(); changed(); });
+function loadExample(ex) {
+  const prev = { data: buildData(), buildId: state.buildId, name: $('build-name').value };
+  Object.assign(state, ex, { buildId: null, done: [] });
+  $('build-name').value = '';
+  renderAll(); save(); renderBuilds();
+  say('Loaded the example.', () => restoreSetup(prev, 'Back to your previous setup.'));
+}
+$('ex-5x31').addEventListener('click', () => loadExample(fiveExample()));
+
+function changed() { save(); schedule(); syncBuildUi(); renderPreset(); }
+
+// ---------- common builds ----------
+// Picking one fills in the goal and starts a fresh Pokémon list. Only real egg moves go into the goal;
+// moves learned another way are listed in the build's notes. `items` are the TMs and held items it adds.
+const PRESETS = [
+  { key: 'breloom', label: 'Catching Breloom', species: 'Breloom', nature: 'Adamant', ability: 'Poison Heal', eggMoves: ['False Swipe'], items: ['toxic-orb'],
+    sets: [{ label: 'Atk + Spe', ivs: [null, 31, null, null, null, 31] }],
+    facts: [['Item', 'Toxic Orb'], ['Moves', 'False Swipe, Spore']],
+    notes: ['False Swipe is an egg move, so the plan needs a male that knows it. Tick "Teach False Swipe with the TM instead" to skip that and buy the TM.',
+      'Spore isn\'t an egg move. Shroomish learns it by level-up.'] },
+  { key: 'smeargle', label: 'Catching Smeargle', species: 'Smeargle', nature: 'Adamant', ability: 'Technician', eggMoves: [],
+    sets: [{ label: 'Ideal 5×31', ivs: [31, 31, 31, null, 31, 31], note: 'Everything but SpA at 31.' },
+      { label: 'Budget 2×31', ivs: [null, 31, null, null, null, 31], note: 'Atk and Spe at 31, the rest as high as you can get. Much cheaper to breed.' }],
+    facts: [['EVs', '58 HP, 252 Atk, 200 Spe'], ['Item', 'Leftovers, Silk Scarf or Choice Band, depending on use'], ['Moves', 'False Swipe, Spore, Substitute, Soak']],
+    notes: ['Smeargle learns all four moves through Sketch, so there is nothing to breed in.'] },
+  { key: 'typhlosion', label: 'Gym re-run Typhlosion', species: 'Typhlosion', nature: 'Modest', ability: '', eggMoves: [],
+    sets: [{ label: 'SpA + Spe', ivs: [null, null, null, 31, null, 31] }],
+    facts: [['Moves', 'Eruption']],
+    notes: ['Eruption isn\'t an egg move. Typhlosion learns it by level-up.'] },
+  { key: 'dusknoir', label: 'Thief Dusknoir (fossil farming)', species: 'Dusknoir', nature: 'Bold', ability: 'Frisk', eggMoves: [], items: ['tm-thief'],
+    sets: [{ label: 'HP + Def', ivs: [31, null, 31, null, null, null], note: 'SpD as high as you can get.' },
+      { label: '+ SpD (ideal)', ivs: [31, null, 31, null, 31, null], note: 'SpD at 31 too.' }],
+    facts: [['EVs', '252 HP, 252 Def, 6 SpA'], ['Moves', 'Thief, Trick, Absorb, Taunt']],
+    notes: ['Frisk is Dusknoir\'s hidden ability, so it has to come from the mother\'s side.',
+      'None of the four moves are egg moves for Duskull, so teach them after hatching.',
+      'Max the PP on Thief and Trick with PP Ups so it lasts longer. Absorb too if you can, but it\'s optional.'] },
+];
+$('t-preset').innerHTML = '<option value="">None, fill in my own</option>' + PRESETS.map((p) => `<option value="${p.key}">${esc(p.label)}</option>`).join('');
+// The build the goal currently matches; the IVs can be any of its versions.
+const presetOf = (t) => PRESETS.find((p) => p.species === t.species && p.nature === t.nature && p.ability === t.ability) || null;
+function renderPreset() {
+  const t = state.target, p = presetOf(t);
+  const set = p && p.sets.find((x) => JSON.stringify(x.ivs) === JSON.stringify(t.ivs));
+  $('t-preset').value = p ? p.key : '';
+  const box = $('t-preset-info'), sig = p ? p.key + '|' + (set ? set.label : '') : '';
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  box.hidden = !p;
+  if (!p) { box.innerHTML = ''; return; }
+  const ivs = p.sets.length > 1
+    ? `<div class="seg" role="group" aria-label="IV version">${p.sets.map((x, i) => `<button type="button" data-preset-set="${i}" aria-pressed="${x === set}">${esc(x.label)}</button>`).join('')}</div>`
+    : esc(p.sets[0].label);
+  const notes = [set && set.note, ...p.notes].filter(Boolean);
+  box.innerHTML = `<dl><dt>IVs</dt><dd>${ivs}</dd>${p.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`
+    + `<ul>${notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>`;
+}
+// A new start: the goal and the Pokémon list are replaced, and the loaded saved build is let go so Save
+// can't overwrite it. Undo brings all of it back.
+function startGoal(target, mons, extras, msg) {
+  const prev = { data: buildData(), buildId: state.buildId, name: $('build-name').value };
+  Object.assign(state, { target, mons, extras, buildId: null, done: [] });
+  $('build-name').value = '';
+  closeCombo(); obtainNote = null;
+  renderAll(); save(); renderBuilds();
+  say(msg, () => restoreSetup(prev, 'Back to your previous setup.'));
+}
+function applyPreset(p) {
+  startGoal({ species: p.species, ivs: p.sets[0].ivs.slice(), gender: 'A', nature: p.nature, ability: p.ability, wantMoves: p.eggMoves.length > 0, moves: p.eggMoves.slice() },
+    [{ id: uid++, species: p.species, gender: 'F', ivs: [null, null, null, null, null, null], nature: '', ability: '', moves: [], qty: 1 }], (p.items || []).slice(),
+    `Loaded ${p.label}. Fill in the Pokémon you have, starting with the ${p.species} row.`);
+}
+// "None" empties the goal, otherwise the preset would still match it and the dropdown would jump back.
+function clearGoal() {
+  startGoal({ species: '', ivs: [null, null, null, null, null, null], gender: 'A', nature: '', ability: '', wantMoves: false, moves: [] }, [], [],
+    'Cleared, fill in your own goal and Pokémon.');
+  $('t-species').focus();
+}
+$('t-preset').addEventListener('change', (e) => { const p = PRESETS.find((x) => x.key === e.target.value); if (p) applyPreset(p); else clearGoal(); });
+$('t-preset-info').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-preset-set]'), p = presetOf(state.target);
+  if (!btn || !p) return;
+  state.target.ivs = p.sets[+btn.dataset.presetSet].ivs.slice();
+  renderTarget(); changed();
+});
+
+// ---------- type-ahead fields: species, nature, egg moves ----------
+const NATURE_FX = { Adamant: [1, 3], Bold: [2, 1], Brave: [1, 5], Calm: [4, 1], Careful: [4, 3], Gentle: [4, 2], Hasty: [5, 2], Impish: [2, 3], Jolly: [5, 3], Lax: [2, 4],
+  Lonely: [1, 2], Mild: [3, 2], Modest: [3, 1], Naive: [5, 4], Naughty: [1, 4], Quiet: [3, 5], Rash: [3, 4], Relaxed: [2, 5], Sassy: [4, 5], Timid: [5, 1] };
+const SPECIES_ITEMS = SPECIES.map((s) => ({ value: s.n, label: s.n, icon: sprite(s.n, 1) }));
+const combo = { el: null, items: [], active: -1, q: '' };
+const list = $('combo-list');
+function monOf(el) { const card = el.closest('.mon'); return card && state.mons.find((x) => x.id === +card.dataset.id); }
+function renderPills(m) {
+  const multi = $(`m${m.id}-moves`).parentElement;
+  multi.querySelectorAll('.pill').forEach((p) => p.remove());
+  multi.insertAdjacentHTML('afterbegin', movePills(m));
+}
+function natureSub(n) {
+  const fx = NATURE_FX[n];
+  return fx ? `<span class="up">+${STAT_LABEL[fx[0]]}</span> <span class="down">−${STAT_LABEL[fx[1]]}</span>` : 'neutral';
+}
+function comboPool(el) {
+  const kind = el.dataset.combo, form = el.closest('.obtain');
+  if (form) return leafPool(leafOf(form));
+  if (kind === 'species') return SPECIES_ITEMS;
+  if (kind === 'nature') return [{ value: '', label: el.placeholder }, ...NATURES.map((n) => ({ value: n, label: n, sub: natureSub(n) }))];
+  const m = monOf(el);
+  return targetEggMoves().filter((mv) => !m.moves.includes(mv)).map((mv) => ({ value: mv, label: mv }));
+}
+// Prefix matches first, then matches at the start of a word, then anywhere.
+function rankItems(pool, q) {
+  q = q.trim().toLowerCase();
+  if (!q) return pool.slice(0, 80);
+  const out = [];
+  for (const it of pool) {
+    if (!it.value) continue;
+    const l = it.label.toLowerCase();
+    const r = l.startsWith(q) ? 0 : l.split(/[\s-]+/).some((w) => w.startsWith(q)) ? 1 : q.length > 1 && l.includes(q) ? 2 : -1;
+    if (r >= 0) out.push([r, it]);
+  }
+  return out.sort((a, b) => a[0] - b[0]).slice(0, 80).map((x) => x[1]);
+}
+function typedText(el) {
+  // with an inline suggestion, only the part before the highlighted completion was typed
+  return el.selectionStart < el.selectionEnd && el.selectionEnd === el.value.length ? el.value.slice(0, el.selectionStart) : el.value;
+}
+function highlight(label, q) {
+  const i = q ? label.toLowerCase().indexOf(q.trim().toLowerCase()) : -1;
+  if (i < 0) return esc(label);
+  const n = q.trim().length;
+  return esc(label.slice(0, i)) + '<mark>' + esc(label.slice(i, i + n)) + '</mark>' + esc(label.slice(i + n));
+}
+function openCombo(el, q) {
+  combo.el = el; combo.q = q;
+  combo.items = rankItems(comboPool(el), q);
+  const current = el.dataset.combo === 'moves' ? '' : currentValue(el);
+  combo.active = q.trim() ? (combo.items.length ? 0 : -1) : combo.items.findIndex((it) => it.value === current);
+  let empty = 'No matches';
+  if (el.dataset.combo === 'moves' && !targetEggMoves().length) empty = `No egg moves listed for ${esc(state.target.species || 'your goal')}`;
+  else if (el.dataset.combo === 'moves' && !comboPool(el).length) empty = 'All egg moves added';
+  list.innerHTML = combo.items.length
+    ? combo.items.map((it, i) => `<div class="opt" role="option" id="opt-${i}" data-i="${i}" aria-selected="${i === combo.active}">${it.icon || ''}<span>${highlight(it.label, q)}</span>${it.sub ? `<span class="sub">${it.sub}</span>` : ''}</div>`).join('')
+    : `<div class="opt none">${empty}</div>`;
+  list.hidden = false;
+  el.setAttribute('aria-expanded', 'true');
+  placeCombo();
+  setActive(combo.active);
+}
+function placeCombo() {
+  if (!combo.el || list.hidden) return;
+  if (!combo.el.isConnected) return closeCombo();
+  const box = (combo.el.closest('.multi') || combo.el).getBoundingClientRect();
+  list.style.left = Math.max(8, Math.min(box.left, window.innerWidth - Math.max(box.width, 220) - 8)) + 'px';
+  list.style.width = Math.max(box.width, 220) + 'px';
+  const below = window.innerHeight - box.bottom;
+  list.style.maxHeight = '288px';
+  if (below < 200 && box.top > below) {
+    list.style.maxHeight = Math.min(288, box.top - 12) + 'px';
+    list.style.top = Math.max(8, box.top - 4 - list.offsetHeight) + 'px';
+  } else {
+    list.style.maxHeight = Math.min(288, below - 12) + 'px';
+    list.style.top = box.bottom + 4 + 'px';
+  }
+}
+function setActive(i) {
+  combo.active = i;
+  list.querySelectorAll('.opt[data-i]').forEach((o) => o.setAttribute('aria-selected', String(+o.dataset.i === i)));
+  const o = i >= 0 && $('opt-' + i);
+  if (o) { o.scrollIntoView({ block: 'nearest' }); combo.el.setAttribute('aria-activedescendant', o.id); }
+  else if (combo.el) combo.el.removeAttribute('aria-activedescendant');
+}
+function closeCombo() {
+  if (combo.el) { combo.el.setAttribute('aria-expanded', 'false'); combo.el.removeAttribute('aria-activedescendant'); }
+  list.hidden = true; combo.el = null;
+}
+function currentValue(el) {
+  if (el.id === 't-species') return state.target.species;
+  if (el.id === 't-nature') return state.target.nature;
+  if (el.closest('.obtain')) return el.dataset.value || '';
+  const kind = el.dataset.combo, m = monOf(el);
+  return kind === 'species' ? m.species : kind === 'nature' ? m.nature : '';
+}
+function applyValue(el, value) {
+  if (el.closest('.obtain')) {
+    el.value = value;
+    if (value !== el.dataset.value) { el.dataset.value = value; obtainSpeciesChanged(el.closest('.obtain')); }
+    return;
+  }
+  const kind = el.dataset.combo, m = monOf(el);
+  if (kind === 'moves') {
+    if (value && !m.moves.includes(value)) { m.moves.push(value); renderPills(m); changed(); }
+    el.value = '';
+    return;
+  }
+  el.value = value;
+  if (value === currentValue(el)) return;
+  if (el.id === 't-species') {
+    Object.assign(state.target, { species: value, ability: '', moves: [] });
+    renderTargetSpecies();
+  } else if (el.id === 't-nature') state.target.nature = value;
+  else if (kind === 'species') { m.species = value; m.ability = ''; refreshMonRow(m); }
+  else m.nature = value;
+  changed();
+}
+// Turn whatever is typed into a value: an exact or only match wins.
+function commitText(el) {
+  const text = el.value.trim(), kind = el.dataset.combo;
+  if (!text) return applyValue(el, '');
+  const pool = comboPool(el);
+  const exact = pool.find((it) => it.value && it.label.toLowerCase() === text.toLowerCase());
+  const matches = rankItems(pool, text);
+  const pick = exact || (matches.length === 1 ? matches[0] : null);
+  if (pick) return applyValue(el, pick.value);
+  if (kind === 'species') return applyValue(el, text); // shows the "?" and a hint
+  if (kind === 'nature') el.value = currentValue(el);
+  else el.value = '';
+}
+function liveSprite(el) {
+  if (el.dataset.combo !== 'species') return;
+  const html = sprite(el.value, 1);
+  if (el.id === 't-species') $('t-sprite').innerHTML = html;
+  else { const s = el.closest('.mon') ? el.closest('.mon').querySelector('.mon-idx .spr') : el.closest('.obtain').querySelector('.spr'); if (s) s.outerHTML = html; }
+}
+document.addEventListener('focusin', (e) => {
+  const el = e.target;
+  if (!el.dataset || !el.dataset.combo) return;
+  // select the whole value so typing replaces it; a click's mouseup would otherwise drop the selection
+  if (el.dataset.combo !== 'moves') { el.select(); el.dataset.skipUp = '1'; }
+  openCombo(el, '');
+});
+document.addEventListener('focusout', (e) => {
+  const el = e.target;
+  if (!el.dataset || !el.dataset.combo) return;
+  delete el.dataset.skipUp;
+  if (combo.el === el) closeCombo();
+  commitText(el);
+});
+document.addEventListener('mouseup', (e) => {
+  const el = e.target;
+  if (el.dataset && el.dataset.skipUp) { e.preventDefault(); delete el.dataset.skipUp; }
+});
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  if (!el.dataset.combo) return;
+  let q = el.value;
+  // fill in the rest of the top match as you type, highlighted so typing on replaces it
+  if (el.dataset.combo !== 'moves' && e.inputType && e.inputType.startsWith('insert') && el.selectionEnd === el.value.length && q.trim()) {
+    const top = rankItems(comboPool(el), q)[0];
+    if (top && top.label.toLowerCase().startsWith(q.toLowerCase()) && top.label.length > q.length) {
+      el.value = top.label;
+      el.setSelectionRange(q.length, top.label.length);
+    }
+  }
+  liveSprite(el);
+  openCombo(el, q);
+});
+document.addEventListener('keydown', (e) => {
+  const el = e.target;
+  if (!el.dataset || !el.dataset.combo) return;
+  delete el.dataset.skipUp;
+  const open = !list.hidden && combo.el === el;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (!open) return openCombo(el, typedText(el));
+    const n = combo.items.length;
+    if (n) setActive(e.key === 'ArrowDown' ? (combo.active + 1) % n : (combo.active - 1 + n) % n);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (open && combo.active >= 0) pickItem(combo.active);
+    else commitText(el);
+    if (el.dataset.combo === 'moves') openCombo(el, ''); else { closeCombo(); el.select(); }
+  } else if (e.key === 'Tab' && open && combo.active >= 0 && typedText(el).trim()) {
+    pickItem(combo.active);
+  } else if (e.key === 'Escape' && open) {
+    e.preventDefault(); e.stopPropagation(); closeCombo();
+  } else if (e.key === 'Backspace' && el.dataset.combo === 'moves' && !el.value) {
+    const m = monOf(el);
+    if (m.moves.length) { m.moves.pop(); renderPills(m); changed(); if (open) openCombo(el, ''); }
+  }
+});
+function pickItem(i) {
+  const el = combo.el, it = combo.items[i];
+  if (!el || !it) return;
+  applyValue(el, it.value);
+  liveSprite(el);
+  if (el.dataset.combo === 'moves') openCombo(el, '');
+  else closeCombo();
+}
+list.addEventListener('mousedown', (e) => e.preventDefault()); // keep focus in the field
+list.addEventListener('click', (e) => { const o = e.target.closest('.opt[data-i]'); if (o) pickItem(+o.dataset.i); });
+window.addEventListener('resize', placeCombo);
+window.addEventListener('scroll', placeCombo, true);
+
+// ---------- planning (in a worker so the page stays responsive) ----------
+let worker = null, jobId = 0, timer = null;
+try {
+  const src = $('planner-src').textContent + `
+    let dex = null;
+    onmessage = (e) => {
+      const d = e.data;
+      if (!dex) dex = Planner.buildDex(d.species);
+      const out = Planner.plan({ ...d.input, dex });
+      let retry = null;
+      if (!out.error && !out.result && !d.input.opts.buy) retry = Planner.plan({ ...d.input, dex, opts: { ...d.input.opts, buy: true } });
+      postMessage({ id: d.id, out: strip(out), retry: retry && strip(retry) });
+    };
+    function strip(o) { return { error: o.error, result: o.result, truncated: o.truncated, calls: o.calls, tLine: o.tLine }; }`;
+  worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+  worker.onmessage = (e) => { if (e.data.id === jobId) showResult(e.data.out, e.data.retry); };
+  worker.onerror = () => { worker = null; schedule(); };
+} catch (e) { worker = null; }
+
+function buildInput() {
+  const t = state.target;
+  const sTarget = sp(t.species);
+  const pool = [];
+  state.mons.forEach((m, n) => {
+    const s = sp(m.species); if (!s) return;
+    const moves = (m.moves || []).map((x) => x.toLowerCase());
+    const canon = (sTarget && sp(sTarget.b || sTarget.n) && sp(sTarget.b || sTarget.n).m) || [];
+    const known = canon.filter((mv) => moves.includes(mv.toLowerCase()));
+    for (let q = 0; q < m.qty; q++) pool.push({ species: s.n, isDitto: s.n === 'Ditto', gender: s.n === 'Ditto' ? 'N' : m.gender, ivs: m.ivs.slice(), nature: m.nature, ability: m.ability, moves: known, row: n + 1 });
+  });
+  const P = state.prices;
+  return {
+    target: { species: t.species, ivs: t.ivs.slice(), gender: t.gender, nature: t.nature, ability: t.ability,
+      abilityHidden: !!(sTarget && t.ability && sTarget.h === t.ability), moves: bredMoves() },
+    pool,
+    prices: { ...P, haChance: (P.haChance || 0) / 100, abilityChance: (P.abilityChance || 0) / 100 },
+    opts: { mode: state.mode, buy: state.buy },
+  };
+}
+
+function schedule() {
+  clearTimeout(timer);
+  timer = setTimeout(run, 250);
+}
+function run() {
+  const input = buildInput();
+  if (!sp(state.target.species)) return showMessage('Pick the species you want from the list.');
+  if (!input.target.ivs.some((v) => v != null) && !input.target.nature && !input.target.ability && !input.target.moves.length)
+    return showMessage('Choose at least one IV, a nature, an ability or an egg move for your goal.');
+  if (!input.pool.length) return showMessage('Add the Pokémon you have to see a plan.');
+  jobId++;
+  if (obtainNote && !obtainNote.job) obtainNote.job = jobId;
+  $('plan-status').innerHTML = '<span class="spin"></span>Planning';
+  if (worker) worker.postMessage({ id: jobId, species: SPECIES, input });
+  else setTimeout(() => {
+    const out = Planner.plan({ ...input, dex });
+    const retry = !out.error && !out.result && !input.opts.buy ? Planner.plan({ ...input, dex, opts: { ...input.opts, buy: true } }) : null;
+    showResult(out, retry);
+  }, 0);
+}
+function showMessage(msg) { jobId++; $('plan-status').textContent = ''; $('results').innerHTML = `<div class="empty">${esc(msg)}</div>`; }
+
+// ---------- results ----------
+let view = 'steps';
+function lineGroups(line) { const L = dex.lines.get(line); return L ? [...L.groups].join(' / ') : ''; }
+function gSym(g) { return g === 'F' ? '<span class="g-F" title="Female">♀</span>' : g === 'M' ? '<span class="g-M" title="Male">♂</span>' : ''; }
+function ivChips(iv, need) {
+  const t = state.target.ivs;
+  const out = [];
+  iv.forEach((v, i) => { if (t[i] != null && v >= t[i]) out.push(`<span class="iv s-${STAT_KEYS[i]}">${STAT_LABEL[i]} ${v}</span>`); });
+  return out.length ? `<div class="ivs">${out.join('')}</div>` : '<span class="muted small">No IVs needed</span>';
+}
+function itemFor(n, side) {
+  const b = side === 'a' ? n.bA : n.bB;
+  if (n.inc === (side === 'a' ? 'A' : 'B')) return `holds ${incenseIcon(n.incense)}<b>${esc(n.incense)}</b>`;
+  if (n.holder === (side === 'a' ? 'A' : 'B')) return `holds ${itemIcon(EVERSTONE)}<b>Everstone</b>`;
+  if (b >= 0) return `holds ${itemIcon(b)}<b>${BRACE[b]}</b> (${STAT_LABEL[b]})`;
+  return 'holds nothing';
+}
+function leafCard(r, hold) {
+  const n = r.node;
+  if (n.t === 'own') {
+    const p = n.p.src;
+    const tags = [];
+    if (p.nature) tags.push(p.nature);
+    if (p.ability) tags.push(p.ability);
+    if (p.moves && p.moves.length) tags.push(...p.moves);
+    const fresh = obtainNote && obtainNote.job === jobId && state.mons[p.row - 1] && state.mons[p.row - 1].id === obtainNote.id;
+    return `<div class="card${fresh ? ' fresh' : ''}"><div class="who">${sprite(p.species)}<span class="name">${gSym(p.gender)} ${esc(p.species)} <span class="muted small">· your #${p.row}</span></span></div>${ivChips(r.iv)}${tags.length ? `<div class="tags">${tags.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}</div>` : ''}${hold ? `<span class="hold">${hold}</span>` : ''}</div>`;
+  }
+  if (n.t === 'buy') {
+    // a father ('C') can be any species that shares an egg group; a mother passes on her species
+    const what = n.ditto ? 'Ditto' : `${esc(n.line)}${n.kind === 'C' && lineGroups(n.line) ? ` <span class="muted small">or any ${esc(lineGroups(n.line))} Pokémon</span>` : ''}`;
+    const leaf = { line: n.line, gender: n.gender, stat: n.stat, nat: !!n.nat, ditto: !!n.ditto, kind: n.kind || 'C' };
+    return `<div class="card buy" data-leaf="${esc(JSON.stringify(leaf))}"><div class="who">${sprite(n.ditto ? 'Ditto' : n.line)}<span class="name">Buy or catch ${gSym(n.gender)} ${what}</span></div><span class="small">${leafStats(leaf)} · <span style="color:var(--cost)">${money(r.cost)}</span> on the GTL</span>${hold ? `<span class="hold">${hold}</span>` : ''}${OBTAIN_BTN}</div>`;
+  }
+  return '';
+}
+const doneRow = (num) => `<div class="done-row"><span class="step-state" data-state="${num}"></span><label class="check"><input type="checkbox" data-done="${num}"> Done</label></div>`;
+function childCard(r, isFinal, num, hold, check) {
+  const n = r.node;
+  const tags = [];
+  if (n.nat) tags.push(esc(state.target.nature));
+  if (n.abil) tags.push(esc(state.target.ability));
+  if (n.mv) tags.push(...bredMoves().map(esc));
+  return `<div class="card ${isFinal ? 'result' : ''}"><div class="who">${sprite(n.baby || n.line)}<span class="name">${gSym(n.gender)} ${esc(n.baby || n.line)} <span class="muted small">· breed ${num}</span></span></div>${ivChips(r.iv)}${tags.length ? `<div class="tags">${tags.map((x) => `<span class="tag">${x}</span>`).join('')}</div>` : ''}${hold ? `<span class="hold">${hold}</span>` : ''}${check ? doneRow(num) : ''}</div>`;
+}
+function numberBreeds(res) {
+  const order = [];
+  (function walk(r) { if (r.node.t !== 'breed') return; walk(r.node.a); walk(r.node.b); r.num = order.length + 1; order.push(r); })(res);
+  return order;
+}
+function cardFor(r, hold, finalR) { return r.node.t === 'breed' ? childCard(r, r === finalR, r.num, hold) : leafCard(r, hold); }
+
+function renderSteps(order, final) {
+  return `<ol class="steps">${order.map((r) => {
+    const n = r.node;
+    const partnerB = n.pairing === 'ditto' ? 'Ditto' : '';
+    const gPick = n.gender !== 'A' && n.gCost > 0 ? `pay the Daycare to make it ${n.gender === 'F' ? '♀ female' : '♂ male'} (<span class="money">${money(n.gCost)}</span>)` : n.gender !== 'A' ? `it is always ${n.gender === 'F' ? '♀ female' : '♂ male'}` : '';
+    const usedIn = r === final ? 'This is your Pokémon.' : 'Used as a parent in a later breed.';
+    return `<li data-breed="${r.num}"><span class="stepno">${r.num}</span><div class="stepbody">
+      ${doneRow(r.num)}
+      <div class="pair">${cardFor(n.a, itemFor(n, 'a'), final)}<span class="x">×</span>${cardFor(n.b, itemFor(n, 'b'), final)}</div>
+      <div class="outcome">Hatches ${gSym(n.gender)} <b style="color:var(--ink)">${esc(n.baby || n.line)}</b> with ${r.iv.some((v, i) => state.target.ivs[i] != null && v >= state.target.ivs[i]) ? STAT_LABEL.filter((_, i) => state.target.ivs[i] != null && r.iv[i] >= state.target.ivs[i]).join(', ') + ' locked' : 'no locked IVs'}${n.nat ? `, ${esc(state.target.nature)}` : ''}${n.abil ? `, ${esc(state.target.ability)} (chance)` : ''}. ${gPick ? gPick[0].toUpperCase() + gPick.slice(1) + '. ' : ''}${usedIn}</div>
+    </div></li>`;
+  }).join('')}</ol>`;
+}
+function renderTreeWithHold(r, final, hold) {
+  const n = r.node;
+  const kids = [n.a, n.b].map((c, i) => {
+    const side = i ? 'b' : 'a';
+    if (c.node.t !== 'breed') return `<div class="tk">${cardFor(c, itemFor(n, side), final)}</div>`;
+    return `<div class="tk">${renderTreeWithHold(c, final, itemFor(n, side))}</div>`;
+  });
+  return `<div class="tn" data-breed="${r.num}"><div class="tn-kids">${kids.join('')}</div>${childCard(r, r === final, r.num, hold, true)}</div>`;
+}
+
+function tally(res) {
+  const t = { braces: [0, 0, 0, 0, 0, 0], ever: 0, incense: [], gender: 0, genderCount: 0, buys: [], owned: 0 };
+  (function walk(r) {
+    const n = r.node;
+    if (n.t === 'own') { t.owned++; return; }
+    if (n.t === 'buy') { t.buys.push(r); return; }
+    if (n.bA >= 0) t.braces[n.bA]++;
+    if (n.bB >= 0) t.braces[n.bB]++;
+    if (n.nat) t.ever++;
+    if (n.inc) t.incense.push(n.incense);
+    if (n.gCost) { t.gender += n.gCost; t.genderCount++; }
+    walk(n.a); walk(n.b);
+  })(res);
+  return t;
+}
+
+function showResult(out, retry) {
+  $('plan-status').textContent = '';
+  const box = $('results');
+  if (out.error) { box.innerHTML = `<div class="notice"><strong>Can't plan this.</strong> ${esc(out.error)}</div>`; return; }
+  let res = out.result, head = '';
+  if (!res) {
+    if (retry && retry.result) {
+      res = retry.result;
+      head = `<div class="notice"><strong>Your Pokémon can't make this on their own.</strong> Here is the plan if you buy or catch the parents on the dashed cards. Once you have one, press "Mark as obtained" on its card. Tick "Allow buying 1×31 parents" to keep this view.</div>`;
+    } else {
+      const t = state.target;
+      const why = [];
+      if (t.ability) why.push(`a parent of the ${esc(t.species)} line with ${esc(t.ability)} (it must come from the mother side)`);
+      const bred = bredMoves(), withTm = bred.filter(tmOf);
+      if (bred.length) why.push(`a male that knows ${bred.map(esc).join(', ')}${withTm.length ? ` (or tick "Teach ${esc(withTm[0])} with the TM instead" under your goal)` : ''}`);
+      if (t.nature) why.push(`${/^[AEIOU]/.test(t.nature) ? 'an' : 'a'} ${esc(t.nature)} parent, or allow buying one`);
+      box.innerHTML = `<div class="notice"><strong>No plan found.</strong> ${why.length ? 'Check that you have ' + why.join('; ') + '.' : 'Check genders and egg groups: each breed needs a female and a male that share an egg group, or a Ditto.'}${out.truncated ? ' The search also hit its limit; try fewer Pokémon.' : ''}</div>`;
+      return;
+    }
+  } else if (out.truncated) {
+    head = `<div class="notice"><strong>Search cut short.</strong> This plan works, but a shorter one may exist. Removing Pokémon you don't need speeds it up.</div>`;
+  }
+  const order = numberBreeds(res);
+  assignSigs(order);
+  const t = tally(res);
+  const braceCount = t.braces.reduce((a, b) => a + b, 0);
+  const P = state.prices;
+  const parents = t.owned + t.buys.length;
+  const lines = [];
+  t.braces.forEach((c, i) => { if (c) lines.push([`${itemIcon(i)}${BRACE[i]} × ${c}`, c * P.brace]); });
+  if (t.ever) lines.push([`${itemIcon(EVERSTONE)}Everstone × ${t.ever}`, t.ever * P.everstone]);
+  t.incense.forEach((name) => lines.push([`${incenseIcon(name)}${esc(name)} × 1`, P.incense]));
+  if (t.genderCount) lines.push([`Gender picks × ${t.genderCount}`, t.gender]);
+  const buyTotal = t.buys.reduce((a, r) => a + r.cost, 0);
+  if (t.buys.length) lines.push([`Pokémon to buy × ${t.buys.length}`, buyTotal]);
+  state.extras.forEach((k) => lines.push([esc(extraName(EXTRA[k])), P[k] || 0]));
+  const total = res.cost + state.extras.reduce((a, k) => a + (P[k] || 0), 0);
+  // What to do once it hatches: TMs to teach and the item to hold.
+  const tms = state.extras.map((k) => EXTRA[k].tm).filter(Boolean), held = state.extras.map((k) => EXTRA[k].item).filter(Boolean);
+  const and = (a) => (a.length > 1 ? a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1] : a[0]);
+  const after = [tms.length && `teach it ${esc(and(tms))} with the TM${tms.length > 1 ? 's' : ''}`,
+    held.length && `give it ${held.length > 1 ? `one of ${esc(held.join(', '))}` : `the ${esc(held[0])}`} to hold`].filter(Boolean);
+  const tmWarn = tms.map(tmWarning).filter(Boolean);
+  const chance = res.chance < 0.999 ? `${Math.round(res.chance * 100)}%` : null;
+  const final = res;
+  const note = obtainNote && obtainNote.job === jobId ? obtainNote : null;
+  if (note) head = `<div class="notice ok"><strong>Marked as obtained.</strong> ${esc(note.text)} The plan and costs below include it. <button class="linkbtn" type="button" id="undo-obtain">Undo</button></div>` + head;
+  box.innerHTML = `${head}
+    <div class="summary">
+      <div class="sum"><span class="eyebrow">Breeds</span><b>${res.breeds}</b></div>
+      <div class="sum"><span class="eyebrow">Parents used</span><b>${parents}</b></div>
+      <div class="sum"><span class="eyebrow">Braces</span><b>${braceCount}</b></div>
+      <div class="sum"><span class="eyebrow">Total cost</span><b class="money">${money(total)}</b></div>
+      ${chance ? `<div class="sum"><span class="eyebrow">Ability odds</span><b>${chance}</b></div>` : ''}
+      ${res.breeds ? `<div class="sum"><span class="eyebrow">Done</span><b id="prog">0 / ${res.breeds}</b></div>` : ''}
+    </div>
+    ${lines.length ? `<div class="breakdown">${lines.map(([a, b]) => `<div><span>${a}</span><span>${money(b)}</span></div>`).join('')}</div>` : ''}
+    ${res.breeds === 0 ? '<div class="notice ok"><strong>You already have it.</strong> One of your Pokémon already matches the goal.</div>' : ''}
+    ${chance ? `<p class="small muted">The ${esc(state.target.ability)} ability passes by chance in ${order.filter((r) => r.node.abil).length === 1 ? 'the final breed' : order.filter((r) => r.node.abil).length + ' breeds'}; the IVs${state.target.nature ? ' and nature' : ''} are guaranteed.</p>` : ''}
+    ${after.length ? `<p class="small">After it hatches, ${after.join(', then ')}.${tmWarn.length ? ` <span class="warn-text">${tmWarn.join(' ')}</span>` : ''}</p>` : ''}
+    ${bredMoves().length ? '<p class="small muted">Egg moves pass from the father; check each father in the chain can learn them.</p>' : ''}
+    ${res.breeds ? `<div class="tabs" role="tablist"><button class="tab" role="tab" id="tab-steps" aria-selected="${view === 'steps'}">Step by step</button><button class="tab" role="tab" id="tab-tree" aria-selected="${view === 'tree'}">Tree</button><span class="tabs-end"><button class="linkbtn" type="button" id="reset-done" hidden>Clear checkmarks</button></span></div>
+    <p class="small muted">Tick each breed once you've done it. Ticking one also ticks the breeds that made its parents, and "Ready to breed" shows what's next, so nothing gets bred twice.</p>
+    <div id="view-steps" ${view === 'steps' ? '' : 'hidden'}>${renderSteps(order, final)}</div>
+    <div id="view-tree" ${view === 'tree' ? '' : 'hidden'}>
+      <div class="tree-tools">
+        <div class="seg" role="group" aria-label="Tree layout"><button type="button" data-dir="lr">Left to right</button><button type="button" data-dir="td">Top down</button></div>
+        <button class="btn" type="button" id="pop-open">Pop out full screen</button>
+      </div>
+      <div class="tree-scroll" id="tree-inline">${treeHtml(res)}</div>
+    </div>` : leafCard(res, '')}
+  `;
+  lastRes = res.breeds ? res : null;
+  curOrder = res.breeds ? order : [];
+  syncDirButtons();
+  centerTree($('tree-inline'));
+  if (!$('tree-pop').hidden) { if (lastRes) $('pop-tree').innerHTML = treeHtml(lastRes); else closePop(); }
+  syncDone();
+  const ts = $('tab-steps'), tt = $('tab-tree');
+  if (ts) {
+    ts.onclick = () => { view = 'steps'; ts.setAttribute('aria-selected', 'true'); tt.setAttribute('aria-selected', 'false'); $('view-steps').hidden = false; $('view-tree').hidden = true; };
+    tt.onclick = () => { view = 'tree'; tt.setAttribute('aria-selected', 'true'); ts.setAttribute('aria-selected', 'false'); $('view-tree').hidden = false; $('view-steps').hidden = true; centerTree($('tree-inline')); };
+  }
+}
+
+// ---------- checking off breeds ----------
+// Each breed gets an id from its place in the tree (species, gender, items, and the breeds below it),
+// so checkmarks survive re-planning as long as that part of the tree stays the same.
+let curOrder = [], progressTimer = null;
+function hashStr(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(36);
+}
+function assignSigs(order) {
+  const memo = new Map(), seen = new Map();
+  const shape = (r) => {
+    const n = r.node;
+    if (n.t !== 'breed') return 'L';
+    if (!memo.has(r)) memo.set(r, `B${n.line}${n.gender}${n.pairing}${n.bA},${n.bB},${n.holder || ''}${n.inc || ''}${n.nat ? 'n' : ''}${n.abil ? 'a' : ''}${n.mv ? 'm' : ''}(${shape(n.a)}|${shape(n.b)})`);
+    return memo.get(r);
+  };
+  for (const r of order) {
+    const h = hashStr(shape(r)), k = (seen.get(h) || 0) + 1; // identical breeds count up: .1, .2, ...
+    seen.set(h, k);
+    r.sig = `${h}.${k}`;
+    r.kids = [r.node.a, r.node.b].filter((c) => c.node.t === 'breed');
+    r.kids.forEach((c) => { c.parent = r; });
+  }
+}
+const joinNums = (a) => (a.length < 2 ? String(a[0]) : `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}`);
+function syncDone() {
+  const set = new Set(state.done);
+  let count = 0;
+  for (const r of curOrder) {
+    const done = set.has(r.sig);
+    const waiting = r.kids.filter((k) => !set.has(k.sig)).map((k) => k.num);
+    const status = done ? 'done' : waiting.length ? 'wait' : 'next';
+    if (done) count++;
+    document.querySelectorAll(`[data-done="${r.num}"]`).forEach((cb) => { cb.checked = done; });
+    document.querySelectorAll(`[data-breed="${r.num}"]`).forEach((el) => { el.classList.toggle('is-done', done); el.classList.toggle('is-next', status === 'next'); });
+    document.querySelectorAll(`[data-state="${r.num}"]`).forEach((el) => {
+      el.dataset.status = status;
+      el.textContent = status === 'done' ? '' : status === 'next' ? 'Ready to breed' : `After breed${waiting.length > 1 ? 's' : ''} ${joinNums(waiting)}`;
+    });
+  }
+  if ($('prog')) $('prog').textContent = `${count} / ${curOrder.length}`;
+  if ($('reset-done')) { $('reset-done').hidden = !count; $('reset-done').textContent = 'Clear checkmarks'; delete $('reset-done').dataset.armed; }
+}
+// Ticking a breed ticks the breeds below it (their Pokémon were used up); unticking unticks the ones it fed.
+function setDone(num, on) {
+  const r = curOrder.find((x) => x.num === num);
+  if (!r) return;
+  const set = new Set(state.done);
+  if (on) (function down(x) { set.add(x.sig); x.kids.forEach(down); })(r);
+  else for (let x = r; x; x = x.parent) set.delete(x.sig);
+  state.done = [...set].slice(-300);
+  save(); syncDone(); queueProgressSave();
+}
+// Checkmarks also go into the loaded saved build, without touching its other settings.
+function queueProgressSave() {
+  clearTimeout(progressTimer);
+  progressTimer = setTimeout(() => {
+    const b = activeBuild();
+    if (b && !sameData(b.data.done, state.done)) putBuild({ ...b, data: { ...b.data, done: state.done.slice() } });
+  }, 800);
+}
+document.addEventListener('change', (e) => { if (e.target.dataset && e.target.dataset.done) setDone(+e.target.dataset.done, e.target.checked); });
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('#reset-done');
+  if (!btn) return;
+  if (!btn.dataset.armed) { btn.dataset.armed = '1'; btn.textContent = 'Press again to clear all checkmarks'; return; }
+  const mine = new Set(curOrder.map((r) => r.sig));
+  state.done = state.done.filter((x) => !mine.has(x));
+  save(); syncDone(); queueProgressSave();
+});
+
+// ---------- theme ----------
+// Auto follows your device (or claude.ai's own theme); Light and Dark stick for this browser.
+(function () {
+  const root = document.documentElement, KEY = 'pokemmo-breeding-theme';
+  let pref = 'auto', lastSet = null;
+  try { const t = localStorage.getItem(KEY); if (t === 'light' || t === 'dark') pref = t; } catch (e) {}
+  let given = pref === 'auto' ? root.getAttribute('data-theme') : null; // what the page was given before any choice
+  const metas = [...document.querySelectorAll('meta[name="theme-color"]')].map((m) => [m, m.getAttribute('content'), m.getAttribute('media')]);
+  function apply() {
+    const v = pref === 'auto' ? given : pref;
+    lastSet = v;
+    if (v) root.setAttribute('data-theme', v); else root.removeAttribute('data-theme');
+    document.querySelectorAll('[data-theme-set]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeSet === pref)));
+    // the phone's browser bar matches the page
+    const bg = getComputedStyle(document.body).backgroundColor;
+    metas.forEach(([m, content, media]) => {
+      if (pref === 'auto') { m.setAttribute('content', content); if (media) m.setAttribute('media', media); }
+      else { m.setAttribute('content', bg); m.removeAttribute('media'); }
+    });
+  }
+  // the host page can switch themes too (claude.ai does); follow it on Auto
+  new MutationObserver(() => {
+    const v = root.getAttribute('data-theme');
+    if (v === lastSet) return;
+    given = v;
+    if (pref === 'auto') lastSet = v; else apply();
+  }).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-theme-set]');
+    if (!b) return;
+    pref = b.dataset.themeSet;
+    try { if (pref === 'auto') localStorage.removeItem(KEY); else localStorage.setItem(KEY, pref); } catch (err) {}
+    apply();
+  });
+  apply();
+})();
+
+// ---------- marking a Pokémon you'd buy or catch as obtained ----------
+// Adds it to "Pokémon you have", so the next plan uses it instead of buying one.
+let obtainNote = null; // what was just added, shown above the plan it produced
+const OBTAIN_BTN = '<button class="btn mini" type="button" data-obtain>Mark as obtained</button>';
+function leafIv(leaf) { return state.exact && state.target.ivs[leaf.stat] != null ? state.target.ivs[leaf.stat] : 31; }
+function leafStats(leaf) {
+  const iv = leaf.stat != null ? `${leafIv(leaf) === 31 ? 31 : leafIv(leaf) + '+'} ${STAT_LABEL[leaf.stat]}` : 'any IVs';
+  return iv + (leaf.nat ? `, ${esc(state.target.nature)} nature` : '');
+}
+function leafOf(el) { return JSON.parse(el.closest('.card').dataset.leaf); }
+// The species that can fill this spot in the tree.
+function leafPool(leaf) {
+  if (leaf.ditto) return SPECIES_ITEMS.filter((it) => it.value === 'Ditto');
+  const groups = (dex.lines.get(leaf.line) || { groups: new Set() }).groups;
+  return SPECIES_ITEMS.filter((it) => {
+    const line = dex.lineOf(it.value), L = dex.lines.get(line);
+    if (!L || it.value === 'Ditto') return false;
+    if (leaf.kind === 'L' ? line !== leaf.line : ![...L.groups].some((g) => groups.has(g))) return false;
+    return leaf.gender === 'A' || genderChoices(it.value).includes(leaf.gender);
+  });
+}
+function obtainForm(leaf) {
+  const first = leaf.ditto ? 'Ditto' : leaf.line;
+  const field = leaf.ditto ? '<b>Ditto</b>'
+    : `<input type="text" data-combo="species" data-value="${esc(first)}" value="${esc(first)}" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="combo-list" autocomplete="off" spellcheck="false" aria-label="Species you got">`;
+  return `<div class="obtain">
+    <span class="small muted">Which Pokémon did you get?</span>
+    <div class="ob-row">${sprite(first, 1)}${field}</div>
+    ${!leaf.ditto && leaf.gender === 'A' ? `<label class="f">Gender<select class="ob-gender">${genderChoices(first).map((g) => `<option value="${g}">${G_LABEL[g]}</option>`).join('')}</select></label>` : ''}
+    <span class="small muted">It's added with ${leafStats(leaf)}. Edit it under Pokémon you have if it differs.</span>
+    <p class="small mon-warn ob-warn" hidden></p>
+    <div class="ob-row"><button class="btn primary mini" type="button" data-ob-add>Add to my Pokémon</button><button class="btn ghost mini" type="button" data-ob-cancel>Cancel</button></div>
+  </div>`;
+}
+function obtainSpeciesChanged(form) {
+  const name = form.querySelector('input').dataset.value;
+  const sel = form.querySelector('.ob-gender');
+  if (sel) { const keep = sel.value; sel.innerHTML = genderChoices(name).map((g) => `<option value="${g}" ${g === keep ? 'selected' : ''}>${G_LABEL[g]}</option>`).join(''); }
+  form.querySelector('.ob-warn').hidden = true;
+}
+function addObtained(card) {
+  const leaf = leafOf(card), form = card.querySelector('.obtain');
+  const input = form.querySelector('input');
+  if (input) commitText(input);
+  const s = sp(leaf.ditto ? 'Ditto' : input.dataset.value);
+  if (!s || !leafPool(leaf).some((it) => it.value === s.n)) {
+    const who = leaf.gender === 'M' ? 'male ' : leaf.gender === 'F' ? 'female ' : '';
+    const w = form.querySelector('.ob-warn');
+    w.textContent = leaf.kind === 'L' ? `This spot needs a ${who}${leaf.line} or one of its evolutions, since it passes on its species.`
+      : `This spot needs a ${who}Pokémon from the ${lineGroups(leaf.line)} egg group.`;
+    w.hidden = false;
+    return;
+  }
+  const sel = form.querySelector('.ob-gender');
+  const gender = s.n === 'Ditto' ? 'N' : sel ? sel.value : leaf.gender === 'A' ? genderChoices(s.n)[0] : leaf.gender;
+  const ivs = [null, null, null, null, null, null];
+  if (leaf.stat != null) ivs[leaf.stat] = leafIv(leaf);
+  const mon = { species: s.n, gender, ivs, nature: leaf.nat ? state.target.nature : '', ability: '', moves: [], qty: 1 };
+  // the same Pokémon again just raises the quantity of its row
+  const same = state.mons.find((m) => m.species === mon.species && m.gender === mon.gender && m.nature === mon.nature && !m.ability && !m.moves.length && m.qty < 20 && m.ivs.every((v, i) => v === ivs[i]));
+  let id;
+  if (same) { same.qty++; id = same.id; } else { id = uid++; state.mons.push({ id, ...mon }); }
+  const row = state.mons.findIndex((m) => m.id === id) + 1;
+  const label = `${gender === 'F' ? '♀ ' : gender === 'M' ? '♂ ' : ''}${s.n}`;
+  obtainNote = { id, merged: !!same, job: 0, text: same ? `Your #${row} ${label} is now ×${same.qty}.` : `Added ${label} to your Pokémon as #${row}.` };
+  form.innerHTML = '<span class="small muted"><span class="spin"></span>Added. Updating the plan…</span>';
+  renderMons(); changed();
+}
+function undoObtained() {
+  const note = obtainNote, m = note && state.mons.find((x) => x.id === note.id);
+  obtainNote = null;
+  if (m) { if (note.merged && m.qty > 1) m.qty--; else state.mons = state.mons.filter((x) => x !== m); }
+  renderMons(); changed();
+}
+document.addEventListener('click', (e) => {
+  const open = e.target.closest('[data-obtain]');
+  if (open) {
+    const card = open.closest('.card');
+    open.outerHTML = obtainForm(leafOf(card));
+    card.querySelector('[data-ob-add]').focus(); // the species is usually right already; its list opens on click
+    return;
+  }
+  const cancel = e.target.closest('[data-ob-cancel]');
+  if (cancel) { const card = cancel.closest('.card'); card.querySelector('.obtain').outerHTML = OBTAIN_BTN; card.querySelector('[data-obtain]').focus(); return; }
+  const add = e.target.closest('[data-ob-add]');
+  if (add) return addObtained(add.closest('.card'));
+  if (e.target.closest('#undo-obtain')) undoObtained();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || e.defaultPrevented || !e.target.closest) return;
+  const form = e.target.closest('.obtain');
+  if (form) { e.preventDefault(); form.querySelector('[data-ob-cancel]').click(); }
+});
+
+// ---------- tree layout and pop-out ----------
+let lastRes = null, zoom = 1, popOpener = null;
+function treeHtml(res) { return `<div class="tree ${state.treeDir}">${renderTreeWithHold(res, res, '')}</div>`; }
+function syncDirButtons() {
+  document.querySelectorAll('[data-dir]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.dir === state.treeDir)));
+}
+function setDir(dir) {
+  state.treeDir = dir; save(); syncDirButtons();
+  if (!lastRes) return;
+  if ($('tree-inline')) { $('tree-inline').innerHTML = treeHtml(lastRes); centerTree($('tree-inline')); }
+  if (!$('tree-pop').hidden) { $('pop-tree').innerHTML = treeHtml(lastRes); fitZoom(); }
+  syncDone();
+}
+function setZoom(z) {
+  // keep the point in the middle of the screen in the middle after zooming
+  const body = $('pop-body');
+  const cx = (body.scrollLeft + body.clientWidth / 2) / body.scrollWidth;
+  const cy = (body.scrollTop + body.clientHeight / 2) / body.scrollHeight;
+  zoom = Math.min(2, Math.max(0.2, Math.round(z * 20) / 20));
+  $('pop-tree').style.zoom = zoom;
+  $('zoom-label').textContent = Math.round(zoom * 100) + '%';
+  body.scrollLeft = cx * body.scrollWidth - body.clientWidth / 2;
+  body.scrollTop = cy * body.scrollHeight - body.clientHeight / 2;
+}
+// Top down puts your Pokémon at the top middle, so start the view there.
+function centerTree(box) {
+  if (box && state.treeDir === 'td') { box.scrollLeft = (box.scrollWidth - box.clientWidth) / 2; box.scrollTop = 0; }
+}
+function fitZoom() {
+  const tree = $('pop-tree'), body = $('pop-body');
+  tree.style.zoom = 1;
+  const w = tree.scrollWidth, h = tree.scrollHeight;
+  setZoom(Math.min(1, body.clientWidth / w, body.clientHeight / h));
+}
+function openPop() {
+  if (!lastRes) return;
+  popOpener = document.activeElement;
+  $('pop-tree').innerHTML = treeHtml(lastRes);
+  syncDone();
+  $('tree-pop').hidden = false;
+  document.body.classList.add('popped');
+  fitZoom();
+  $('pop-close').focus();
+}
+function closePop() {
+  $('tree-pop').hidden = true;
+  document.body.classList.remove('popped');
+  if (popOpener && popOpener.isConnected) popOpener.focus();
+}
+document.addEventListener('click', (e) => {
+  const d = e.target.closest('[data-dir]');
+  if (d) return setDir(d.dataset.dir);
+  if (e.target.closest('#pop-open')) openPop();
+});
+$('pop-close').addEventListener('click', closePop);
+$('zoom-in').addEventListener('click', () => setZoom(zoom + 0.1));
+$('zoom-out').addEventListener('click', () => setZoom(zoom - 0.1));
+$('zoom-fit').addEventListener('click', fitZoom);
+document.addEventListener('keydown', (e) => {
+  if ($('tree-pop').hidden || e.defaultPrevented) return;
+  // Ctrl/Cmd + and - zoom the tree instead of the whole page; Ctrl/Cmd 0 fits it to the screen
+  if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+    const k = e.key, c = e.code;
+    const zin = k === '+' || k === '=' || c === 'Equal' || c === 'NumpadAdd';
+    const zout = k === '-' || k === '_' || c === 'Minus' || c === 'NumpadSubtract';
+    const fit = k === '0' || c === 'Digit0' || c === 'Numpad0';
+    if (zin || zout || fit) {
+      e.preventDefault();
+      if (fit) fitZoom(); else setZoom(zoom + (zin ? 0.1 : -0.1));
+    }
+    return;
+  }
+  if (e.key !== 'Escape' && e.target.matches && e.target.matches('input, select, textarea')) return;
+  if (e.key === 'Escape') closePop();
+  else if (e.key === '+' || e.key === '=') setZoom(zoom + 0.1);
+  else if (e.key === '-') setZoom(zoom - 0.1);
+});
+// Ctrl + mouse wheel (and trackpad pinch, which arrives the same way) zooms the tree too.
+let pinch = null, pinchTimer = null; // unrounded zoom while a pinch is going, so small steps add up
+$('pop-body').addEventListener('wheel', (e) => {
+  if (!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault();
+  pinch = (pinch == null ? zoom : pinch) * Math.exp(-e.deltaY * 0.002);
+  pinch = Math.min(2, Math.max(0.2, pinch));
+  setZoom(pinch);
+  clearTimeout(pinchTimer);
+  pinchTimer = setTimeout(() => { pinch = null; }, 300);
+}, { passive: false });
+// Drag the background to pan around a big tree (touch screens already scroll natively).
+(function () {
+  const body = $('pop-body');
+  let drag = null;
+  body.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'mouse' || e.button !== 0 || e.target.closest('button, input, select, label, .obtain')) return;
+    drag = { x: e.clientX, y: e.clientY, l: body.scrollLeft, t: body.scrollTop };
+    body.classList.add('dragging');
+  });
+  window.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    body.scrollLeft = drag.l - (e.clientX - drag.x);
+    body.scrollTop = drag.t - (e.clientY - drag.y);
+  });
+  window.addEventListener('pointerup', () => { drag = null; body.classList.remove('dragging'); });
+})();
+
+// ---------- saved builds ----------
+// On claude.ai builds are kept in your Claude account (private to you, on every device).
+// Anywhere else (your own site, localhost, a saved file) they live in this browser.
+const BUILDS_KEY = 'pokemmo-breeding-builds-v1';
+const store = { kind: 'local', col: null, unsub: null, notice: null, builds: readLocal() };
+let undoFn = null, nameFilled = false;
+function readLocal() {
+  try {
+    const a = JSON.parse(localStorage.getItem(BUILDS_KEY));
+    return Array.isArray(a) ? a.map(cleanBuild).filter(Boolean) : [];
+  } catch (e) { return []; }
+}
+function writeLocal() { try { localStorage.setItem(BUILDS_KEY, JSON.stringify(store.builds)); return true; } catch (e) { return false; } }
+function cleanBuild(b) {
+  const data = b && normalizeData(b.data);
+  if (!data || typeof b.id !== 'string' || !/^[A-Za-z0-9_-]{1,40}$/.test(b.id)) return null;
+  return { id: b.id, name: str(b.name) || autoName(data), savedAt: +b.savedAt || 0, data };
+}
+const newId = () => 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+function autoName(d = state) {
+  const t = d.target, n = t.ivs.filter((v) => v != null).length;
+  return [t.nature, t.species || 'Untitled', n ? (t.ivs.every((v) => v == null || v === 31) ? `${n}×31` : `${n} IVs`) : ''].filter(Boolean).join(' ');
+}
+const activeBuild = () => store.builds.find((b) => b.id === state.buildId) || null;
+const sameData = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+function say(msg, undo) {
+  if (store.notice) { msg += ' ' + store.notice; store.notice = null; }
+  undoFn = undo || null;
+  const el = $('build-msg');
+  el.innerHTML = esc(msg) + (undo ? ' <button class="linkbtn" type="button" id="build-undo">Undo</button>' : '');
+  el.hidden = false;
+}
+function renderBuilds() {
+  const list = store.builds.slice().sort((a, b) => b.savedAt - a.savedAt);
+  $('builds-where').textContent = store.kind === 'cloud' ? 'Saved to your Claude account' : 'Saved in this browser';
+  $('codes-help').textContent = store.kind === 'cloud'
+    ? 'Builds here are saved to your Claude account. To use them on your own copy of the site, copy a code here and import it there.'
+    : 'Builds are saved in this browser only. To use them in another browser or on another device, copy a code here and import it there.';
+  $('builds').innerHTML = list.map((b) => {
+    const count = b.data.mons.reduce((a, m) => a + m.qty, 0);
+    const when = new Date(b.savedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    return `<li class="build${b.id === state.buildId ? ' active' : ''}">${sprite(b.data.target.species, 1)}
+      <div><div class="bname">${esc(b.name)}${b.id === state.buildId ? '<span class="badge" id="build-badge"></span>' : ''}</div><div class="bmeta">${count} Pokémon · saved ${esc(when)}</div></div>
+      <div class="bact"><button class="btn mini" type="button" data-load="${esc(b.id)}">Load</button><button class="btn ghost mini" type="button" data-del="${esc(b.id)}" aria-label="Delete ${esc(b.name)}">Delete</button></div></li>`;
+  }).join('') || '<li class="empty small">No saved builds yet. Name this setup and press Save to come back to it later.</li>';
+  const b = activeBuild();
+  if (b && !nameFilled && document.activeElement !== $('build-name')) { $('build-name').value = b.name; nameFilled = true; }
+  syncBuildUi();
+}
+// The Save button says Update when the name matches a saved build; the loaded build shows whether it was edited.
+function syncBuildUi() {
+  const name = $('build-name');
+  name.placeholder = autoName();
+  const typed = (name.value.trim() || name.placeholder).toLowerCase();
+  $('build-save').textContent = store.builds.some((b) => b.name.toLowerCase() === typed) ? 'Update' : 'Save';
+  const badge = $('build-badge'), b = activeBuild();
+  if (badge && b) {
+    const edited = !sameData({ ...buildData(), done: [] }, { ...b.data, done: [] }); // checkmarks save on their own
+    badge.textContent = edited ? 'Edited' : 'Loaded';
+    badge.classList.toggle('edited', edited);
+  }
+}
+
+// One write to the account store, retried once if the platform hiccups.
+async function cloudCall(fn) {
+  try { return await fn(); } catch (e) {
+    if (e && e.code === 'unavailable') { await new Promise((r) => setTimeout(r, 400 + Math.random() * 600)); return fn(); }
+    throw e;
+  }
+}
+// The account store refused: keep going in this browser for the rest of the visit.
+function cloudFailed(e, fromListener) {
+  if (e && e.code === 'quota_exceeded') { say('Your saved builds are full. Delete some, then try again.'); return false; }
+  if (store.unsub) store.unsub();
+  Object.assign(store, { kind: 'local', col: null, unsub: null });
+  const ok = writeLocal();
+  renderBuilds();
+  const msg = ok ? "Couldn't reach your Claude account, so builds are saved in this browser for now." : "Couldn't save: this browser is blocking storage.";
+  if (fromListener || !ok) say(msg); else store.notice = msg; // otherwise it goes after the next message
+  return ok;
+}
+async function putBuild(b) {
+  const before = store.builds;
+  store.builds = store.builds.filter((x) => x.id !== b.id).concat(b);
+  if (store.kind === 'cloud') {
+    try { await cloudCall(() => store.col.doc(b.id).set({ name: b.name, savedAt: b.savedAt, data: b.data })); }
+    catch (e) { if (!cloudFailed(e)) { store.builds = before; renderBuilds(); return false; } }
+  } else if (!writeLocal()) { store.builds = before; say("Couldn't save: this browser is blocking storage."); return false; }
+  renderBuilds();
+  return true;
+}
+async function dropBuild(id) {
+  const before = store.builds;
+  store.builds = store.builds.filter((x) => x.id !== id);
+  if (store.kind === 'cloud') {
+    try { await cloudCall(() => store.col.doc(id).delete()); }
+    catch (e) { if (!cloudFailed(e)) { store.builds = before; renderBuilds(); return false; } }
+  } else if (!writeLocal()) { store.builds = before; say("Couldn't delete: this browser is blocking storage."); return false; }
+  renderBuilds();
+  return true;
+}
+
+async function saveBuild() {
+  const name = ($('build-name').value.trim() || autoName()).slice(0, 40);
+  const match = store.builds.find((b) => b.name.toLowerCase() === name.toLowerCase());
+  const b = { id: match ? match.id : newId(), name, savedAt: Date.now(), data: buildData() };
+  if (!(await putBuild(b))) return;
+  state.buildId = b.id; save();
+  $('build-name').value = name; nameFilled = true;
+  renderBuilds();
+  say(match ? `Updated “${name}”.` : `Saved “${name}”.`, match ? () => putBuild(match).then(() => say(`“${name}” is back to how it was.`)) : null);
+}
+function restoreSetup(prev, msg) {
+  applyData(prev.data, prev.buildId);
+  $('build-name').value = prev.name;
+  syncBuildUi();
+  say(msg);
+}
+function applyData(d, buildId) {
+  closeCombo();
+  Object.assign(state, {
+    target: { ...d.target, ivs: d.target.ivs.slice(), moves: d.target.moves.slice() },
+    mons: d.mons.map((m) => ({ id: uid++, ...m, ivs: m.ivs.slice(), moves: m.moves.slice() })),
+    prices: { ...d.prices }, extras: d.extras.slice(), mode: d.mode, buy: d.buy, exact: d.exact, done: d.done.slice(), buildId,
+  });
+  obtainNote = null;
+  renderAll(); save(); renderBuilds();
+}
+function loadBuild(id) {
+  const b = store.builds.find((x) => x.id === id);
+  if (!b) return;
+  const prev = { data: buildData(), buildId: state.buildId, name: $('build-name').value };
+  applyData(b.data, b.id);
+  $('build-name').value = b.name; nameFilled = true;
+  syncBuildUi();
+  say(`Loaded “${b.name}”.`, () => restoreSetup(prev, 'Back to your previous setup.'));
+}
+async function deleteBuild(id) {
+  const b = store.builds.find((x) => x.id === id);
+  if (!b || !(await dropBuild(id))) return;
+  say(`Deleted “${b.name}”.`, () => putBuild(b).then((ok) => ok && say(`Restored “${b.name}”.`)));
+}
+
+// Build codes: the builds as JSON, deflated where the browser can, then base64url.
+function toB64(bytes) {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+const fromB64 = (t) => Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+async function pipe(bytes, stream) { return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer()); }
+async function makeCode(builds) {
+  const bytes = new TextEncoder().encode(JSON.stringify({ v: 1, builds: builds.map((b) => ({ name: b.name, data: b.data })) }));
+  if (window.CompressionStream) { try { return 'PMB1z.' + toB64(await pipe(bytes, new CompressionStream('deflate-raw'))); } catch (e) {} }
+  return 'PMB1.' + toB64(bytes);
+}
+async function readCode(text) {
+  const m = /^PMB1(z?)\.([A-Za-z0-9_-]+)$/.exec(String(text).replace(/\s+/g, ''));
+  if (!m) throw new Error("That isn't a build code. Codes start with PMB1.");
+  if (m[1] && !window.DecompressionStream) throw new Error("This browser is too old to read that code. Try it in an up-to-date browser.");
+  try {
+    let bytes = fromB64(m[2]);
+    if (m[1]) bytes = await pipe(bytes, new DecompressionStream('deflate-raw'));
+    const o = JSON.parse(new TextDecoder().decode(bytes));
+    const builds = (o && Array.isArray(o.builds) ? o.builds : []).slice(0, 200)
+      .map((b) => ({ name: str(b && b.name), data: normalizeData(b && b.data) })).filter((b) => b.data);
+    if (builds.length) return builds;
+  } catch (e) {}
+  throw new Error('That code is incomplete or damaged. Copy the whole code and try again.');
+}
+async function showCode(builds, what) {
+  const code = await makeCode(builds);
+  const out = $('code-out');
+  out.value = code; out.hidden = false;
+  let copied = false;
+  try { await navigator.clipboard.writeText(code); copied = true; } catch (e) {
+    out.focus(); out.select();
+    try { copied = document.execCommand('copy'); } catch (e2) {}
+  }
+  out.focus(); out.select();
+  say(copied ? `Copied the code for ${what}. Paste it under "Import a code" on the other device or site.` : `Here's the code for ${what}. Select it and copy it.`);
+}
+async function importCode() {
+  let builds;
+  try { builds = await readCode($('code-in').value); } catch (e) { return say(e.message); }
+  const added = [];
+  for (const imp of builds) {
+    const name = imp.name || autoName(imp.data);
+    // skip a build that's already here unchanged; give a changed one a fresh name
+    if (store.builds.some((b) => b.name.toLowerCase() === name.toLowerCase() && sameData(b.data, imp.data))) continue;
+    let unique = name, n = 2;
+    while (store.builds.some((b) => b.name.toLowerCase() === unique.toLowerCase())) unique = `${name} (${n++})`;
+    const b = { id: newId(), name: unique.slice(0, 40), savedAt: Date.now() + added.length, data: imp.data };
+    if (!(await putBuild(b))) return;
+    added.push(b);
+  }
+  $('code-in').value = '';
+  if (builds.length === 1) {
+    const b = added[0] || store.builds.find((x) => sameData(x.data, builds[0].data));
+    loadBuild(b.id);
+    say(added.length ? `Imported “${b.name}” and loaded it.` : `You already had “${b.name}”, so it's loaded.`);
+  } else say(added.length ? `Imported ${added.length} build${added.length > 1 ? 's' : ''}${added.length < builds.length ? `; ${builds.length - added.length} you already had` : ''}.` : 'You already have all of those builds.');
+}
+
+$('build-save').addEventListener('click', saveBuild);
+$('build-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveBuild(); } });
+$('code-this').addEventListener('click', () => showCode([{ name: $('build-name').value.trim() || autoName(), data: buildData() }], 'this setup'));
+$('code-all').addEventListener('click', () => store.builds.length ? showCode(store.builds, `${store.builds.length} saved build${store.builds.length > 1 ? 's' : ''}`) : say('No saved builds to copy yet.'));
+$('code-import').addEventListener('click', importCode);
+document.addEventListener('click', (e) => {
+  const l = e.target.closest('[data-load]');
+  if (l) return loadBuild(l.dataset.load);
+  const d = e.target.closest('[data-del]');
+  if (d) return deleteBuild(d.dataset.del);
+  if (e.target.closest('#build-undo') && undoFn) { const f = undoFn; undoFn = null; $('build-msg').hidden = true; f(); }
+});
+window.addEventListener('storage', (e) => {
+  if (e.key === BUILDS_KEY && store.kind === 'local') { store.builds = readLocal(); renderBuilds(); }
+});
+
+// Switch to the account store once claude.ai answers; builds saved in this browser meanwhile move into it.
+async function connectCloud() {
+  const c = window.claude;
+  if (!c || typeof c.use !== 'function') return;
+  try {
+    const [db, user] = await Promise.all([c.use('db'), c.use('user')]);
+    const id = db && user ? await user.id() : null;
+    if (!id) return;
+    const col = db.collection('data/users/' + id);
+    const moved = new Set();
+    for (let local = readLocal(); local.some((b) => !moved.has(b.id)); local = readLocal()) {
+      for (const b of local) if (!moved.has(b.id)) { await cloudCall(() => col.doc(b.id).set({ name: b.name, savedAt: b.savedAt, data: b.data })); moved.add(b.id); }
+    }
+    if (moved.size) try { localStorage.removeItem(BUILDS_KEY); } catch (e) {}
+    Object.assign(store, { kind: 'cloud', col });
+    store.unsub = col.onSnapshot((snap) => {
+      if (store.col !== col) return;
+      store.builds = snap.docs.map((d) => cleanBuild({ id: d.id, ...d.data() })).filter(Boolean);
+      renderBuilds();
+    }, (e) => { if (store.col === col) cloudFailed(e, true); });
+  } catch (e) { /* stay with this browser's storage */ }
+}
+
+renderAll();
+renderBuilds();
+connectCloud();
+</script>

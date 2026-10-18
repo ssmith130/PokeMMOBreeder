@@ -1,0 +1,15 @@
+{
+  "name": "PokeMMO Breeding Planner",
+  "short_name": "Breeding Planner",
+  "description": "Plan PokeMMO breeding: the fewest-breed tree from the Pokémon you own, with braces, Everstones and costs.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#10151b",
+  "theme_color": "#10151b",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
