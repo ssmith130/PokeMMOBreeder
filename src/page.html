@@ -262,6 +262,12 @@ ol.steps li.is-next .stepno { box-shadow: 0 0 0 4px var(--accent-soft); }
 .tn.is-next > .card { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .tabs .tabs-end { margin-left: auto; align-self: center; font-size: 13px; }
 .site-foot { color: var(--muted); font-size: 12.5px; text-align: center; }
+.site-foot a { color: var(--accent); }
+/* Phones: the plan sits below the inputs, so a button jumps down to it */
+.to-plan { position: fixed; z-index: 20; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  border: 0; border-radius: 999px; padding: 10px 16px; background: var(--accent); color: var(--on-accent); font-weight: 600; font-size: 14px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.25); cursor: pointer; }
+@media (min-width: 1100px) { .to-plan { display: none; } }
 .rules ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 80ch; }
 .rules a { color: var(--accent); }
 .empty { color: var(--muted); padding: 16px; border: 1px dashed var(--line); border-radius: 8px; }
@@ -381,10 +387,11 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
       <li><b>Gender selection.</b> You can pay the Daycare to choose the egg's gender: $5,000 for 1:1 species, $10,000 for 3:1, $25,000 for 7:1. The plan picks a gender whenever the child is used as a parent later, and for the final egg when the Pokémon you want only comes in one gender (Vespiquen, Gallade, Froslass, Nidoking and so on).</li>
       <li><b>What the planner counts as guaranteed.</b> Only braced stats and stats both parents share. Any extra 31s from the random third inherited IV are luck and not counted.</li>
     </ul>
-    <p class="muted small">Sources: <a href="https://pokemmo.shoutwiki.com/wiki/Breeding" target="_blank" rel="noopener">PokeMMO Wiki: Breeding</a> and <a href="https://www.pikammo.fr/Pokemmo/en/tools/breeding" target="_blank" rel="noopener">PikaMMO breeding guide</a>. Species, egg groups, gender ratios, abilities, egg moves and who can learn each TM come from Pokémon Showdown's data, which can differ from PokeMMO in places. TM prices are mart prices from the PokeMMO Wiki; held item prices are guesses. Box icons, item icons and the Smeargle box icon behind the Smearguru logo are from or based on <a href="https://github.com/PokeAPI/sprites" target="_blank" rel="noopener">PokeAPI/sprites</a>. Unofficial fan tool, not affiliated with PokeMMO; Pokémon © Nintendo, Game Freak and The Pokémon Company.</p>
+    <p class="muted small">Sources: <a href="https://pokemmo.shoutwiki.com/wiki/Breeding" target="_blank" rel="noopener">PokeMMO Wiki: Breeding</a> and <a href="https://www.pikammo.fr/Pokemmo/en/tools/breeding" target="_blank" rel="noopener">PikaMMO breeding guide</a>. Species, egg groups, gender ratios, abilities, egg moves and who can learn each TM come from Pokémon Showdown's data, which can differ from PokeMMO in places; if you spot a mistake, <a href="https://github.com/ssmith130/PokeMMOBreeder/issues/new" target="_blank" rel="noopener">report it</a>. TM prices are mart prices from the PokeMMO Wiki; held item prices are guesses. Box icons, item icons and the Smeargle box icon behind the Smearguru logo are from or based on <a href="https://github.com/PokeAPI/sprites" target="_blank" rel="noopener">PokeAPI/sprites</a>. Unofficial fan tool, not affiliated with PokeMMO; Pokémon © Nintendo, Game Freak and The Pokémon Company.</p>
   </section>
-  <p class="site-foot">PokeMMO Breeding Planner · updated /*BUILT*/</p>
+  <p class="site-foot">PokeMMO Breeding Planner · updated /*BUILT*/ · <a href="https://github.com/ssmith130/PokeMMOBreeder/issues/new" target="_blank" rel="noopener">Report a problem</a></p>
 </div>
+<button class="to-plan" type="button" id="to-plan" hidden>See the plan</button>
 
 <div class="pop" id="tree-pop" role="dialog" aria-modal="true" aria-labelledby="pop-title" hidden>
   <div class="pop-bar">
@@ -1089,6 +1096,17 @@ function run() {
 function showMessage(msg) { jobId++; $('plan-status').textContent = ''; $('results').innerHTML = `<div class="empty">${esc(msg)}</div>`; }
 
 // ---------- results ----------
+// Phones: the "See the plan" button shows while the plan is off screen.
+const toPlan = $('to-plan');
+let planInView = false;
+function syncToPlan() {
+  const breeds = $('results').querySelector('.summary b');
+  toPlan.textContent = breeds ? `See the plan · ${breeds.textContent} breed${breeds.textContent === '1' ? '' : 's'}` : 'See the plan';
+  toPlan.hidden = planInView;
+}
+toPlan.addEventListener('click', () => $('results-panel').scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }));
+new MutationObserver(syncToPlan).observe($('results'), { childList: true });
+if ('IntersectionObserver' in window) new IntersectionObserver((es) => { planInView = es[0].isIntersecting; syncToPlan(); }).observe($('results-panel'));
 let view = 'steps';
 function lineGroups(line) { const L = dex.lines.get(line); return L ? [...L.groups].join(' / ') : ''; }
 function gSym(g) { return g === 'F' ? '<span class="g-F" title="Female">♀</span>' : g === 'M' ? '<span class="g-M" title="Male">♂</span>' : ''; }

@@ -1,0 +1,3 @@
+# Optional visitor counts with GoatCounter (https://www.goatcounter.com, free, no cookies).
+# Sign up, then put your site code (such as smearguru for https://smearguru.goatcounter.com) on the line below.
+# Empty means no counting. See docs/hosting.md.

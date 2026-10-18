@@ -2,8 +2,9 @@
 
 Outputs:
   dist/index.html       the website: one self-contained HTML file
-  dist/*.png, dist/manifest.webmanifest
-                        app icons, link-preview image and install info, copied from public/
+  dist/*.png, dist/favicon.ico, dist/manifest.webmanifest, dist/fonts/
+                        icons, link-preview image, install info and the page's fonts, copied from public/
+  dist/box-icons.png    the Pokémon icon sheet (the Artifact has it built in instead)
   dist/.nojekyll        tells GitHub Pages to serve dist/ as-is
   build/artifact.html   the same page as a fragment, for publishing as a claude.ai Artifact
 
@@ -18,6 +19,9 @@ The site's address (such as https://www.example.com/) goes in site-url.txt, or i
 environment variable, which wins. Link previews (Discord, social sites) need the image's full address
 and the sitemap needs the page's, so without it previews show text only and there is no sitemap.
 The GitHub Pages workflow sets SITE_URL itself.
+
+Visitor counts are off unless goatcounter.txt (or the GOATCOUNTER environment variable) holds a
+GoatCounter site code, such as smearguru for https://smearguru.goatcounter.com.
 """
 import base64
 import datetime
@@ -62,12 +66,25 @@ page = (page.replace('/*PLANNER*/', read('src/planner.js'))
 write('build/artifact.html', page)
 
 # The website needs a full document: everything up to the end of the <style> block is head content.
-split = page.index('</style>') + len('</style>')
-head, body = page[:split], page[split:]
+# The icon sheet becomes its own file there, so browsers can cache it.
+site_page = page.replace(sheet, 'box-icons.png')
+split = site_page.index('</style>') + len('</style>')
+head, body = site_page[:split], site_page[split:]
 head = head.replace('<meta name="claude:viewport-fit-sides" content="cover">\n', '')  # only means something on claude.ai
+# The website serves its own copy of the fonts (public/fonts) instead of loading them from Google.
+google_fonts = head[head.index('<link rel="preconnect" href="https://fonts.googleapis.com">'):head.index('<style>')]
+FONTS = [('Chakra Petch', '500', 'chakra-petch-500'), ('Chakra Petch', '600', 'chakra-petch-600'),
+         ('Chakra Petch', '700', 'chakra-petch-700'), ('IBM Plex Sans', '400 600', 'ibm-plex-sans'),
+         ('IBM Plex Mono', '400', 'ibm-plex-mono-400'), ('IBM Plex Mono', '500', 'ibm-plex-mono-500')]
+own_fonts = ('<link rel="preload" href="fonts/ibm-plex-sans.woff2" as="font" type="font/woff2" crossorigin>\n'
+             '<link rel="preload" href="fonts/chakra-petch-600.woff2" as="font" type="font/woff2" crossorigin>\n<style>\n'
+             + ''.join(f"@font-face {{ font-family: '{family}'; font-style: normal; font-weight: {weight}; font-display: swap; "
+                       f"src: url(fonts/{file}.woff2) format('woff2'); }}\n" for family, weight, file in FONTS)
+             + '</style>\n')
+head = head.replace(google_fonts, own_fonts)
 DESCRIPTION = ('Plan PokeMMO breeding: enter the Pokémon you have and the one you want, '
                'and get the fewest-breed tree with braces, Everstones, gender picks and a rough cost.')
-FAVICON = png('data/logo-square.png')  # Smearguru, made by src/build-logo.py
+FAVICON = png('data/logo-square.png')  # Smearguru, made by src/build-logo.py; the 404 page keeps it built in
 
 
 def site_address():
@@ -91,6 +108,20 @@ if site_url:
              f'<meta property="og:image" content="{u}og-image.png">\n'
              '<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n'
              '<meta name="twitter:card" content="summary_large_image">\n')
+
+
+def goatcounter_code():
+    """The GoatCounter site code: GOATCOUNTER if set, else the first line of goatcounter.txt that isn't a # comment."""
+    code = os.environ.get('GOATCOUNTER', '').strip()
+    if not code and os.path.exists(os.path.join(here, 'goatcounter.txt')):
+        code = next((line.strip() for line in read('goatcounter.txt').splitlines()
+                     if line.strip() and not line.strip().startswith('#')), '')
+    return code if code.replace('-', '').isalnum() else ''
+
+
+gc = goatcounter_code()
+analytics = (f'<script data-goatcounter="https://{gc}.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>\n'
+             if gc else '')
 site = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -102,10 +133,11 @@ site = f"""<!doctype html>
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#eef1f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#10151b" media="(prefers-color-scheme: dark)">
-<link rel="icon" type="image/png" href="{FAVICON}">
+<link rel="icon" href="favicon.ico" sizes="32x32 64x64">
+<link rel="icon" type="image/png" href="favicon-96.png" sizes="96x96">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-{share}{head}
+{share}{analytics}{head}
 </head>
 <body>
 {body}
@@ -114,8 +146,8 @@ site = f"""<!doctype html>
 """
 write('dist/index.html', site)
 write('dist/.nojekyll', '')
-for name in sorted(os.listdir(os.path.join(here, 'public'))):
-    shutil.copyfile(os.path.join(here, 'public', name), os.path.join(here, 'dist', name))
+shutil.copytree(os.path.join(here, 'public'), os.path.join(here, 'dist'), dirs_exist_ok=True)
+shutil.copyfile(os.path.join(here, 'data', 'box-icons.png'), os.path.join(here, 'dist', 'box-icons.png'))
 
 # Hosts show 404.html for addresses that don't exist (GitHub Pages, Netlify and Cloudflare all look for it).
 home = html.escape(site_url or '/', quote=True)
@@ -161,4 +193,5 @@ elif os.path.exists(os.path.join(here, 'dist', 'sitemap.xml')):
     os.remove(os.path.join(here, 'dist', 'sitemap.xml'))  # left over from a build that had an address
 write('dist/robots.txt', robots)
 print(f'dist/index.html {len(site):,} bytes, build/artifact.html {len(page):,} bytes'
-      + (f', site address {site_url}' if site_url else ', no site address yet (site-url.txt) so link previews are text only'))
+      + (f', site address {site_url}' if site_url else ', no site address yet (site-url.txt) so link previews are text only')
+      + (f', visitor counts on {gc}.goatcounter.com' if gc else ''))

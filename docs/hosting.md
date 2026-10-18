@@ -44,6 +44,12 @@ record types under similar names.
    | A | `@` | `185.199.110.153` | |
    | A | `@` | `185.199.111.153` | |
    | CNAME | `www` | `<your-username>.github.io` | `<project-name>.netlify.app` |
+   | AAAA | `@` | `2606:50c0:8000::153` | |
+   | AAAA | `@` | `2606:50c0:8001::153` | |
+   | AAAA | `@` | `2606:50c0:8002::153` | |
+   | AAAA | `@` | `2606:50c0:8003::153` | |
+
+   The AAAA records are optional: they let visitors on IPv6-only networks reach a GitHub Pages site.
 
 3. **Wait.** DNS changes often work within the hour but can take up to 48 hours. Both hosts then set up
    HTTPS on their own; on GitHub Pages, tick **Enforce HTTPS** once it's offered.
@@ -51,6 +57,15 @@ record types under similar names.
    `https://smearguru.org/`). Link previews on Discord and social sites use it to show the preview
    image, and `dist/sitemap.xml` is made from it. On GitHub Pages the workflow passes the address
    itself, which takes priority.
+
+## Visitor counts (optional)
+
+The site counts nothing by default. To see how many people visit, without cookies or a cookie banner:
+
+1. Sign up at https://www.goatcounter.com/signup (free for personal sites) and pick a code, such as
+   `smearguru`; your dashboard is then at `https://smearguru.goatcounter.com`.
+2. Put the code on its own line in `goatcounter.txt` and push. The next build adds GoatCounter's script
+   to the site (not to the claude.ai version). Empty the file to turn it off again.
 
 The record values come from [GitHub's custom domain docs](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site)
 and [Netlify's external DNS guide](https://docs.netlify.com/manage/domains/configure-domains/configure-external-dns/).

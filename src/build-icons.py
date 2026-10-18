@@ -46,6 +46,15 @@ icon(512, True, 14).save(os.path.join(out, 'icon-512.png'))
 icon(512, False, 12).save(os.path.join(out, 'icon-maskable-512.png'))  # stays inside the maskable safe zone
 icon(180, False, 5).convert('RGB').save(os.path.join(out, 'apple-touch-icon.png'))
 
+# Browser tab and search result icons: the square logo at whole-number sizes, so the pixels stay crisp.
+square = Image.open(os.path.join(here, 'data', 'logo-square.png')).convert('RGBA')
+square.resize((64, 64), Image.NEAREST).save(os.path.join(out, 'favicon.ico'), sizes=[(32, 32), (64, 64)],
+                                            append_images=[square])
+fav = Image.new('RGBA', (96, 96), (0, 0, 0, 0))
+art = logo(3)
+fav.alpha_composite(art, ((96 - art.width) // 2, (96 - art.height) // 2))
+fav.save(os.path.join(out, 'favicon-96.png'), optimize=True)
+
 
 def font(name, size, fallback):
     path = os.path.join(fonts, name)

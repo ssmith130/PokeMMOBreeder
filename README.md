@@ -72,9 +72,10 @@ Every push to `main` builds the site and publishes it to GitHub Pages
 | `data/box-icons.png` | Box icons for all 649 species, 25 per row in dex order. |
 | `data/logo.png` | The Smearguru logo, painted onto Smeargle's box icon by `src/build-logo.py`. |
 | `src/items.py` | The brace, Everstone and incense icons, drawn as SVG. |
-| `public/` | App icons, the link-preview image and the web app manifest (redrawn by `src/build-icons.py`). |
+| `public/` | App icons, favicons, the link-preview image and the web app manifest (redrawn by `src/build-icons.py`), and the page's fonts (`public/fonts`, under the SIL Open Font License). |
 | `build.py` | Puts it all into `dist/`, along with `404.html`, `robots.txt` and `sitemap.xml`. Also writes `build/artifact.html`, a version for claude.ai. |
 | `site-url.txt` | The site's address, used for link previews and the sitemap. |
+| `goatcounter.txt` | Optional GoatCounter site code for visitor counts; off while it's empty. |
 | `src/extract-species.js`, `src/extract-tms.js`, `src/build-sprites.py` | Regenerate the data from Pokémon Showdown and PokeAPI. |
 
 The scripts that redraw images need Pillow; everything else needs only Python 3's standard library.
@@ -83,7 +84,8 @@ The scripts that redraw images need Pillow; everything else needs only Python 3'
 
 Species, move and TM data come from [Pokémon Showdown](https://github.com/smogon/pokemon-showdown), and the
 box icons, including the Smeargle icon the Smearguru logo is painted on, from
-[PokeAPI/sprites](https://github.com/PokeAPI/sprites). Gender selection and incense prices come from the
+[PokeAPI/sprites](https://github.com/PokeAPI/sprites). The fonts are Chakra Petch and IBM Plex, served from
+this site under the SIL Open Font License. Gender selection and incense prices come from the
 [PokeMMO wiki](https://pokemmo.shoutwiki.com/); the other prices are estimates you can edit.
 
 Pokémon and its sprites are © Nintendo, Game Freak and The Pokémon Company. This is an unofficial fan
