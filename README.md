@@ -36,6 +36,11 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
 - Incense babies (Azurill, Wynaut, Munchlax, Mime Jr., Bonsly, Budew, Chingling, Happiny, Mantyke) only
   hatch when a parent holds their incense, which takes that parent's item slot. Otherwise the egg is the
   next stage, such as Marill.
+- Genderless Pokémon (Beldum, Magnemite, Bronzor and others) only breed with Ditto, and Ditto can't be bred,
+  so their IVs are capped by the Dittos you have. One-gender species breed with Ditto, or with a partner
+  from their egg group (Miltank with Tauros).
+- Nidoran and Volbeat/Illumise eggs hatch as either species, decided by the egg's gender. When the Pokémon
+  you want only comes in one gender (Vespiquen, Gallade, Nidoking), its final egg gets that gender picked.
 - Gender selection costs $5k, $10k or $25k for 1:1, 3:1 or 7:1 species.
 
 Covers all 649 Pokémon from Generations 1 to 5, as in PokeMMO.

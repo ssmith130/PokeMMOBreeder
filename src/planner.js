@@ -8,6 +8,8 @@
 //  - an Everstone passes the holder's nature (and takes the brace slot)
 //  - the egg is the mother's species (or the non-Ditto parent's species); the incense babies
 //    (Azurill, Happiny, ...) only hatch when a parent holds their incense, which takes its item slot
+//  - Nidoran♀/Nidoran♂ and Illumise/Volbeat eggs hatch as either species, decided by the egg's gender
+//  - genderless Pokémon only breed with Ditto, and Ditto can't be bred
 //  - abilities pass from the mother (or the non-Ditto parent) with a chance
 //  - egg moves pass from the father
 (function (root) {
@@ -20,6 +22,8 @@
     'Mime Jr.': ['Mr. Mime', 'Odd Incense'], Bonsly: ['Sudowoodo', 'Rock Incense'], Budew: ['Roselia', 'Rose Incense'],
     Chingling: ['Chimecho', 'Pure Incense'], Happiny: ['Chansey', 'Luck Incense'], Mantyke: ['Mantine', 'Wave Incense'],
   };
+  // Male species whose eggs come from the same line as a female species: the egg's gender picks which one hatches.
+  const COUNTERPART = { 'Nidoran-M': 'Nidoran-F', Volbeat: 'Illumise' };
 
   function popcount(m) { let c = 0; while (m) { c += m & 1; m >>= 1; } return c; }
   function bitsOf(m) { const r = []; for (let i = 0; i < 6; i++) if (m & (1 << i)) r.push(i); return r; }
@@ -29,7 +33,11 @@
     const byName = new Map();
     for (const s of species) byName.set(s.n.toLowerCase(), s);
     // A line is named after what its eggs hatch as: the first stage, or the stage after an incense baby.
-    const lineName = (s) => { const first = s.b || s.n; return INCENSE[first] ? INCENSE[first][0] : first; };
+    // Nidoran♂ and Volbeat join their female counterpart's line, which then hatches either gender.
+    const lineName = (s) => {
+      const first = COUNTERPART[s.b || s.n] || s.b || s.n;
+      return INCENSE[first] ? INCENSE[first][0] : first;
+    };
     const lines = new Map(); // line name -> {name, groups:Set, ratio}
     for (const s of species) {
       const base = lineName(s);
@@ -37,15 +45,19 @@
       const L = lines.get(base);
       for (const g of s.e) L.all.add(g);
       if (s.n === base) L.ratio = s.g;
-      if (!s.b) L.moves = new Set(s.m || []); // egg moves are listed on the first stage
+      if (COUNTERPART[s.n]) L.male = s.n;
+      // egg moves are listed on the first stage; a shared line keeps the male species' list apart
+      if (!s.b) L[COUNTERPART[s.n] ? 'movesM' : 'moves'] = new Set(s.m || []);
     }
     for (const L of lines.values()) {
       for (const g of L.all) if (!NO_BREED.has(g)) L.groups.add(g);
-      if (L.ratio === null) L.ratio = 0.5;
+      if (L.ratio === null || L.male) L.ratio = 0.5;
     }
     const get = (name) => byName.get(String(name).toLowerCase());
     return { byName, lines, lineOf: (name) => { const s = get(name); return s ? lineName(s) : null; },
-      incenseOf: (name) => { const s = get(name); return s && INCENSE[s.n] ? INCENSE[s.n][1] : null; } };
+      incenseOf: (name) => { const s = get(name); return s && INCENSE[s.n] ? INCENSE[s.n][1] : null; },
+      // What an egg of this line hatches as: Nidoran-M for a male Nidoran egg, the line's own name otherwise.
+      hatchName: (line, gender) => { const L = lines.get(line); return L && L.male && gender === 'M' ? L.male : line; } };
   }
 
   function hasMales(r) { return r !== 'F' && r !== 'N'; }
@@ -101,6 +113,11 @@
       if (!A || !B) return false;
       for (const g of A.groups) if (B.groups.has(g)) return true;
       return false;
+    }
+    // A Nidoran or Volbeat/Illumise egg gets the egg moves of the species its gender makes it.
+    function movesOf(L, g) {
+      if (!L.male) return L.moves;
+      return g === 'M' ? L.movesM : g === 'F' ? L.moves : new Set([...L.moves].filter((m) => L.movesM.has(m)));
     }
     function lineOk(req, line) { return req.kind === 'L' ? line === req.line : compat(req.line, line); }
     function genderCost(line, g, r = lineInfo(line).ratio) {
@@ -209,7 +226,8 @@
         if (req.gender === 'F' && !hasFemales(ratio)) continue;
         if (req.gender !== 'A' && ratio === 'N') continue;
         // an egg move only hatches onto species that have it as an egg move
-        if (req.mv && !tMoves.every((mv) => L.moves && L.moves.has(mv))) continue;
+        const eggMoves = movesOf(L, req.gender);
+        if (req.mv && !tMoves.every((mv) => eggMoves && eggMoves.has(mv))) continue;
         const gCost = genderCost(m, req.gender, ratio);
 
         const pairings = [];
@@ -289,7 +307,9 @@
       return out;
     }
 
-    const topReq = { kind: 'L', line: tLine, gender: target.gender || 'A', need: needAll,
+    // A Pokémon that only exists as one gender (Vespiquen, Gallade, Nidoking, ...) has to hatch as that gender.
+    const fixedGender = !tSpecies ? null : tSpecies.g === 'M' || tSpecies.g === 'F' ? tSpecies.g : tSpecies.g === 'N' ? 'A' : null;
+    const topReq = { kind: 'L', line: tLine, gender: fixedGender || target.gender || 'A', need: needAll,
       nat: !!target.nature, abil: !!target.ability, mv: tMoves.length > 0, incense, top: true };
     let full = 0n;
     for (const c of kinds) full += BigInt(c.members.length) << c.shift;

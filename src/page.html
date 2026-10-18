@@ -371,14 +371,14 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
     <ul>
       <li><b>Both parents are consumed.</b> The Daycare keeps both parents and any items they hold, so every parent in the tree is used up.</li>
       <li><b>Compatibility.</b> Parents must be opposite genders and share an egg group. Ditto breeds with anything that can breed (not with another Ditto). Pokémon in the Undiscovered group can't breed. Genderless Pokémon breed only with Ditto.</li>
-      <li><b>Species.</b> The egg is the mother's species at its first evolution stage. With Ditto, it is the other parent's species.</li>
+      <li><b>Species.</b> The egg is the mother's species at its first evolution stage. With Ditto, it is the other parent's species. Nidoran and Volbeat/Illumise are the exception: their eggs hatch as Nidoran♀ or Nidoran♂, Illumise or Volbeat, depending on the egg's gender, so a male egg from a Nidoran♀ is a Nidoran♂.</li>
       <li><b>Incense babies.</b> These babies only hatch when a parent holds the matching incense: <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-sea"/></svg>Sea Incense, Azurill</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-lax"/></svg>Lax Incense, Wynaut</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-full"/></svg>Full Incense, Munchlax</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-odd"/></svg>Odd Incense, Mime Jr.</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-rock"/></svg>Rock Incense, Bonsly</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-rose"/></svg>Rose Incense, Budew</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-pure"/></svg>Pure Incense, Chingling</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-luck"/></svg>Luck Incense, Happiny</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-wave"/></svg>Wave Incense, Mantyke</span>. Without it the egg is the next stage (Marill, Wobbuffet, Snorlax and so on). The incense uses that parent's item slot. When your goal is one of these babies, the plan puts the incense in the last breed. Each incense costs $9,600 at the mart.</li>
       <li><b>One item per parent.</b> A Power item (brace) guarantees that parent's IV in its stat: <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-0"/></svg>Power Weight HP</span>, <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-1"/></svg>Power Bracer Attack</span>, <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-2"/></svg>Power Belt Defense</span>, <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-3"/></svg>Power Lens Sp. Atk</span>, <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-4"/></svg>Power Band Sp. Def</span>, <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-5"/></svg>Power Anklet Speed</span>. Two parents can lock two different stats.</li>
       <li><b>Shared stats carry over.</b> Each IV the egg doesn't take from a parent becomes the parents' average, rounded down. So a stat where both parents are 31 is always 31. That is why every breed in the plan pairs parents that share all but one stat each, and why each extra 31 doubles the number of parents.</li>
       <li><b>Nature.</b> A parent holding an <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-6"/></svg>Everstone</span> passes its nature. It can't hold a brace in the same breed, which is why a fixed nature roughly doubles the parents needed.</li>
       <li><b>Ability.</b> The ability comes from the mother, or from the non-Ditto parent when breeding with Ditto. Hidden abilities pass about 60% of the time. The planner keeps the parent with your ability on the mother's side and shows the overall chance. The regular-ability chance (80%) is the main-series figure; PokeMMO's exact rate is unconfirmed.</li>
       <li><b>Egg moves.</b> Egg moves come from the father. The planner puts a father who knows your egg moves in the final breed, and can chain them through other species that also have the move as an egg move.</li>
-      <li><b>Gender selection.</b> You can pay the Daycare to choose the egg's gender: $5,000 for 1:1 species, $10,000 for 3:1, $25,000 for 7:1. The plan picks a gender whenever the child is used as a parent later.</li>
+      <li><b>Gender selection.</b> You can pay the Daycare to choose the egg's gender: $5,000 for 1:1 species, $10,000 for 3:1, $25,000 for 7:1. The plan picks a gender whenever the child is used as a parent later, and for the final egg when the Pokémon you want only comes in one gender (Vespiquen, Gallade, Froslass, Nidoking and so on).</li>
       <li><b>What the planner counts as guaranteed.</b> Only braced stats and stats both parents share. Any extra 31s from the random third inherited IV are luck and not counted.</li>
     </ul>
     <p class="muted small">Sources: <a href="https://pokemmo.shoutwiki.com/wiki/Breeding" target="_blank" rel="noopener">PokeMMO Wiki: Breeding</a> and <a href="https://www.pikammo.fr/Pokemmo/en/tools/breeding" target="_blank" rel="noopener">PikaMMO breeding guide</a>. Species, egg groups, gender ratios, abilities, egg moves and who can learn each TM come from Pokémon Showdown's data, which can differ from PokeMMO in places. TM prices are mart prices from the PokeMMO Wiki; held item prices are guesses. Box icons, item icons and the Smeargle box icon behind the Smearguru logo are from or based on <a href="https://github.com/PokeAPI/sprites" target="_blank" rel="noopener">PokeAPI/sprites</a>. Unofficial fan tool, not affiliated with PokeMMO; Pokémon © Nintendo, Game Freak and The Pokémon Company.</p>
@@ -462,6 +462,12 @@ function sprite(name, scale = 2) {
   return `<span class="spr" style="--x:${i % 25};--y:${Math.floor(i / 25)};--s:${scale}" role="img" aria-label="${s ? esc(s.n) : 'Unknown Pokémon'}"></span>`;
 }
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+// What an egg of this line hatches as. Nidoran and Volbeat/Illumise eggs depend on their gender.
+function hatchLabel(line, gender) {
+  const L = dex.lines.get(line);
+  return L && L.male && gender !== 'M' && gender !== 'F' ? `${line} or ${L.male}` : dex.hatchName(line, gender);
+}
+const hatchSprite = (line, gender) => sprite(dex.hatchName(line, gender));
 let uid = 1;
 
 // What a first-time visitor sees.
@@ -550,7 +556,6 @@ function renderTarget() {
   const t = state.target;
   $('t-species').value = t.species;
   $('t-nature').value = t.nature;
-  $('t-gender').value = t.gender;
   $('t-ivs-label').textContent = state.exact ? 'Minimum IVs you want (blank = don\'t care)' : 'IVs that must be 31';
   $('t-ivs').innerHTML = STAT_KEYS.map((_, i) => ivControl(t.ivs, i, 't', state.exact, 'Target')).join('');
   renderTargetSpecies();
@@ -560,6 +565,12 @@ function renderTarget() {
 function renderTargetSpecies() {
   const t = state.target;
   $('t-sprite').innerHTML = sprite(t.species, 1);
+  // A one-gender or genderless species can only be that; the choice stays saved for the next species.
+  const s0 = sp(t.species), fixed = s0 && (s0.g === 'M' || s0.g === 'F' || s0.g === 'N') ? s0.g : null;
+  $('t-gender').innerHTML = fixed ? `<option value="${fixed === 'N' ? 'A' : fixed}">${G_LABEL[fixed]}</option>`
+    : '<option value="A">Either</option><option value="F">♀ Female</option><option value="M">♂ Male</option>';
+  $('t-gender').value = fixed ? (fixed === 'N' ? 'A' : fixed) : t.gender;
+  $('t-gender').disabled = !!fixed;
   $('t-ability').innerHTML = abilityOptions(t.species, 'Any ability');
   $('t-ability').value = t.ability;
   $('t-want-moves').checked = t.wantMoves;
@@ -615,7 +626,8 @@ function genderOptions(m) {
 function monAbilityOptions(m) { return abilityOptions(m.species, 'Other / unknown').replace(`value="${esc(m.ability)}"`, `value="${esc(m.ability)}" selected`); }
 function monWarning(m) {
   const s = sp(m.species);
-  if (s && s.e.includes('Undiscovered') && dex.lines.get(dex.lineOf(s.n)).groups.size) return 'Babies can\'t breed until they evolve, so this one is only used if it already is your goal.';
+  if (s && s.e.includes('Undiscovered') && dex.lines.get(dex.lineOf(s.n)).groups.size)
+    return s.b ? `${s.n} can't breed, so it is only used if it already is your goal.` : 'Babies can\'t breed until they evolve, so this one is only used if it already is your goal.';
   return s ? '' : m.species ? 'Unknown species. Pick one from the list.' : 'Type a species name.';
 }
 function movePills(m) {
@@ -1100,9 +1112,9 @@ function leafCard(r, hold) {
   }
   if (n.t === 'buy') {
     // a father ('C') can be any species that shares an egg group; a mother passes on her species
-    const what = n.ditto ? 'Ditto' : `${esc(n.line)}${n.kind === 'C' && lineGroups(n.line) ? ` <span class="muted small">or any ${esc(lineGroups(n.line))} Pokémon</span>` : ''}`;
+    const what = n.ditto ? 'Ditto' : `${esc(hatchLabel(n.line, n.gender))}${n.kind === 'C' && lineGroups(n.line) ? ` <span class="muted small">or any ${esc(lineGroups(n.line))} Pokémon</span>` : ''}`;
     const leaf = { line: n.line, gender: n.gender, stat: n.stat, nat: !!n.nat, ditto: !!n.ditto, kind: n.kind || 'C' };
-    return `<div class="card buy" data-leaf="${esc(JSON.stringify(leaf))}"><div class="who">${sprite(n.ditto ? 'Ditto' : n.line)}<span class="name">Buy or catch ${gSym(n.gender)} ${what}</span></div><span class="small">${leafStats(leaf)} · <span style="color:var(--cost)">${money(r.cost)}</span> on the GTL</span>${hold ? `<span class="hold">${hold}</span>` : ''}${OBTAIN_BTN}</div>`;
+    return `<div class="card buy" data-leaf="${esc(JSON.stringify(leaf))}"><div class="who">${n.ditto ? sprite('Ditto') : hatchSprite(n.line, n.gender)}<span class="name">Buy or catch ${gSym(n.gender)} ${what}</span></div><span class="small">${leafStats(leaf)} · <span style="color:var(--cost)">${money(r.cost)}</span> on the GTL</span>${hold ? `<span class="hold">${hold}</span>` : ''}${OBTAIN_BTN}</div>`;
   }
   return '';
 }
@@ -1113,7 +1125,7 @@ function childCard(r, isFinal, num, hold, check) {
   if (n.nat) tags.push(esc(state.target.nature));
   if (n.abil) tags.push(esc(state.target.ability));
   if (n.mv) tags.push(...bredMoves().map(esc));
-  return `<div class="card ${isFinal ? 'result' : ''}"><div class="who">${sprite(n.baby || n.line)}<span class="name">${gSym(n.gender)} ${esc(n.baby || n.line)} <span class="muted small">· breed ${num}</span></span></div>${ivChips(r.iv)}${tags.length ? `<div class="tags">${tags.map((x) => `<span class="tag">${x}</span>`).join('')}</div>` : ''}${hold ? `<span class="hold">${hold}</span>` : ''}${check ? doneRow(num) : ''}</div>`;
+  return `<div class="card ${isFinal ? 'result' : ''}"><div class="who">${n.baby ? sprite(n.baby) : hatchSprite(n.line, n.gender)}<span class="name">${gSym(n.gender)} ${esc(n.baby || hatchLabel(n.line, n.gender))} <span class="muted small">· breed ${num}</span></span></div>${ivChips(r.iv)}${tags.length ? `<div class="tags">${tags.map((x) => `<span class="tag">${x}</span>`).join('')}</div>` : ''}${hold ? `<span class="hold">${hold}</span>` : ''}${check ? doneRow(num) : ''}</div>`;
 }
 function numberBreeds(res) {
   const order = [];
@@ -1131,7 +1143,7 @@ function renderSteps(order, final) {
     return `<li data-breed="${r.num}"><span class="stepno">${r.num}</span><div class="stepbody">
       ${doneRow(r.num)}
       <div class="pair">${cardFor(n.a, itemFor(n, 'a'), final)}<span class="x">×</span>${cardFor(n.b, itemFor(n, 'b'), final)}</div>
-      <div class="outcome">Hatches ${gSym(n.gender)} <b style="color:var(--ink)">${esc(n.baby || n.line)}</b> with ${r.iv.some((v, i) => state.target.ivs[i] != null && v >= state.target.ivs[i]) ? STAT_LABEL.filter((_, i) => state.target.ivs[i] != null && r.iv[i] >= state.target.ivs[i]).join(', ') + ' locked' : 'no locked IVs'}${n.nat ? `, ${esc(state.target.nature)}` : ''}${n.abil ? `, ${esc(state.target.ability)} (chance)` : ''}. ${gPick ? gPick[0].toUpperCase() + gPick.slice(1) + '. ' : ''}${usedIn}</div>
+      <div class="outcome">Hatches ${gSym(n.gender)} <b style="color:var(--ink)">${esc(n.baby || hatchLabel(n.line, n.gender))}</b> with ${r.iv.some((v, i) => state.target.ivs[i] != null && v >= state.target.ivs[i]) ? STAT_LABEL.filter((_, i) => state.target.ivs[i] != null && r.iv[i] >= state.target.ivs[i]).join(', ') + ' locked' : 'no locked IVs'}${n.nat ? `, ${esc(state.target.nature)}` : ''}${n.abil ? `, ${esc(state.target.ability)} (chance)` : ''}. ${gPick ? gPick[0].toUpperCase() + gPick.slice(1) + '. ' : ''}${usedIn}</div>
     </div></li>`;
   }).join('')}</ol>`;
 }
@@ -1177,7 +1189,11 @@ function showResult(out, retry) {
       const bred = bredMoves(), withTm = bred.filter(tmOf);
       if (bred.length) why.push(`a male that knows ${bred.map(esc).join(', ')}${withTm.length ? ` (or tick "Teach ${esc(withTm[0])} with the TM instead" under your goal)` : ''}`);
       if (t.nature) why.push(`${/^[AEIOU]/.test(t.nature) ? 'an' : 'a'} ${esc(t.nature)} parent, or allow buying one`);
-      box.innerHTML = `<div class="notice"><strong>No plan found.</strong> ${why.length ? 'Check that you have ' + why.join('; ') + '.' : 'Check genders and egg groups: each breed needs a female and a male that share an egg group, or a Ditto.'}${out.truncated ? ' The search also hit its limit; try fewer Pokémon.' : ''}</div>`;
+      const ts = sp(t.species);
+      // Genderless lines breed only with Ditto, so the Dittos you own cap how many 31s a plan can reach.
+      const k = t.ivs.filter((v) => v != null).length;
+      const dittoNote = ts && ts.g === 'N' ? ` ${esc(ts.n)} is genderless, so it only breeds with Ditto, and Ditto can't be bred. Every breed uses up one of your Dittos${k > 1 ? `, and the last breed needs a Ditto that already has ${k - 1} of the ${k} stats you want at 31${t.nature ? ' (more with a nature)' : ''}` : ''}.` : '';
+      box.innerHTML = `<div class="notice"><strong>No plan found.</strong> ${why.length ? 'Check that you have ' + why.join('; ') + '.' : dittoNote ? '' : 'Check genders and egg groups: each breed needs a female and a male that share an egg group, or a Ditto.'}${dittoNote}${out.truncated ? ' The search also hit its limit; try fewer Pokémon.' : ''}</div>`;
       return;
     }
   } else if (out.truncated) {
