@@ -25,7 +25,9 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
   The tree pops out full screen.
 - **Egg moves and TMs.** It plans who has to know each egg move, or lets you teach it with a TM instead.
 - **Common builds.** Catching Breloom, Smeargle, gym re-run Typhlosion and Thief Dusknoir fill in the goal
-  in one click.
+  in one click, from their own dropdown above the goal.
+- **Event builds.** A second dropdown holds builds for the current seasonal event (Halloween for now). It can
+  be shown or hidden, see [Event builds](#event-builds).
 - **Saved builds.** Keep several setups, and move them to another device with a code.
 - **Works anywhere.** Phone-friendly, light and dark themes, and it can be added to your home screen like
   an app. Nothing to sign up for, and what you enter stays in your browser.
@@ -83,6 +85,16 @@ Every push to `main` builds the site and publishes it to GitHub Pages
 | `src/extract-species.js`, `src/extract-tms.js`, `src/build-sprites.py` | Regenerate the data from Pokémon Showdown and PokeAPI. |
 
 The scripts that redraw images need Pillow; everything else needs only Python 3's standard library.
+
+## Event builds
+
+The event dropdown is set by `EVENT` in `src/page.html`, just after the common builds (`PRESETS`).
+
+- **Hide or show it:** set `on: false` to hide the dropdown once the event is over, `on: true` to show it.
+- **Next event:** change `label` (the dropdown's name), `banner` (the line above an event build's notes) and replace `presets`. Each build is written the same
+  way as a common build. Give event builds keys of their own (the Halloween ones start with `hw-`).
+
+Then run `python3 build.py` as usual.
 
 ## Credits
 
