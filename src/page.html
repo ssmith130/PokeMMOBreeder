@@ -63,6 +63,8 @@ input:focus-visible, select:focus-visible, button:focus-visible, .chip:has(input
 .btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
 .btn.ghost { border-color: transparent; background: transparent; color: var(--muted); padding: 4px 8px; }
 .btn.ghost:hover { color: var(--warn); }
+.btn.danger { background: var(--warn); color: var(--on-accent); border-color: var(--warn); font-weight: 600; }
+.btn.danger:hover { border-color: var(--ink); }
 .stats { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { --c: var(--line-strong); position: relative; display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line);
   border-radius: 999px; padding: 3px 10px 3px 8px; font-family: var(--f-mono); font-size: 12.5px; cursor: pointer; user-select: none; background: var(--surface); }
@@ -210,6 +212,21 @@ ol.steps li { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10
 .pop-tree { margin: auto; padding: 24px max(24px, env(safe-area-inset-right, 0px)) 24px max(24px, env(safe-area-inset-left, 0px)); }
 body.popped { overflow: hidden; }
 /* Type-ahead fields: one shared suggestion list that follows whichever field is focused */
+/* Egg move finder: a small floating card over the page, so it doesn't add to the left-hand panels */
+.moves-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.finder { position: fixed; z-index: 40; top: max(16px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+  width: min(440px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: 10px; box-shadow: 0 16px 40px rgb(0 0 0 / 0.25); padding: 14px 16px 16px; display: grid; gap: 12px; align-content: start; }
+@media (max-width: 600px) { .finder { top: auto; bottom: max(16px, env(safe-area-inset-bottom, 0px)); left: 16px; right: 16px; width: auto; max-height: 75vh; } }
+.finder-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.finder-pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.finder-sp { display: flex; align-items: center; gap: 4px; }
+.finder-out { display: grid; gap: 10px; font-size: 13.5px; }
+.finder-out h3 { font-size: 13px; margin-top: 2px; }
+.fathers { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.fathers li { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; padding: 4px 8px; background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; }
+.fathers .how { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); }
+.fathers .arr { color: var(--muted); }
 .combo-list { position: fixed; z-index: 60; max-height: 288px; overflow-y: auto; background: var(--surface); border: 1px solid var(--line-strong);
   border-radius: 8px; box-shadow: 0 10px 28px rgb(0 0 0 / 0.18); padding: 4px; display: grid; }
 .opt { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 14px; min-height: 32px; }
@@ -299,6 +316,80 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: s 0.8s linear infinite; vertical-align: -2px; margin-right: 6px; }
 @keyframes s { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+/* Planner / My box switcher */
+/* Folder tabs that sit on the top edge of the first cards: the open tab joins the card below it */
+.topbar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 12px; margin-bottom: -21px; position: relative; z-index: 1; }
+.views { display: flex; flex-wrap: wrap; gap: 2px; align-items: flex-end; }
+.view-tab { display: inline-flex; align-items: center; gap: 8px; border: 1px solid transparent; border-bottom: 0; border-radius: 10px 10px 0 0; padding: 9px 16px 10px 13px;
+  background: none; cursor: pointer; font-family: var(--f-display); font-size: 16px; font-weight: 600; color: var(--muted); position: relative; }
+.view-tab:hover { color: var(--ink); }
+.view-tab[aria-selected="true"] { color: var(--ink); background: var(--surface); border-color: var(--line); }
+/* covers the card's top border under the open tab */
+.view-tab[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--surface); }
+.view-tab svg { width: 18px; height: 18px; flex: none; }
+.view-tab[aria-selected="true"] svg { color: var(--accent); }
+.view-tab .count { font-family: var(--f-mono); font-size: 11.5px; font-weight: 500; color: var(--muted); background: var(--sunk); border: 1px solid var(--line); border-radius: 999px; padding: 0 7px; }
+.topbar .seg { margin: 0 0 9px auto; }
+/* the first tab joins the first card at its corner, so that corner is square only while the first tab is open */
+#view-planner .cols > div:first-child > :first-child { border-top-left-radius: 0; }
+/* phones: the theme switch goes above the tabs so the tabs keep sitting on the rule */
+@media (max-width: 600px) { .topbar .seg { order: -1; margin: 0 0 4px auto; } .view-tab { padding: 8px 12px 9px 10px; font-size: 15px; } }
+.view-pane { display: grid; gap: 20px; min-width: 0; }
+/* My box: a PC box like the game's, a grid of box icons with the box name and arrows above it */
+.box-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (min-width: 1000px) { .box-cols { grid-template-columns: max-content minmax(0, 1fr); } }
+.pc { display: grid; gap: 10px; justify-items: stretch; }
+.pc-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.pc-arrow { width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--sunk); cursor: pointer; font-size: 18px; line-height: 1; color: var(--ink); }
+.pc-arrow:hover:not(:disabled) { border-color: var(--accent); }
+.pc-arrow:disabled { opacity: 0.35; cursor: default; }
+.pc-name { text-align: center; font-family: var(--f-display); font-weight: 600; font-size: 17px; background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; width: 100%; color: var(--ink); }
+.pc-grid { --cell: 84px; display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); gap: 4px; padding: 10px; border-radius: 10px; justify-content: center;
+  background: color-mix(in srgb, var(--accent) 9%, var(--sunk)); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+  background-image: radial-gradient(color-mix(in srgb, var(--accent) 16%, transparent) 1px, transparent 1.5px); background-size: 14px 14px; }
+.slot { position: relative; height: calc(var(--cell) * 0.78); border-radius: 8px; border: 1px solid transparent; background: color-mix(in srgb, var(--surface) 55%, transparent);
+  padding: 0; cursor: pointer; display: grid; place-items: center; color: var(--muted); font-size: 18px; }
+.slot:hover, .slot.drop { border-color: var(--accent); background: var(--surface); }
+.slot.empty::after { content: "+"; opacity: 0; }
+.slot.empty:hover::after, .slot.empty:focus-visible::after { opacity: 0.7; }
+.slot[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent-soft); }
+.slot .spr { --s: 2 !important; }
+.slot .g { position: absolute; right: 5px; bottom: 1px; font-size: 12px; }
+.slot .n31 { position: absolute; left: 5px; top: 2px; font-family: var(--f-mono); font-size: 10.5px; color: var(--ink); opacity: 0.75; }
+.slot.dragging { opacity: 0.4; }
+@media (max-width: 600px) { .pc-grid { --cell: calc((100vw - 32px - 36px - 22px - 20px) / var(--cols)); gap: 3px; padding: 8px; } .slot .spr { --s: 1 !important; } .slot .n31 { font-size: 9.5px; left: 3px; } }
+.pc-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.pc-foot .row { gap: 6px; }
+.box-msg { font-size: 13px; }
+/* The details shown when hovering a Pokémon in the box */
+.box-tip { position: fixed; z-index: 70; width: 260px; pointer-events: none; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.22); padding: 10px 12px; display: grid; gap: 7px; font-size: 13px; }
+.tip-head { display: flex; align-items: center; gap: 8px; }
+.tip-head b { font-size: 14.5px; }
+.tip-ivs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; text-align: center; }
+.tip-ivs span { display: grid; font-family: var(--f-mono); font-size: 10.5px; color: var(--muted); border-radius: 5px; padding: 2px 0;
+  background: color-mix(in srgb, var(--c) 12%, transparent); border-bottom: 2px solid color-mix(in srgb, var(--c) 60%, transparent); }
+.tip-ivs b { font-size: 13px; color: var(--ink); font-weight: 500; }
+.tip-ivs span.max { background: color-mix(in srgb, var(--c) 26%, transparent); border-bottom-color: var(--c); }
+.tip-ivs span.max b { font-weight: 700; }
+.tip-row { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 6px; }
+.tip-row > span:first-child { color: var(--muted); font-size: 12px; }
+.tip-row .up { color: var(--accent); } .tip-row .down { color: var(--warn); }
+/* Adding or editing one */
+.box-edit { display: grid; gap: 12px; }
+.box-edit .ivnum input { width: 52px; }
+/* A 31 button under each IV: one click fills in 31, another clears it */
+.iv-cell { display: inline-grid; gap: 4px; justify-items: center; }
+.iv31 { width: 52px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); padding: 1px 0; cursor: pointer;
+  font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); }
+.iv31:hover { border-color: var(--c); color: var(--ink); }
+.iv31[aria-pressed="true"] { background: color-mix(in srgb, var(--c) 22%, var(--surface)); border-color: var(--c); color: var(--ink); font-weight: 500; }
+.edit-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.edit-who { display: flex; align-items: center; gap: 10px; }
+.edit-who .spr { --s: 2 !important; }
+.use-box { display: grid; gap: 6px; padding: 10px 12px; border-radius: 8px; background: var(--sunk); border: 1px solid var(--line); }
+.use-box .sub { padding-left: 22px; }
+.box-sync { font-size: 13px; }
 </style>
 <script>
 // Apply a saved Light/Dark choice before the page draws, so it doesn't flash the other theme.
@@ -314,11 +405,17 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
       <p>Enter the Pokémon you have and the one you want. The planner finds the breeding tree with the fewest breeds, which braces and Everstones each parent holds, and what it (roughly) costs.</p>
       <p class="alpha-note"><b>Alpha.</b> The planner is new and still being checked against the game, so double-check a plan before you spend money on it, and <a href="https://github.com/ssmith130/PokeMMOBreeder/issues/new" target="_blank" rel="noopener">report a problem</a> if something looks wrong.</p>
     </div>
-    <div class="row">
-      <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
-    </div>
   </header>
 
+  <nav class="topbar" aria-label="Page">
+    <div class="views" role="tablist" aria-label="Page">
+      <button class="view-tab" type="button" role="tab" id="vt-planner" aria-controls="view-planner" data-view="planner"><svg viewBox="0 0 18 18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2" width="5" height="4" rx="1"/><rect x="1.5" y="12" width="5" height="4" rx="1"/><rect x="11.5" y="7" width="5" height="4" rx="1"/><path d="M6.5 4h2.5v10H6.5M9 9h2.5"/></g></svg>Breeding planner</button>
+      <button class="view-tab" type="button" role="tab" id="vt-box" aria-controls="view-box" data-view="box"><svg viewBox="0 0 18 18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="1.5" y="2.5" width="15" height="13" rx="2"/><path d="M1.5 9h15M6.5 2.5v13M11.5 2.5v13"/></g></svg>My box <span class="count" id="box-count">0</span></button>
+    </div>
+    <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
+  </nav>
+
+  <div class="view-pane" id="view-planner" role="tabpanel" aria-labelledby="vt-planner">
   <div class="cols">
     <div style="display:grid;gap:20px;min-width:0">
       <section class="panel" aria-labelledby="h-builds">
@@ -364,7 +461,7 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
           <div class="stats" id="t-ivs"></div>
         </div>
         <div style="display:grid;gap:6px">
-          <label class="check"><input type="checkbox" id="t-want-moves"> I want egg moves</label>
+          <div class="moves-head"><label class="check"><input type="checkbox" id="t-want-moves"> I want egg moves</label><button class="linkbtn small" type="button" id="finder-open" aria-haspopup="dialog" aria-controls="finder">Who can pass an egg move on?</button></div>
           <div class="stats" id="t-moves" hidden></div>
           <div class="tm-hint" id="t-tm" hidden></div>
         </div>
@@ -376,6 +473,11 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
           <div class="row">
             <label class="check"><input type="checkbox" id="exact"> Enter exact IV numbers</label>
           </div>
+        </div>
+        <div class="use-box" id="use-box">
+          <label class="check"><input type="checkbox" id="use-box-on"> <span id="use-box-label">Use the Pokémon in my box</span></label>
+          <label class="check sub" id="box-sync-wrap"><input type="checkbox" id="box-sync-on"> Take parents out of my box as I tick off breeds, and put the finished Pokémon in</label>
+          <p class="small muted sub" id="use-box-note"></p>
         </div>
         <p class="muted small">Tick each stat that is 31, or switch to exact numbers. Mark the nature, ability and any egg moves a parent knows; they matter when they match your goal. Use Qty for several identical Pokémon.</p>
         <div class="mons" id="mons"></div>
@@ -421,6 +523,46 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
     </ul>
     <p class="muted small">Sources: <a href="https://pokemmo.shoutwiki.com/wiki/Breeding" target="_blank" rel="noopener">PokeMMO Wiki: Breeding</a> and <a href="https://www.pikammo.fr/Pokemmo/en/tools/breeding" target="_blank" rel="noopener">PikaMMO breeding guide</a>. Species, egg groups, gender ratios, abilities, egg moves and who can learn each TM come from Pokémon Showdown's data, which can differ from PokeMMO in places; if you spot a mistake, <a href="https://github.com/ssmith130/PokeMMOBreeder/issues/new" target="_blank" rel="noopener">report it</a>. TM prices are mart prices from the PokeMMO Wiki; held item prices are guesses. Box icons, item icons and the Smeargle box icon behind the Smearguru logo are from or based on <a href="https://github.com/PokeAPI/sprites" target="_blank" rel="noopener">PokeAPI/sprites</a>. Unofficial fan tool, not affiliated with PokeMMO; Pokémon © Nintendo, Game Freak and The Pokémon Company.</p>
   </section>
+  </div>
+
+  <div class="view-pane" id="view-box" role="tabpanel" aria-labelledby="vt-box" hidden>
+    <div class="box-cols">
+      <section class="panel" aria-labelledby="h-box">
+        <div class="panel-head"><h2 id="h-box">My box</h2><span class="eyebrow" id="box-where">Saved in this browser</span></div>
+        <div class="pc">
+          <div class="pc-head">
+            <button class="pc-arrow" type="button" id="box-prev" aria-label="Previous box">‹</button>
+            <input class="pc-name" type="text" id="box-name" maxlength="20" autocomplete="off" aria-label="Box name">
+            <button class="pc-arrow" type="button" id="box-next" aria-label="Next box">›</button>
+          </div>
+          <div class="pc-grid" id="box-grid" aria-label="Box contents"></div>
+          <div class="pc-foot">
+            <span class="small muted" id="box-of"></span>
+            <div class="row"><button class="btn mini" type="button" id="box-new">+ New box</button><button class="btn ghost mini" type="button" id="box-del" hidden>Delete this box</button></div>
+          </div>
+        </div>
+        <p class="box-msg" id="box-msg" role="status" hidden></p>
+      </section>
+      <div style="display:grid;gap:20px;min-width:0">
+        <section class="panel" aria-labelledby="h-box-edit" id="box-side">
+          <div class="panel-head"><h2 id="h-box-edit">Add a Pokémon</h2><span class="eyebrow" id="box-edit-where"></span></div>
+          <div id="box-edit" class="box-edit"></div>
+        </section>
+        <details class="panel fold" id="box-more">
+          <summary class="panel-head"><h2>Fill or move your box</h2><span class="eyebrow">Optional</span></summary>
+          <div class="codes-body">
+            <p class="muted small" id="box-from-planner-help"></p>
+            <div class="row"><button class="btn" type="button" id="box-from-planner">Copy my planner Pokémon into the box</button></div>
+            <p class="muted small" id="box-codes-help"></p>
+            <div class="row"><button class="btn" type="button" id="box-code-copy">Copy a code for my whole box</button></div>
+            <textarea class="code" id="box-code-out" readonly hidden aria-label="Box code"></textarea>
+            <label class="f">Import a box code<textarea class="code" id="box-code-in" spellcheck="false" placeholder="Paste a code that starts with PMBX1"></textarea></label>
+            <div class="row"><button class="btn" type="button" id="box-code-import">Add these Pokémon to my box</button></div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
   <p class="site-foot">PokeMMO Breeding Planner · Alpha · updated /*BUILT*/ · <a href="https://github.com/ssmith130/PokeMMOBreeder/issues/new" target="_blank" rel="noopener">Report a problem</a></p>
 </div>
 <button class="to-plan" type="button" id="to-plan" hidden>See the plan</button>
@@ -438,7 +580,17 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
   <div class="pop-body" id="pop-body"><div class="pop-tree" id="pop-tree"></div></div>
 </div>
 
+<div class="finder" id="finder" role="dialog" aria-labelledby="finder-title" hidden>
+  <div class="finder-head"><h2 id="finder-title">Egg move finder</h2><button class="btn ghost" type="button" id="finder-close">Close</button></div>
+  <div class="finder-pick">
+    <label class="f">Pokémon<span class="finder-sp"><span id="finder-spr"></span><input type="text" id="finder-species" data-combo="species" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="combo-list" autocomplete="off" spellcheck="false" placeholder="Type a Pokémon"></span></label>
+    <label class="f">Egg move<input type="text" id="finder-move" data-combo="fmove" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="combo-list" autocomplete="off" spellcheck="false" placeholder="Type an egg move"></label>
+  </div>
+  <div class="finder-out" id="finder-out" aria-live="polite"></div>
+</div>
+
 <div class="combo-list" id="combo-list" role="listbox" hidden></div>
+<div class="box-tip" id="box-tip" role="tooltip" hidden></div>
 
 <script id="planner-src">
 /*PLANNER*/
@@ -487,6 +639,8 @@ const EXTRAS = [
 const EXTRA = Object.fromEntries(EXTRAS.map((x) => [x.key, x]));
 const extraName = (x) => (x.tm ? `TM ${x.tm}` : x.item);
 // Dex numbers of the species that can learn each TM (data/tms.json).
+// Species that learn each egg move by level-up, TM or tutor (data/learners.json, "369:78 408:46|TM|tutor").
+const LEARNERS = /*LEARNERS*/{};
 const TM_LEARNERS = Object.fromEntries(Object.entries(/*TMS*/{}).map(([mv, nums]) => [mv, new Set(nums)]));
 const defaultPrices = () => Object.fromEntries([...PRICE_FIELDS.map(([k, , v]) => [k, v]), ...EXTRAS.map((x) => [x.key, x.price])]);
 const dex = Planner.buildDex(SPECIES);
@@ -535,13 +689,14 @@ function normalizeData(d) {
 // The current setup in the same shape, so it can be saved or compared with a saved build.
 function buildData() { return normalizeData(state); }
 
-let state = load() || { ...emptySetup(), prices: defaultPrices(), mode: 'breeds', buy: false, exact: false, treeDir: 'lr', buildId: null, done: [] };
+let state = load() || { ...emptySetup(), prices: defaultPrices(), mode: 'breeds', buy: false, exact: false, treeDir: 'lr', buildId: null, done: [], useBox: false, boxSync: true };
 function save() { try { localStorage.setItem('pokemmo-breeding-v1', JSON.stringify(state)); } catch (e) {} }
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem('pokemmo-breeding-v1'));
     const d = normalizeData(s);
-    if (d) return { ...d, mons: d.mons.map((m) => ({ id: uid++, ...m })), treeDir: s.treeDir === 'td' ? 'td' : 'lr', buildId: typeof s.buildId === 'string' ? s.buildId : null };
+    if (d) return { ...d, mons: d.mons.map((m) => ({ id: uid++, ...m })), treeDir: s.treeDir === 'td' ? 'td' : 'lr', buildId: typeof s.buildId === 'string' ? s.buildId : null,
+      useBox: !!s.useBox, boxSync: s.boxSync !== false };
   } catch (e) {}
   return null;
 }
@@ -687,7 +842,7 @@ function renderMons() {
         <div class="f"><span id="m${m.id}-moves-l">Egg moves it knows</span><div class="multi">${movePills(m)}<input type="text" id="m${m.id}-moves" data-combo="moves" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="combo-list" aria-labelledby="m${m.id}-moves-l" autocomplete="off" spellcheck="false" placeholder="Add egg move"></div></div>
       </div>
     </div>`;
-  }).join('') || '<div class="empty">No Pokémon yet. Add the ones you plan to breed with.</div>';
+  }).join('') || `<div class="empty">${state.useBox ? 'The planner uses the Pokémon in your box. Add any others you have here.' : 'No Pokémon yet. Add the ones you plan to breed with.'}</div>`;
 }
 
 function renderPrices() {
@@ -750,7 +905,7 @@ $('add-mon').addEventListener('click', () => {
 });
 $('clear-mons').addEventListener('click', () => { state.mons = []; renderMons(); changed(); });
 
-function changed() { save(); schedule(); syncBuildUi(); renderPreset(); }
+function changed() { boxSyncMsg = ''; save(); schedule(); syncBuildUi(); renderPreset(); }
 
 // ---------- common builds ----------
 // Picking one fills in the goal and starts a fresh Pokémon list. Only real egg moves go into the goal;
@@ -900,11 +1055,129 @@ $('t-preset-info').addEventListener('click', (e) => {
   renderTarget(); changed();
 });
 
+// ---------- egg move finder ----------
+// "I have X and want egg move Y: which Pokémon can pass Y on?" Egg moves come from the father, so this
+// lists the lines sharing an egg group with X that learn Y themselves, and the ones that only have Y as an
+// egg move along with the shortest chain of breeds that puts it on them.
+const finder = { species: '', move: '' };
+const eggMovesOf = (name) => { const s = sp(name), base = s ? sp(s.b || s.n) : null; return (base && base.m) || []; };
+// Lines that can be a father and a mother: male-only and genderless Pokémon only breed with Ditto.
+const bothGenders = (L) => typeof L.ratio === 'number' && L.ratio > 0 && L.ratio < 1 && L.groups.size > 0;
+const sharesGroup = (a, b) => [...a.groups].some((g) => b.groups.has(g));
+const andList = (a) => (a.length > 1 ? a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1] : a.join(''));
+const howLabel = (how) => (how === 'M' ? 'TM' : how === 'T' ? 'Tutor' : `Lv ${how}`);
+// line name -> {steps: breeds before it knows the move, learn: [[species, how]] or via: the line it gets it from}
+function moveRoutes(move) {
+  const routes = new Map(), [lv = '', tm = '', tu = ''] = (LEARNERS[move] || '').split('|');
+  const add = (part, how) => part.split(' ').filter(Boolean).forEach((x) => {
+    const [num, level] = x.split(':'), s = SPECIES.find((y) => y.i === +num), line = s && dex.lineOf(s.n), L = line && dex.lines.get(line);
+    if (!L || !bothGenders(L)) return;
+    if (!routes.has(line)) routes.set(line, { steps: 0, learn: [] });
+    routes.get(line).learn.push([s.n, how || +level]);
+  });
+  add(lv); add(tm, 'M'); add(tu, 'T');
+  const carriers = [...dex.lines.values()].filter((L) => bothGenders(L) && ((L.moves && L.moves.has(move)) || (L.movesM && L.movesM.has(move))));
+  for (let frontier = [...routes.keys()], steps = 1; frontier.length; steps++) {
+    const next = [];
+    for (const C of carriers) {
+      if (routes.has(C.name)) continue;
+      const via = frontier.find((f) => sharesGroup(C, dex.lines.get(f)));
+      if (via) { routes.set(C.name, { steps, via }); next.push(C.name); }
+    }
+    frontier = next;
+  }
+  return routes;
+}
+function renderFinder() {
+  $('finder-species').value = finder.species;
+  $('finder-move').value = finder.move;
+  $('finder-spr').innerHTML = sprite(finder.species, 1);
+  const out = $('finder-out'), s = sp(finder.species), line = s && dex.lineOf(s.n), T = line && dex.lines.get(line);
+  if (!s) return (out.innerHTML = `<p class="muted">${finder.species ? `"${esc(finder.species)}" isn't in the list.` : 'Pick a Pokémon'} and one of its egg moves to see which fathers can pass it on.</p>`);
+  if (s.n === 'Ditto' || !T.groups.size) return (out.innerHTML = `<p class="muted">${esc(s.n)} can't breed, so it can't get egg moves.</p>`);
+  if (!bothGenders(T) && T.ratio !== 'F') return (out.innerHTML = `<p class="muted">${esc(s.n)} only breeds with Ditto, and egg moves come from the father, so they can't be bred onto it.</p>`);
+  if (!finder.move) return (out.innerHTML = `<p class="muted">Pick one of ${esc(s.n)}'s ${eggMovesOf(s.n).length} egg moves.</p>`);
+  const routes = moveRoutes(finder.move);
+  let rows = [...routes.entries()].filter(([n]) => n !== line && sharesGroup(dex.lines.get(n), T))
+    .sort((a, b) => a[1].steps - b[1].steps || a[0].localeCompare(b[0]));
+  // with fathers that learn it themselves, a chain is only worth it if you already own one that knows it
+  const carriers = rows[0] && rows[0][1].steps === 0 ? rows.filter(([, r]) => r.steps > 0).map(([n]) => n) : [];
+  if (carriers.length) rows = rows.filter(([, r]) => r.steps === 0);
+  const groups = [...T.groups];
+  let h = `<p>${esc(s.n)} is in the ${groups.map((g) => `<b>${esc(g)}</b>`).join(' and ')} egg group${groups.length > 1 ? 's' : ''}. Breed it with a male of one of these that knows ${esc(finder.move)}:</p>`;
+  if (!rows.length) h = `<p>Nothing in ${esc(s.n)}'s egg group${groups.length > 1 ? 's' : ''} (${groups.map(esc).join(', ')}) can pass on ${esc(finder.move)}, as far as the move data knows. You'd need a male ${esc(s.n)} that already knows it, for example from the GTL.</p>`;
+  let last = -1;
+  for (const [n, r] of rows) {
+    if (r.steps !== last) {
+      if (last >= 0) h += '</ol>';
+      h += `<h3>${r.steps === 0 ? 'Learn it themselves' : r.steps === 1 ? 'Need it bred onto them first (1 extra breed)' : `Need it bred onto them first (${r.steps} extra breeds)`}</h3><ol class="fathers">`;
+      last = r.steps;
+    }
+    // the chain from a Pokémon that learns it, through each carrier, to this father
+    const chain = [n];
+    for (let k = n; routes.get(k).via; k = routes.get(k).via) chain.unshift(routes.get(k).via);
+    // the stage that learns it earliest, then the rest of its line in passing
+    const src = routes.get(chain[0]).learn.slice().sort((a, b) => (typeof a[1] === 'number' ? a[1] : 999) - (typeof b[1] === 'number' ? b[1] : 999));
+    const arrow = ' <span class="arr" aria-label="then">→</span> ';
+    h += `<li>${sprite(src[0][0], 1)}<b>${esc(src[0][0])}</b> <span class="how">${howLabel(src[0][1])}</span>`
+      + (src.length > 1 ? ` <span class="how">(also ${src.slice(1).map(([name]) => esc(name)).join(', ')})</span>` : '')
+      + chain.slice(1).map((k) => `${arrow}${sprite(k, 1)}<b>${esc(k)}</b>`).join('')
+      + (r.steps ? `${arrow}${sprite(s.n, 1)}<span class="muted">${esc(s.n)}</span>` : '') + '</li>';
+  }
+  if (rows.length) h += '</ol>';
+  if (carriers.length) h += `<p class="small">Also an egg move for ${andList(carriers.map(esc))}, so a male of those that already knows it works too.</p>`;
+  if (routes.has(line) && routes.get(line).steps === 0) h += `<p class="small">${esc(s.n)}'s own line learns it too (${routes.get(line).learn.map(([name, how]) => `${esc(name)} ${howLabel(how)}`).join(', ')}), so a male of its own species works as well.</p>`;
+  const chains = rows.some(([, r]) => r.steps > 0) ? 'A chain means breeding the male on the left with a female of the next Pokémon to get a male that knows the move, and so on. ' : '';
+  h += '<p class="small muted">' + chains + 'Female-only and genderless Pokémon can\'t be fathers, so they aren\'t listed. Moves come from Pokémon Showdown\'s Gen 3 to 5 data, which can differ from PokeMMO, so check a father\'s moves in game.</p>';
+  const t = state.target;
+  if (sp(t.species) === s && !(t.wantMoves && t.moves.includes(finder.move))) h += `<div><button class="btn mini" type="button" id="finder-add">Add ${esc(finder.move)} to my goal</button></div>`;
+  out.innerHTML = h;
+}
+function setFinder(kind, value) {
+  if (kind === 'species') {
+    if (value === finder.species) return;
+    finder.species = value;
+    if (!eggMovesOf(value).includes(finder.move)) finder.move = '';
+  } else if (value === finder.move) return;
+  else finder.move = value;
+  renderFinder();
+}
+let finderOpener = null;
+function openFinder() {
+  // start from the goal: its species, and the first egg move it wants
+  const t = state.target;
+  if (sp(t.species)) {
+    finder.species = sp(t.species).n;
+    if (!eggMovesOf(finder.species).includes(finder.move)) finder.move = (t.wantMoves && t.moves.find((mv) => eggMovesOf(finder.species).includes(mv))) || '';
+  }
+  finderOpener = document.activeElement;
+  $('finder').hidden = false;
+  renderFinder();
+  $(finder.species && !finder.move ? 'finder-move' : 'finder-species').focus();
+}
+function closeFinder() {
+  closeCombo();
+  $('finder').hidden = true;
+  if (finderOpener && finderOpener.isConnected) finderOpener.focus();
+}
+$('finder-open').addEventListener('click', () => ($('finder').hidden ? openFinder() : closeFinder()));
+$('finder-close').addEventListener('click', closeFinder);
+$('finder').addEventListener('keydown', (e) => { if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); closeFinder(); } });
+$('finder').addEventListener('click', (e) => {
+  if (!e.target.closest('#finder-add')) return;
+  const t = state.target;
+  t.wantMoves = true;
+  if (!t.moves.includes(finder.move)) t.moves.push(finder.move);
+  renderTarget(); changed(); renderFinder();
+});
+
 // ---------- type-ahead fields: species, nature, egg moves ----------
 const NATURE_FX = { Adamant: [1, 3], Bold: [2, 1], Brave: [1, 5], Calm: [4, 1], Careful: [4, 3], Gentle: [4, 2], Hasty: [5, 2], Impish: [2, 3], Jolly: [5, 3], Lax: [2, 4],
   Lonely: [1, 2], Mild: [3, 2], Modest: [3, 1], Naive: [5, 4], Naughty: [1, 4], Quiet: [3, 5], Rash: [3, 4], Relaxed: [2, 5], Sassy: [4, 5], Timid: [5, 1] };
 const SPECIES_ITEMS = SPECIES.map((s) => ({ value: s.n, label: s.n, icon: sprite(s.n, 1) }));
 const combo = { el: null, items: [], active: -1, q: '' };
+// Egg move fields that collect several moves as pills: a planner row's, and the box editor's.
+const isMulti = (el) => el.dataset.combo === 'moves' || el.dataset.combo === 'bmoves';
 const list = $('combo-list');
 function monOf(el) { const card = el.closest('.mon'); return card && state.mons.find((x) => x.id === +card.dataset.id); }
 function renderPills(m) {
@@ -919,6 +1192,8 @@ function natureSub(n) {
 function comboPool(el) {
   const kind = el.dataset.combo, form = el.closest('.obtain');
   if (form) return leafPool(leafOf(form));
+  if (kind === 'fmove') return eggMovesOf(finder.species).map((mv) => ({ value: mv, label: mv }));
+  if (kind === 'bmoves') return boxMovePool();
   if (kind === 'species') return SPECIES_ITEMS;
   if (kind === 'nature') return [{ value: '', label: el.placeholder }, ...NATURES.map((n) => ({ value: n, label: n, sub: natureSub(n) }))];
   const m = monOf(el);
@@ -950,11 +1225,12 @@ function highlight(label, q) {
 function openCombo(el, q) {
   combo.el = el; combo.q = q;
   combo.items = rankItems(comboPool(el), q);
-  const current = el.dataset.combo === 'moves' ? '' : currentValue(el);
+  const current = isMulti(el) ? '' : currentValue(el);
   combo.active = q.trim() ? (combo.items.length ? 0 : -1) : combo.items.findIndex((it) => it.value === current);
   let empty = 'No matches';
   if (el.dataset.combo === 'moves' && !targetEggMoves().length) empty = `No egg moves listed for ${esc(state.target.species || 'your goal')}`;
   else if (el.dataset.combo === 'moves' && !comboPool(el).length) empty = 'All egg moves added';
+  else if (el.dataset.combo === 'fmove' && !comboPool(el).length) empty = sp(finder.species) ? `No egg moves listed for ${esc(sp(finder.species).n)}` : 'Pick a Pokémon first';
   list.innerHTML = combo.items.length
     ? combo.items.map((it, i) => `<div class="opt" role="option" id="opt-${i}" data-i="${i}" aria-selected="${i === combo.active}">${it.icon || ''}<span>${highlight(it.label, q)}</span>${it.sub ? `<span class="sub">${it.sub}</span>` : ''}</div>`).join('')
     : `<div class="opt none">${empty}</div>`;
@@ -994,6 +1270,8 @@ function currentValue(el) {
   if (el.id === 't-species') return state.target.species;
   if (el.id === 't-nature') return state.target.nature;
   if (el.closest('.obtain')) return el.dataset.value || '';
+  if (el.closest('#finder')) return el.dataset.combo === 'species' ? finder.species : finder.move;
+  if (el.closest('#box-edit')) return el.dataset.combo === 'species' ? boxDraft.mon.species : el.dataset.combo === 'nature' ? boxDraft.mon.nature : '';
   const kind = el.dataset.combo, m = monOf(el);
   return kind === 'species' ? m.species : kind === 'nature' ? m.nature : '';
 }
@@ -1003,6 +1281,8 @@ function applyValue(el, value) {
     if (value !== el.dataset.value) { el.dataset.value = value; obtainSpeciesChanged(el.closest('.obtain')); }
     return;
   }
+  if (el.closest('#finder')) { el.value = value; return setFinder(el.dataset.combo, value); }
+  if (el.closest('#box-edit')) return draftValue(el, value);
   const kind = el.dataset.combo, m = monOf(el);
   if (kind === 'moves') {
     if (value && !m.moves.includes(value)) { m.moves.push(value); renderPills(m); changed(); }
@@ -1029,20 +1309,22 @@ function commitText(el) {
   const pick = exact || (matches.length === 1 ? matches[0] : null);
   if (pick) return applyValue(el, pick.value);
   if (kind === 'species') return applyValue(el, text); // shows the "?" and a hint
-  if (kind === 'nature') el.value = currentValue(el);
+  if (kind === 'nature' || kind === 'fmove') el.value = currentValue(el);
   else el.value = '';
 }
 function liveSprite(el) {
   if (el.dataset.combo !== 'species') return;
   const html = sprite(el.value, 1);
   if (el.id === 't-species') $('t-sprite').innerHTML = html;
+  else if (el.id === 'finder-species') $('finder-spr').innerHTML = html;
+  else if (el.id === 'bx-species') $('bx-spr').innerHTML = sprite(el.value, 2);
   else { const s = el.closest('.mon') ? el.closest('.mon').querySelector('.mon-idx .spr') : el.closest('.obtain').querySelector('.spr'); if (s) s.outerHTML = html; }
 }
 document.addEventListener('focusin', (e) => {
   const el = e.target;
   if (!el.dataset || !el.dataset.combo) return;
   // select the whole value so typing replaces it; a click's mouseup would otherwise drop the selection
-  if (el.dataset.combo !== 'moves') { el.select(); el.dataset.skipUp = '1'; }
+  if (!isMulti(el)) { el.select(); el.dataset.skipUp = '1'; }
   openCombo(el, '');
 });
 document.addEventListener('focusout', (e) => {
@@ -1061,7 +1343,7 @@ document.addEventListener('input', (e) => {
   if (!el.dataset.combo) return;
   let q = el.value;
   // fill in the rest of the top match as you type, highlighted so typing on replaces it
-  if (el.dataset.combo !== 'moves' && e.inputType && e.inputType.startsWith('insert') && el.selectionEnd === el.value.length && q.trim()) {
+  if (!isMulti(el) && e.inputType && e.inputType.startsWith('insert') && el.selectionEnd === el.value.length && q.trim()) {
     const top = rankItems(comboPool(el), q)[0];
     if (top && top.label.toLowerCase().startsWith(q.toLowerCase()) && top.label.length > q.length) {
       el.value = top.label;
@@ -1085,12 +1367,13 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     if (open && combo.active >= 0) pickItem(combo.active);
     else commitText(el);
-    if (el.dataset.combo === 'moves') openCombo(el, ''); else { closeCombo(); el.select(); }
+    if (isMulti(el)) openCombo(el, ''); else { closeCombo(); el.select(); }
   } else if (e.key === 'Tab' && open && combo.active >= 0 && typedText(el).trim()) {
     pickItem(combo.active);
   } else if (e.key === 'Escape' && open) {
     e.preventDefault(); e.stopPropagation(); closeCombo();
-  } else if (e.key === 'Backspace' && el.dataset.combo === 'moves' && !el.value) {
+  } else if (e.key === 'Backspace' && isMulti(el) && !el.value) {
+    if (el.dataset.combo === 'bmoves') { if (boxDraft.mon.moves.length) { boxDraft.mon.moves.pop(); renderDraftPills(); if (open) openCombo(el, ''); } return; }
     const m = monOf(el);
     if (m.moves.length) { m.moves.pop(); renderPills(m); changed(); if (open) openCombo(el, ''); }
   }
@@ -1100,7 +1383,7 @@ function pickItem(i) {
   if (!el || !it) return;
   applyValue(el, it.value);
   liveSprite(el);
-  if (el.dataset.combo === 'moves') openCombo(el, '');
+  if (isMulti(el)) openCombo(el, '');
   else closeCombo();
 }
 list.addEventListener('mousedown', (e) => e.preventDefault()); // keep focus in the field
@@ -1143,6 +1426,18 @@ function buildInput() {
     const known = canon.filter((mv) => moves.includes(mv.toLowerCase()));
     for (let q = 0; q < m.qty; q++) pool.push({ species: s.n, isDitto: s.n === 'Ditto', gender: s.n === 'Ditto' ? 'N' : m.gender, ivs: m.ivs.slice(), nature: m.nature, ability: m.ability, moves: known, row: n + 1 });
   });
+  // Pokémon from the box, the ones that can help most first; the planner takes up to 63 in all.
+  boxUse = { used: 0, left: 0 };
+  if (state.useBox) {
+    const canon = (sTarget && sp(sTarget.b || sTarget.n) && sp(sTarget.b || sTarget.n).m) || [];
+    const picked = boxPool(63 - pool.length);
+    boxUse = { used: picked.mons.filter((b) => !b.spent).length, left: picked.left };
+    for (const b of picked.mons) {
+      const s = sp(b.mon.species), moves = b.mon.moves.map((x) => x.toLowerCase());
+      pool.push({ species: s.n, isDitto: s.n === 'Ditto', gender: s.n === 'Ditto' ? 'N' : b.mon.gender, ivs: b.mon.ivs.slice(), nature: b.mon.nature, ability: b.mon.ability,
+        moves: canon.filter((mv) => moves.includes(mv.toLowerCase())), boxId: b.mon.id, spent: b.spent });
+    }
+  }
   const P = state.prices;
   return {
     target: { species: t.species, ivs: t.ivs.slice(), gender: t.gender, nature: t.nature, ability: t.ability,
@@ -1159,10 +1454,11 @@ function schedule() {
 }
 function run() {
   const input = buildInput();
+  renderUseBox();
   if (!sp(state.target.species)) return showMessage('Pick the species you want from the list.');
   if (!input.target.ivs.some((v) => v != null) && !input.target.nature && !input.target.ability && !input.target.moves.length)
     return showMessage('Choose at least one IV, a nature, an ability or an egg move for your goal.');
-  if (!input.pool.length) return showMessage('Add the Pokémon you have to see a plan.');
+  if (!input.pool.length) return showMessage(state.useBox ? 'Add the Pokémon you have, here or in your box, to see a plan.' : 'Add the Pokémon you have to see a plan.');
   jobId++;
   if (obtainNote && !obtainNote.job) obtainNote.job = jobId;
   $('plan-status').innerHTML = '<span class="spin"></span>Planning';
@@ -1183,7 +1479,7 @@ let planInView = false;
 function syncToPlan() {
   const breeds = $('results').querySelector('.summary b');
   toPlan.textContent = breeds ? `See the plan · ${breeds.textContent} breed${breeds.textContent === '1' ? '' : 's'}` : 'See the plan';
-  toPlan.hidden = planInView;
+  toPlan.hidden = planInView || pageView === 'box';
 }
 toPlan.addEventListener('click', () => $('results-panel').scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }));
 new MutationObserver(syncToPlan).observe($('results'), { childList: true });
@@ -1212,8 +1508,10 @@ function leafCard(r, hold) {
     if (p.nature) tags.push(p.nature);
     if (p.ability) tags.push(p.ability);
     if (p.moves && p.moves.length) tags.push(...p.moves);
-    const fresh = obtainNote && obtainNote.job === jobId && state.mons[p.row - 1] && state.mons[p.row - 1].id === obtainNote.id;
-    return `<div class="card${fresh ? ' fresh' : ''}"><div class="who">${sprite(p.species)}<span class="name">${gSym(p.gender)} ${esc(p.species)} <span class="muted small">· your #${p.row}</span></span></div>${ivChips(r.iv)}${tags.length ? `<div class="tags">${tags.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}</div>` : ''}${hold ? `<span class="hold">${hold}</span>` : ''}</div>`;
+    const fresh = obtainNote && obtainNote.job === jobId && (p.boxId ? p.boxId === obtainNote.boxId : state.mons[p.row - 1] && state.mons[p.row - 1].id === obtainNote.id);
+    const where = p.boxId ? (p.spent ? 'from your box, used' : `in ${esc(boxWhere(p.boxId))}`) : `your #${p.row}`;
+    const nick = p.boxId && boxNick(p.boxId);
+    return `<div class="card${fresh ? ' fresh' : ''}"><div class="who">${sprite(p.species)}<span class="name">${gSym(p.gender)} ${esc(p.species)}${nick ? ` “${esc(nick)}”` : ''} <span class="muted small">· ${where}</span></span></div>${ivChips(r.iv)}${tags.length ? `<div class="tags">${tags.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}</div>` : ''}${hold ? `<span class="hold">${hold}</span>` : ''}</div>`;
   }
   if (n.t === 'buy') {
     // a father ('C') can be any species that shares an egg group; a mother passes on her species
@@ -1344,7 +1642,8 @@ function showResult(out, retry) {
     ${after.length ? `<p class="small">After it hatches, ${after.join(', then ')}.${tmWarn.length ? ` <span class="warn-text">${tmWarn.join(' ')}</span>` : ''}</p>` : ''}
     ${bredMoves().length ? '<p class="small muted">Egg moves pass from the father; check each father in the chain can learn them.</p>' : ''}
     ${res.breeds ? `<div class="tabs" role="tablist"><button class="tab" role="tab" id="tab-steps" aria-selected="${view === 'steps'}">Step by step</button><button class="tab" role="tab" id="tab-tree" aria-selected="${view === 'tree'}">Tree</button><span class="tabs-end"><button class="linkbtn" type="button" id="reset-done" hidden>Clear checkmarks</button></span></div>
-    <p class="small muted">Tick each breed once you've done it. Ticking one also ticks the breeds that made its parents, and "Ready to breed" shows what's next, so nothing gets bred twice.</p>
+    <p class="small muted">Tick each breed once you've done it. Ticking one also ticks the breeds that made its parents, and "Ready to breed" shows what's next, so nothing gets bred twice.${state.useBox && state.boxSync ? ' Ticking also takes its parents out of your box, and the last breed puts your new Pokémon in; unticking puts them back.' : ''}</p>
+    <p class="box-sync" id="box-sync-msg" role="status" ${boxSyncMsg ? '' : 'hidden'}>${boxSyncMsg}</p>
     <div id="view-steps" ${view === 'steps' ? '' : 'hidden'}>${renderSteps(order, final)}</div>
     <div id="view-tree" ${view === 'tree' ? '' : 'hidden'}>
       <div class="tree-tools">
@@ -1415,11 +1714,12 @@ function syncDone() {
 function setDone(num, on) {
   const r = curOrder.find((x) => x.num === num);
   if (!r) return;
-  const set = new Set(state.done);
+  const before = new Set(state.done), set = new Set(state.done);
   if (on) (function down(x) { set.add(x.sig); x.kids.forEach(down); })(r);
   else for (let x = r; x; x = x.parent) set.delete(x.sig);
   state.done = [...set].slice(-300);
   save(); syncDone(); queueProgressSave();
+  boxFollowDone(before, new Set(state.done));
 }
 // Checkmarks also go into the loaded saved build, without touching its other settings.
 function queueProgressSave() {
@@ -1434,9 +1734,10 @@ document.addEventListener('click', (e) => {
   const btn = e.target.closest('#reset-done');
   if (!btn) return;
   if (!btn.dataset.armed) { btn.dataset.armed = '1'; btn.textContent = 'Press again to clear all checkmarks'; return; }
-  const mine = new Set(curOrder.map((r) => r.sig));
+  const mine = new Set(curOrder.map((r) => r.sig)), before = new Set(state.done);
   state.done = state.done.filter((x) => !mine.has(x));
   save(); syncDone(); queueProgressSave();
+  boxFollowDone(before, new Set(state.done));
 });
 
 // ---------- theme ----------
@@ -1534,12 +1835,21 @@ function addObtained(card) {
   const ivs = [null, null, null, null, null, null];
   if (leaf.stat != null) ivs[leaf.stat] = leafIv(leaf);
   const mon = { species: s.n, gender, ivs, nature: leaf.nat ? state.target.nature : '', ability: '', moves: [], qty: 1 };
+  const label = `${gender === 'F' ? '♀ ' : gender === 'M' ? '♂ ' : ''}${s.n}`;
+  // With the box in use, it goes into the box instead of the list
+  if (state.useBox) {
+    const placed = boxAdd({ species: s.n, gender, ivs, nature: mon.nature, ability: '', moves: [] });
+    if (!placed) { const w = form.querySelector('.ob-warn'); w.textContent = 'Your box is full. Make room in My box, or add a new box.'; w.hidden = false; return; }
+    obtainNote = { boxId: placed.id, job: 0, text: `Added ${label} to ${boxWhere(placed.id)}.` };
+    form.innerHTML = '<span class="small muted"><span class="spin"></span>Added. Updating the plan…</span>';
+    changed();
+    return;
+  }
   // the same Pokémon again just raises the quantity of its row
   const same = state.mons.find((m) => m.species === mon.species && m.gender === mon.gender && m.nature === mon.nature && !m.ability && !m.moves.length && m.qty < 20 && m.ivs.every((v, i) => v === ivs[i]));
   let id;
   if (same) { same.qty++; id = same.id; } else { id = uid++; state.mons.push({ id, ...mon }); }
   const row = state.mons.findIndex((m) => m.id === id) + 1;
-  const label = `${gender === 'F' ? '♀ ' : gender === 'M' ? '♂ ' : ''}${s.n}`;
   obtainNote = { id, merged: !!same, job: 0, text: same ? `Your #${row} ${label} is now ×${same.qty}.` : `Added ${label} to your Pokémon as #${row}.` };
   form.innerHTML = '<span class="small muted"><span class="spin"></span>Added. Updating the plan…</span>';
   renderMons(); changed();
@@ -1547,6 +1857,7 @@ function addObtained(card) {
 function undoObtained() {
   const note = obtainNote, m = note && state.mons.find((x) => x.id === note.id);
   obtainNote = null;
+  if (note && note.boxId) { boxRemove(note.boxId); return changed(); }
   if (m) { if (note.merged && m.qty > 1) m.qty--; else state.mons = state.mons.filter((x) => x !== m); }
   renderMons(); changed();
 }
@@ -1674,6 +1985,620 @@ $('pop-body').addEventListener('wheel', (e) => {
   });
   window.addEventListener('pointerup', () => { drag = null; body.classList.remove('dragging'); });
 })();
+
+// ---------- my box ----------
+// Pokémon kept on the site like a PC box in the game, separate from saved builds. The planner can use them
+// ("Use the Pokémon in my box"), and ticking off breeds takes the parents out and puts the finished Pokémon in.
+// On claude.ai the box is kept in your Claude account; anywhere else it lives in this browser.
+const BOX_COLS = 6, BOX_ROWS = 5, BOX_SIZE = BOX_COLS * BOX_ROWS, BOX_MAX = 30;
+const BOX_KEY = 'pokemmo-breeding-box-v1';
+const newPid = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const okId = (v) => typeof v === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(v);
+const okSig = (v) => typeof v === 'string' && /^[a-z0-9.]{1,24}$/.test(v);
+// One stored Pokémon, cleaned up so a damaged or old copy can't break the page.
+function cleanBoxMon(m) {
+  if (!m || typeof m !== 'object' || !str(m.species).trim()) return null;
+  const species = str(m.species).trim(), gs = genderChoices(species);
+  return { id: okId(m.id) ? m.id : newPid(), species, nick: str(m.nick).trim().slice(0, 20), gender: gs.includes(m.gender) ? m.gender : gs[0],
+    ivs: ivList(m.ivs), nature: NATURES.includes(m.nature) ? m.nature : '', ability: str(m.ability), moves: strs(m.moves).slice(0, 8), from: okSig(m.from) ? m.from : '' };
+}
+function cleanBox(b, i) {
+  const slots = Array.from({ length: BOX_SIZE }, (_, k) => cleanBoxMon(b && Array.isArray(b.slots) ? b.slots[k] : null));
+  return { name: (b && str(b.name).trim().slice(0, 20)) || `Box ${i + 1}`, slots };
+}
+// Pokémon taken out of the box by a ticked breed, kept so unticking can put them back and the plan stays the same.
+function cleanSpent(a) {
+  return (Array.isArray(a) ? a : []).map((x) => {
+    const mon = x && okSig(x.sig) && cleanBoxMon(x.mon);
+    return mon ? { sig: x.sig, mon, box: Math.max(0, x.box | 0), slot: Math.max(0, x.slot | 0) } : null;
+  }).filter(Boolean).slice(-300);
+}
+const box = { kind: 'local', ref: null, unsub: null, boxes: [], spent: [], cur: 0, sel: null, dirty: new Set(), timer: null, pending: 0 };
+function setBoxData(o) {
+  const boxes = (o && Array.isArray(o.boxes) ? o.boxes : []).slice(0, BOX_MAX).map(cleanBox);
+  box.boxes = boxes.length ? boxes : [cleanBox(null, 0)];
+  box.spent = cleanSpent(o && o.spent);
+  box.cur = Math.max(0, Math.min(box.cur, box.boxes.length - 1));
+}
+function readBoxLocal() { try { const o = JSON.parse(localStorage.getItem(BOX_KEY)); if (o && Array.isArray(o.boxes)) return o; } catch (e) {} return null; }
+function writeBoxLocal() { try { localStorage.setItem(BOX_KEY, JSON.stringify({ v: 1, boxes: box.boxes, spent: box.spent })); return true; } catch (e) { return false; } }
+setBoxData(readBoxLocal());
+try { box.cur = Math.max(0, Math.min(box.boxes.length - 1, parseInt(localStorage.getItem(BOX_KEY + '-at'), 10) || 0)); } catch (e) {}
+
+const boxMons = () => box.boxes.reduce((a, b) => a + b.slots.filter(Boolean).length, 0);
+function findMon(id) {
+  for (let b = 0; b < box.boxes.length; b++) { const s = box.boxes[b].slots.findIndex((m) => m && m.id === id); if (s >= 0) return { b, s, mon: box.boxes[b].slots[s] }; }
+  return null;
+}
+const boxWhere = (id) => { const at = findMon(id); return at ? box.boxes[at.b].name : 'your box'; };
+const boxNick = (id) => { const at = findMon(id) || { mon: (box.spent.find((x) => x.mon.id === id) || {}).mon }; return at.mon ? at.mon.nick : ''; };
+// The first empty slot, starting with the box on screen (or the one asked for).
+function emptySlot(start = box.cur) {
+  for (let k = 0; k < box.boxes.length; k++) {
+    const b = (start + k) % box.boxes.length, s = box.boxes[b].slots.indexOf(null);
+    if (s >= 0) return { b, s };
+  }
+  return null;
+}
+// Changes to the box: each one saves, redraws the box and, when the planner uses the box, re-plans.
+function boxAdd(mon, at = emptySlot()) {
+  if (!at) return null;
+  const m = cleanBoxMon({ ...mon, id: newPid() });
+  box.boxes[at.b].slots[at.s] = m;
+  saveBox([at.b]);
+  return m;
+}
+function boxRemove(id) {
+  const at = findMon(id);
+  if (!at) return null;
+  box.boxes[at.b].slots[at.s] = null;
+  if (box.sel && box.sel.b === at.b && box.sel.s === at.s) box.sel = null;
+  saveBox([at.b]);
+  return at;
+}
+
+// Saving: this browser at once; the Claude account a moment later, one document per box.
+function saveBox(changedBoxes = 'all', spent = false) {
+  if (box.kind === 'cloud') {
+    (changedBoxes === 'all' ? box.boxes.map((_, i) => i) : changedBoxes).forEach((i) => box.dirty.add(i));
+    if (spent) box.dirty.add('meta');
+    clearTimeout(box.timer);
+    box.timer = setTimeout(flushBox, 400);
+  } else if (!writeBoxLocal()) boxSay("Couldn't save: this browser is blocking storage.");
+  afterBoxChange();
+}
+async function flushBox() {
+  const ref = box.ref, dirty = [...box.dirty];
+  box.dirty.clear();
+  if (!ref || !dirty.length) return;
+  box.pending++;
+  try {
+    for (const i of dirty) if (typeof i === 'number' && i < box.boxes.length) await cloudCall(() => ref.doc('box-' + i).set({ name: box.boxes[i].name, slots: box.boxes[i].slots }));
+    await cloudCall(() => ref.doc('meta').set({ count: box.boxes.length, spent: box.spent }));
+  } catch (e) {
+    if (e && e.code === 'quota_exceeded') boxSay("Your box couldn't be saved to your Claude account: it's full.");
+    else {
+      // fall back to this browser for the rest of the visit
+      if (box.unsub) box.unsub();
+      Object.assign(box, { kind: 'local', ref: null, unsub: null });
+      boxSay(writeBoxLocal() ? "Couldn't reach your Claude account, so your box is saved in this browser for now." : "Couldn't save: this browser is blocking storage.");
+      renderBox();
+    }
+  } finally { box.pending--; }
+}
+function boxFromDocs(docs) {
+  const byId = new Map(docs.map((d) => [d.id, d.data()]));
+  const meta = byId.get('meta');
+  if (!meta) return null;
+  const count = Math.max(1, Math.min(BOX_MAX, meta.count | 0));
+  return { boxes: Array.from({ length: count }, (_, i) => byId.get('box-' + i) || null), spent: meta.spent };
+}
+const hasMons = (o) => !!o && o.boxes.some((b) => b && Array.isArray(b.slots) && b.slots.some(Boolean));
+// Switch to the account once claude.ai answers. A box made in this browser meanwhile moves in after the account's boxes.
+async function connectBoxCloud() {
+  const c = window.claude;
+  if (!c || typeof c.use !== 'function') return;
+  try {
+    const [db, user] = await Promise.all([c.use('db'), c.use('user')]);
+    const id = db && user ? await user.id() : null;
+    if (!id) return;
+    const ref = db.doc('data/users/' + id + '/pmbox').collection('boxes');
+    const cloud = boxFromDocs((await ref.get()).docs), local = readBoxLocal();
+    Object.assign(box, { kind: 'cloud', ref });
+    if (hasMons(local)) {
+      const keep = hasMons(cloud) ? cloud.boxes.concat(local.boxes.filter((b) => b && Array.isArray(b.slots) && b.slots.some(Boolean))) : local.boxes;
+      setBoxData({ boxes: keep, spent: (cloud ? cleanSpent(cloud.spent) : []).concat(cleanSpent(local.spent)) });
+      saveBox('all', true);
+      clearTimeout(box.timer);
+      await flushBox();
+      if (box.kind === 'cloud') try { localStorage.removeItem(BOX_KEY); } catch (e) {}
+    } else if (cloud) { setBoxData(cloud); afterBoxChange(); }
+    box.unsub = ref.onSnapshot((snap) => {
+      if (box.ref !== ref || box.pending || box.dirty.size || snap.metadata.hasPendingWrites) return;
+      const o = boxFromDocs(snap.docs);
+      if (!o || JSON.stringify(cleanSpent(o.spent)) === JSON.stringify(box.spent) && JSON.stringify(o.boxes.map(cleanBox)) === JSON.stringify(box.boxes)) return;
+      setBoxData(o); afterBoxChange();
+    }, () => {});
+    renderBox();
+  } catch (e) { /* stay with this browser's storage */ }
+}
+window.addEventListener('storage', (e) => {
+  if (e.key === BOX_KEY && box.kind === 'local') { setBoxData(readBoxLocal()); afterBoxChange(); }
+});
+
+// ---------- the box on screen ----------
+let boxMsgTimer = null, boxUndo = null;
+function boxSay(msg, undo) {
+  boxUndo = undo || null;
+  const el = $('box-msg');
+  el.innerHTML = esc(msg) + (undo ? ' <button class="linkbtn" type="button" id="box-undo">Undo</button>' : '');
+  el.hidden = false;
+  clearTimeout(boxMsgTimer);
+  if (!undo) boxMsgTimer = setTimeout(() => { el.hidden = true; }, 8000);
+}
+function afterBoxChange() {
+  renderBox();
+  if (state.useBox) schedule();
+  renderUseBox();
+}
+const n31 = (m) => m.ivs.filter((v) => v === 31).length;
+function renderBox() {
+  const b = box.boxes[box.cur];
+  $('box-count').textContent = boxMons();
+  $('box-where').textContent = box.kind === 'cloud' ? 'Saved to your Claude account' : 'Saved in this browser';
+  if (document.activeElement !== $('box-name')) $('box-name').value = b.name;
+  $('box-prev').disabled = box.cur === 0;
+  $('box-next').disabled = box.cur === box.boxes.length - 1;
+  const used = b.slots.filter(Boolean).length;
+  $('box-of').textContent = `Box ${box.cur + 1} of ${box.boxes.length} · ${used} / ${BOX_SIZE}`;
+  $('box-del').hidden = used > 0 || box.boxes.length < 2;
+  const grid = $('box-grid');
+  grid.style.setProperty('--cols', BOX_COLS);
+  grid.innerHTML = b.slots.map((m, s) => {
+    const on = !!box.sel && box.sel.b === box.cur && box.sel.s === s;
+    if (!m) return `<button type="button" class="slot empty" data-slot="${s}" aria-pressed="${on}" aria-label="Empty spot ${s + 1}, add a Pokémon"></button>`;
+    const k = n31(m), name = m.nick || m.species;
+    return `<button type="button" class="slot" data-slot="${s}" draggable="true" aria-pressed="${on}" aria-label="${esc(`${name}${m.gender === 'F' ? ', female' : m.gender === 'M' ? ', male' : ''}${k ? `, ${k}×31` : ''}`)}">`
+      + `${sprite(m.species, 2).replace(' role="img"', ' aria-hidden="true"')}${k ? `<span class="n31">${k}×31</span>` : ''}${m.gender === 'F' || m.gender === 'M' ? `<span class="g">${gSym(m.gender)}</span>` : ''}</button>`;
+  }).join('');
+  try { localStorage.setItem(BOX_KEY + '-at', String(box.cur)); } catch (e) {}
+}
+// What hovering a Pokémon shows: the same things the game's summary does for breeding.
+function monSummary(m) {
+  const s = sp(m.species), fx = NATURE_FX[m.nature];
+  const ivs = STAT_KEYS.map((k, i) => `<span class="s-${k}${m.ivs[i] === 31 ? ' max' : ''}">${STAT_LABEL[i]}<b>${m.ivs[i] == null ? '?' : m.ivs[i]}</b></span>`).join('');
+  const rows = [
+    ['Nature', m.nature ? `${esc(m.nature)} ${fx ? `<span class="up">+${STAT_LABEL[fx[0]]}</span> <span class="down">−${STAT_LABEL[fx[1]]}</span>` : '<span class="muted">neutral</span>'}` : '<span class="muted">Not set</span>'],
+    ['Ability', m.ability ? esc(m.ability) + (s && s.h === m.ability ? ' <span class="muted">(hidden)</span>' : '') : '<span class="muted">Not set</span>'],
+    ['Egg moves', m.moves.length ? m.moves.map(esc).join(', ') : '<span class="muted">None</span>'],
+  ];
+  if (s) rows.push(['Egg group', esc(lineGroups(dex.lineOf(s.n)) || 'None')]);
+  return `<div class="tip-head">${sprite(m.species, 1)}<b>${gSym(m.gender)} ${esc(m.nick || m.species)}</b>${m.nick ? `<span class="muted small">${esc(m.species)}</span>` : ''}</div>`
+    + `<div class="tip-ivs">${ivs}</div>` + rows.map(([k, v]) => `<div class="tip-row"><span>${k}</span><span>${v}</span></div>`).join('');
+}
+const tip = $('box-tip');
+function showTip(slot) {
+  const m = box.boxes[box.cur].slots[+slot.dataset.slot];
+  if (!m) return hideTip();
+  tip.innerHTML = monSummary(m);
+  tip.hidden = false;
+  const r = slot.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+  let left = r.right + 8;
+  if (left + w > window.innerWidth - 8) left = r.left - w - 8;
+  if (left < 8) left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
+  let top = left === r.right + 8 || left === r.left - w - 8 ? r.top : r.bottom + 8;
+  if (top + h > window.innerHeight - 8) top = Math.max(8, (left === r.right + 8 || left === r.left - w - 8 ? r.bottom : r.top - 8) - h);
+  tip.style.left = left + 'px'; tip.style.top = top + 'px';
+}
+function hideTip() { tip.hidden = true; }
+$('box-grid').addEventListener('pointerover', (e) => { const sl = e.target.closest('.slot'); if (sl && e.pointerType === 'mouse') showTip(sl); });
+$('box-grid').addEventListener('pointerleave', hideTip);
+$('box-grid').addEventListener('focusin', (e) => { const sl = e.target.closest('.slot'); if (sl) showTip(sl); });
+$('box-grid').addEventListener('focusout', hideTip);
+window.addEventListener('scroll', hideTip, true);
+
+// Clicking a spot opens it on the right: an empty one to add a Pokémon, a full one to edit it.
+let boxDraft = null;
+function openSlot(b, s) {
+  box.sel = { b, s };
+  const m = box.boxes[b].slots[s];
+  boxDraft = { isNew: !m, b, s, copies: 1, mon: m ? { ...m, ivs: m.ivs.slice(), moves: m.moves.slice() } : { species: '', nick: '', gender: 'F', ivs: [null, null, null, null, null, null], nature: '', ability: '', moves: [], from: '' } };
+  renderBox(); renderDraft();
+}
+function closeDraft() { box.sel = null; boxDraft = null; renderBox(); renderDraft(); }
+function draftPills() {
+  return boxDraft.mon.moves.map((mv) => `<span class="pill">${esc(mv)}<button type="button" data-unbmove="${esc(mv)}" aria-label="Remove ${esc(mv)}">×</button></span>`).join('');
+}
+function renderDraftPills() {
+  const multi = $('bx-moves').parentElement;
+  multi.querySelectorAll('.pill').forEach((p) => p.remove());
+  multi.insertAdjacentHTML('afterbegin', draftPills());
+}
+function draftGenderOptions() {
+  const m = boxDraft.mon, gs = genderChoices(m.species);
+  if (!gs.includes(m.gender)) m.gender = gs[0];
+  return gs.map((g) => `<option value="${g}" ${g === m.gender ? 'selected' : ''}>${G_LABEL[g]}</option>`).join('');
+}
+const draftAbilityOptions = () => abilityOptions(boxDraft.mon.species, 'Not set').replace(`value="${esc(boxDraft.mon.ability)}"`, `value="${esc(boxDraft.mon.ability)}" selected`);
+function draftWarning() {
+  const m = boxDraft.mon;
+  return sp(m.species) ? monWarning(m) : m.species ? 'Unknown species. Pick one from the list.' : '';
+}
+function renderDraft() {
+  const ed = $('box-edit');
+  if (!boxDraft) {
+    $('h-box-edit').textContent = 'Your Pokémon';
+    $('box-edit-where').textContent = '';
+    const n = boxMons();
+    ed.innerHTML = `<p class="muted">${n ? 'Hover over a Pokémon to see its IVs, nature, ability and egg moves. Click or tap one to edit it, or click an empty spot to add one. Drag a Pokémon onto another spot to move it.' : 'Your box is empty. Click a spot in the box to add a Pokémon from your game, with its IVs, nature, ability and egg moves.'}</p>`
+      + `<p class="muted small">Turn on "Use the Pokémon in my box" under Pokémon you have, and the planner breeds with them.</p>`
+      + `<div class="row"><button class="btn primary" type="button" id="box-add">+ Add a Pokémon</button></div>`;
+    return;
+  }
+  const m = boxDraft.mon, warn = draftWarning();
+  $('h-box-edit').textContent = boxDraft.isNew ? 'Add a Pokémon' : 'Edit Pokémon';
+  $('box-edit-where').textContent = `${box.boxes[boxDraft.b].name}, spot ${boxDraft.s + 1}`;
+  const moveTo = !boxDraft.isNew && box.boxes.length > 1
+    ? `<label class="f">Move to<select id="bx-moveto"><option value="">Keep it here</option>${box.boxes.map((b, i) => (i === boxDraft.b ? '' : `<option value="${i}" ${b.slots.includes(null) ? '' : 'disabled'}>${esc(b.name)}${b.slots.includes(null) ? '' : ' (full)'}</option>`)).join('')}</select></label>` : '';
+  ed.innerHTML = `
+    <div class="edit-who"><span id="bx-spr">${sprite(m.species, 2)}</span>
+      <label class="f" style="flex:1">Species<input type="text" id="bx-species" data-combo="species" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="combo-list" autocomplete="off" spellcheck="false" placeholder="Type a Pokémon" value="${esc(m.species)}"></label></div>
+    <p class="small mon-warn" id="bx-warn" ${warn ? '' : 'hidden'}>${esc(warn)}</p>
+    <div class="edit-grid">
+      <label class="f">Nickname (optional)<input type="text" id="bx-nick" maxlength="20" autocomplete="off" value="${esc(m.nick)}"></label>
+      <label class="f">Gender<select id="bx-gender">${draftGenderOptions()}</select></label>
+    </div>
+    <div style="display:grid;gap:6px">
+      <div class="moves-head"><span class="eyebrow">IVs (blank = don't know)</span><button class="linkbtn small" type="button" id="bx-all31">Set all to 31</button></div>
+      <div class="stats">${STAT_KEYS.map((k, i) => `<span class="iv-cell s-${k}">${ivControl(m.ivs, i, 'bx', true, 'Box Pokémon')}<button type="button" class="iv31" data-max31="${i}" aria-pressed="${m.ivs[i] === 31}" aria-label="Set ${STAT_LABEL[i]} to 31">31</button></span>`).join('')}</div>
+    </div>
+    <div class="edit-grid">
+      <label class="f">Nature<input type="text" id="bx-nature" data-combo="nature" role="combobox" aria-autocomplete="both" aria-expanded="false" aria-controls="combo-list" autocomplete="off" spellcheck="false" placeholder="Not set" value="${esc(m.nature)}"></label>
+      <label class="f">Ability<select id="bx-ability">${draftAbilityOptions()}</select></label>
+    </div>
+    <div class="f"><span id="bx-moves-l">Egg moves it knows</span><div class="multi">${draftPills()}<input type="text" id="bx-moves" data-combo="bmoves" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="combo-list" aria-labelledby="bx-moves-l" autocomplete="off" spellcheck="false" placeholder="Add egg move"></div></div>
+    ${boxDraft.isNew ? `<label class="f" style="max-width:150px">How many like this<input type="number" id="bx-copies" min="1" max="${BOX_SIZE}" value="${boxDraft.copies}"></label>` : moveTo}
+    <div class="row"><button class="btn primary" type="button" id="bx-save">${boxDraft.isNew ? 'Put in box' : 'Save changes'}</button><button class="btn" type="button" id="bx-cancel">Cancel</button>${boxDraft.isNew ? '' : '<button class="btn danger" type="button" id="bx-release" style="margin-left:auto">Delete</button>'}</div>`;
+}
+const syncIv31 = () => document.querySelectorAll('#box-edit [data-max31]').forEach((b) => b.setAttribute('aria-pressed', String(boxDraft.mon.ivs[+b.dataset.max31] === 31)));
+// A species, nature or egg move picked in the editor's type-ahead fields.
+function draftValue(el, value) {
+  const m = boxDraft.mon, kind = el.dataset.combo;
+  if (kind === 'bmoves') {
+    if (value && !m.moves.includes(value) && m.moves.length < 8) { m.moves.push(value); renderDraftPills(); }
+    el.value = '';
+    return;
+  }
+  el.value = value;
+  if (kind === 'nature') { m.nature = value; return; }
+  if (value === m.species) return;
+  m.species = value; m.ability = '';
+  $('bx-spr').innerHTML = sprite(value, 2);
+  $('bx-gender').innerHTML = draftGenderOptions();
+  $('bx-ability').innerHTML = draftAbilityOptions();
+  const w = draftWarning(); $('bx-warn').textContent = w; $('bx-warn').hidden = !w;
+}
+// Egg moves to pick from: the species' own first, then every other egg move (a father can carry another line's).
+let allEggMoves = null;
+function boxMovePool() {
+  if (!allEggMoves) allEggMoves = [...new Set(SPECIES.flatMap((s) => s.m || []))].sort();
+  const own = eggMovesOf(boxDraft.mon.species);
+  return own.concat(allEggMoves.filter((mv) => !own.includes(mv))).filter((mv) => !boxDraft.mon.moves.includes(mv))
+    .map((mv) => ({ value: mv, label: mv, sub: own.includes(mv) ? 'egg move' : '' }));
+}
+function saveDraft() {
+  const sp0 = $('bx-species');
+  if (document.activeElement === sp0 || sp0.value !== boxDraft.mon.species) commitText(sp0);
+  const m = boxDraft.mon, s = sp(m.species);
+  if (!s) { const w = $('bx-warn'); w.textContent = m.species ? 'Unknown species. Pick one from the list.' : 'Pick a species first.'; w.hidden = false; sp0.focus(); return; }
+  m.species = s.n;
+  const { b, s: slot } = boxDraft;
+  if (boxDraft.isNew) {
+    const copies = Math.max(1, Math.min(BOX_SIZE, parseInt($('bx-copies').value, 10) || 1));
+    const added = [];
+    for (let k = 0; k < copies; k++) {
+      const at = k === 0 && !box.boxes[b].slots[slot] ? { b, s: slot } : emptySlot(b);
+      if (!at) break;
+      box.boxes[at.b].slots[at.s] = cleanBoxMon({ ...m, id: newPid() });
+      added.push(at);
+    }
+    saveBox([...new Set(added.map((x) => x.b))]);
+    const name = `${m.gender === 'F' ? '♀ ' : m.gender === 'M' ? '♂ ' : ''}${s.n}`;
+    boxSay(added.length < copies ? `Put ${added.length} ${name} in; the boxes are full, so add a new box for the rest.` : `Put ${added.length > 1 ? added.length + ' × ' : ''}${name} in ${box.boxes[b].name}.`,
+      () => { added.forEach((at) => { box.boxes[at.b].slots[at.s] = null; }); saveBox([...new Set(added.map((x) => x.b))]); boxSay('Taken back out.'); });
+    // ready for the next one, in the next empty spot
+    const next = emptySlot(box.cur);
+    if (next && next.b === box.cur) { openSlot(next.b, next.s); $('bx-species').focus(); } else closeDraft();
+    return;
+  }
+  const to = $('bx-moveto') && $('bx-moveto').value !== '' ? +$('bx-moveto').value : null;
+  box.boxes[b].slots[slot] = cleanBoxMon(m);
+  let where = '';
+  if (to != null) {
+    const at = emptySlot(to);
+    if (at && at.b === to) { box.boxes[to].slots[at.s] = box.boxes[b].slots[slot]; box.boxes[b].slots[slot] = null; where = ` and moved it to ${box.boxes[to].name}`; }
+  }
+  saveBox(to != null ? [b, to] : [b]);
+  boxSay(`Saved ${m.nick || s.n}${where}.`);
+  closeDraft();
+}
+function releaseDraft() {
+  const { b, s } = boxDraft, m = box.boxes[b].slots[s];
+  if (!m) return closeDraft();
+  box.boxes[b].slots[s] = null;
+  saveBox([b]);
+  closeDraft();
+  boxSay(`Deleted ${m.nick || m.species}.`, () => {
+    const at = box.boxes[b].slots[s] ? emptySlot(b) : { b, s };
+    if (!at) return boxSay('No room to put it back.');
+    box.boxes[at.b].slots[at.s] = m; saveBox([at.b]); boxSay(`${m.nick || m.species} is back.`);
+  });
+}
+$('box-edit').addEventListener('click', (e) => {
+  const t = e.target;
+  if (t.closest('#box-add')) { const at = emptySlot(box.cur); if (!at) return boxSay('Your boxes are full. Add a new box first.'); box.cur = at.b; openSlot(at.b, at.s); $('bx-species').focus(); return; }
+  if (t.closest('#bx-save')) return saveDraft();
+  if (t.closest('#bx-cancel')) return closeDraft();
+  if (t.closest('#bx-release')) return releaseDraft();
+  if (t.closest('#bx-all31')) { boxDraft.mon.ivs = boxDraft.mon.ivs.map(() => 31); STAT_KEYS.forEach((_, i) => { $('bx-iv' + i).value = 31; }); syncIv31(); return; }
+  const m31 = t.closest('[data-max31]');
+  if (m31) { const i = +m31.dataset.max31, on = boxDraft.mon.ivs[i] !== 31; boxDraft.mon.ivs[i] = on ? 31 : null; $('bx-iv' + i).value = on ? 31 : ''; syncIv31(); return; }
+  const un = t.closest('[data-unbmove]');
+  if (un) { boxDraft.mon.moves = boxDraft.mon.moves.filter((x) => x !== un.dataset.unbmove); renderDraftPills(); $('bx-moves').focus(); }
+});
+$('box-edit').addEventListener('input', (e) => {
+  const el = e.target;
+  if (!boxDraft || el.dataset.combo) return;
+  if (el.dataset.iv != null) { boxDraft.mon.ivs[+el.dataset.iv] = readIv(el); syncIv31(); }
+  else if (el.id === 'bx-nick') boxDraft.mon.nick = el.value;
+  else if (el.id === 'bx-copies') boxDraft.copies = Math.max(1, Math.min(BOX_SIZE, parseInt(el.value, 10) || 1));
+});
+$('box-edit').addEventListener('change', (e) => {
+  if (!boxDraft) return;
+  if (e.target.id === 'bx-gender') boxDraft.mon.gender = e.target.value;
+  if (e.target.id === 'bx-ability') boxDraft.mon.ability = e.target.value;
+});
+$('box-edit').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.matches('#bx-nick, #bx-copies, .ivnum input')) { e.preventDefault(); saveDraft(); }
+  else if (e.key === 'Escape' && !e.defaultPrevented && boxDraft && list.hidden) { e.preventDefault(); const s = boxDraft.s; closeDraft(); const sl = document.querySelector(`.slot[data-slot="${s}"]`); if (sl) sl.focus(); }
+});
+
+$('box-grid').addEventListener('click', (e) => {
+  const sl = e.target.closest('.slot');
+  if (!sl) return;
+  hideTip();
+  const s = +sl.dataset.slot;
+  if (box.sel && box.sel.b === box.cur && box.sel.s === s) return closeDraft();
+  openSlot(box.cur, s);
+  if (boxDraft.isNew) $('bx-species').focus();
+  else if (matchMedia('(max-width: 999px)').matches) $('box-side').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+});
+// Drag a Pokémon onto another spot to move it there (swapping with whatever is there).
+let dragFrom = null;
+$('box-grid').addEventListener('dragstart', (e) => {
+  const sl = e.target.closest('.slot');
+  if (!sl || sl.classList.contains('empty')) return;
+  dragFrom = +sl.dataset.slot; hideTip();
+  sl.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', String(dragFrom)); } catch (err) {}
+});
+$('box-grid').addEventListener('dragover', (e) => {
+  const sl = e.target.closest('.slot');
+  if (dragFrom == null || !sl) return;
+  e.preventDefault();
+  document.querySelectorAll('.slot.drop').forEach((x) => x !== sl && x.classList.remove('drop'));
+  sl.classList.add('drop');
+});
+$('box-grid').addEventListener('dragleave', (e) => { const sl = e.target.closest('.slot'); if (sl && !sl.contains(e.relatedTarget)) sl.classList.remove('drop'); });
+$('box-grid').addEventListener('drop', (e) => {
+  const sl = e.target.closest('.slot');
+  if (dragFrom == null || !sl) return;
+  e.preventDefault();
+  const to = +sl.dataset.slot, slots = box.boxes[box.cur].slots;
+  if (to !== dragFrom) {
+    [slots[to], slots[dragFrom]] = [slots[dragFrom], slots[to]];
+    if (box.sel && box.sel.b === box.cur) { if (box.sel.s === dragFrom) box.sel.s = to; else if (box.sel.s === to) box.sel.s = dragFrom; if (boxDraft) boxDraft.s = box.sel.s; }
+    saveBox([box.cur]);
+    if (boxDraft) renderDraft();
+  }
+  dragFrom = null;
+});
+$('box-grid').addEventListener('dragend', () => { dragFrom = null; renderBox(); });
+
+function showBox(i) { box.cur = Math.max(0, Math.min(box.boxes.length - 1, i)); hideTip(); renderBox(); }
+$('box-prev').addEventListener('click', () => showBox(box.cur - 1));
+$('box-next').addEventListener('click', () => showBox(box.cur + 1));
+$('box-name').addEventListener('change', (e) => {
+  box.boxes[box.cur].name = e.target.value.trim().slice(0, 20) || `Box ${box.cur + 1}`;
+  saveBox([box.cur]);
+});
+$('box-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') e.target.blur(); });
+$('box-new').addEventListener('click', () => {
+  if (box.boxes.length >= BOX_MAX) return boxSay(`That's the most boxes (${BOX_MAX}).`);
+  box.boxes.push(cleanBox(null, box.boxes.length));
+  box.cur = box.boxes.length - 1;
+  saveBox([box.cur], true);
+});
+$('box-del').addEventListener('click', () => {
+  if (box.boxes.length < 2 || box.boxes[box.cur].slots.some(Boolean)) return;
+  box.boxes.splice(box.cur, 1);
+  box.sel = null; boxDraft = null;
+  box.cur = Math.min(box.cur, box.boxes.length - 1);
+  // the spots taken out by ticked breeds point at box numbers, so shift them down too
+  saveBox('all', true);
+  renderDraft();
+});
+document.addEventListener('click', (e) => { if (e.target.closest('#box-undo') && boxUndo) { const f = boxUndo; boxUndo = null; $('box-msg').hidden = true; f(); } });
+
+// Copy the planner's list into the box, and box codes to move a box to another device or site.
+$('box-from-planner').addEventListener('click', () => {
+  const list = state.mons.filter((m) => sp(m.species));
+  if (!list.length) return boxSay('There are no Pokémon under "Pokémon you have" in the planner to copy.');
+  let n = 0, full = false;
+  const touched = new Set();
+  for (const m of list) for (let q = 0; q < m.qty; q++) {
+    const at = emptySlot(box.cur);
+    if (!at) { full = true; break; }
+    box.boxes[at.b].slots[at.s] = cleanBoxMon({ ...m, id: newPid() }); touched.add(at.b); n++;
+  }
+  saveBox([...touched]);
+  boxSay(full ? `Copied ${n}; your boxes are full, so add a new box for the rest.` : `Copied ${n} Pokémon from the planner into your box. Turn on "Use the Pokémon in my box" in the planner and you can clear its list.`);
+});
+async function makeBoxCode() {
+  const bytes = new TextEncoder().encode(JSON.stringify({ v: 1, boxes: box.boxes.map((b) => ({ name: b.name, slots: b.slots.map((m) => m && { ...m, id: undefined, from: undefined }) })) }));
+  if (window.CompressionStream) { try { return 'PMBX1z.' + toB64(await pipe(bytes, new CompressionStream('deflate-raw'))); } catch (e) {} }
+  return 'PMBX1.' + toB64(bytes);
+}
+$('box-code-copy').addEventListener('click', async () => {
+  if (!boxMons()) return boxSay('Your box is empty, so there is nothing to copy yet.');
+  const code = await makeBoxCode(), out = $('box-code-out');
+  out.value = code; out.hidden = false;
+  let copied = false;
+  try { await navigator.clipboard.writeText(code); copied = true; } catch (e) { out.focus(); out.select(); try { copied = document.execCommand('copy'); } catch (e2) {} }
+  out.focus(); out.select();
+  boxSay(copied ? 'Copied the code for your box. Paste it under "Import a box code" on the other device or site.' : "Here's the code for your box. Select it and copy it.");
+});
+$('box-code-import').addEventListener('click', async () => {
+  const m = /^PMBX1(z?)\.([A-Za-z0-9_-]+)$/.exec($('box-code-in').value.replace(/\s+/g, ''));
+  if (!m) return boxSay("That isn't a box code. Box codes start with PMBX1.");
+  let o = null;
+  try {
+    let bytes = fromB64(m[2]);
+    if (m[1]) bytes = await pipe(bytes, new DecompressionStream('deflate-raw'));
+    o = JSON.parse(new TextDecoder().decode(bytes));
+  } catch (e) {}
+  const mons = o && Array.isArray(o.boxes) ? o.boxes.flatMap((b) => (b && Array.isArray(b.slots) ? b.slots : [])).map(cleanBoxMon).filter(Boolean) : [];
+  if (!mons.length) return boxSay('That code is incomplete or damaged, or its box is empty. Copy the whole code and try again.');
+  // they go into the empty spots, adding boxes as needed
+  let n = 0;
+  const touched = new Set();
+  for (const mon of mons) {
+    let at = emptySlot(box.cur);
+    if (!at && box.boxes.length < BOX_MAX) { box.boxes.push(cleanBox(null, box.boxes.length)); at = { b: box.boxes.length - 1, s: 0 }; }
+    if (!at) break;
+    box.boxes[at.b].slots[at.s] = { ...mon, id: newPid() }; touched.add(at.b); n++;
+  }
+  $('box-code-in').value = '';
+  saveBox('all', true);
+  boxSay(n < mons.length ? `Added ${n} of the ${mons.length} Pokémon; your boxes are full.` : `Added ${n} Pokémon to your box.`);
+});
+
+// ---------- the box in the planner ----------
+let boxUse = { used: 0, left: 0 }, boxSyncMsg = '';
+// The box Pokémon the planner gets, best first: matching IVs, nature, ability and egg moves, then same
+// species, Ditto and egg group partners. Ones used up by ticked breeds stay in, so the plan doesn't change.
+function boxPool(room) {
+  const t = state.target, ts = sp(t.species), tLine = ts && dex.lineOf(ts.n), T = tLine && dex.lines.get(tLine);
+  const done = new Set(state.done), moves = bredMoves().map((x) => x.toLowerCase());
+  const all = [];
+  box.boxes.forEach((b, bi) => b.slots.forEach((m, si) => { if (m && !(m.from && done.has(m.from))) all.push({ mon: m, pos: bi * BOX_SIZE + si, spent: false }); }));
+  box.spent.forEach((x) => { if (done.has(x.sig)) all.push({ mon: x.mon, pos: x.box * BOX_SIZE + x.slot - 0.5, spent: true }); });
+  const scored = [];
+  for (const it of all) {
+    const s = sp(it.mon.species);
+    if (!s) continue;
+    const line = dex.lineOf(s.n), L = dex.lines.get(line);
+    if (!L || (s.e.includes('Undiscovered') && s.n !== (ts && ts.n))) continue;
+    let score = s.n === 'Ditto' ? 2 : line === tLine ? 3 : T && [...L.groups].some((g) => T.groups.has(g)) ? 1 : 0;
+    it.mon.ivs.forEach((v, i) => { if (t.ivs[i] != null && v != null && v >= t.ivs[i]) score += 4; });
+    if (t.nature && it.mon.nature === t.nature) score += 3;
+    if (t.ability && it.mon.ability === t.ability) score += 3;
+    if (moves.length && moves.every((mv) => it.mon.moves.some((x) => x.toLowerCase() === mv))) score += 5;
+    if (it.spent) score += 1000;
+    if (score > 0) scored.push([score, it]);
+  }
+  scored.sort((a, b) => b[0] - a[0] || a[1].pos - b[1].pos);
+  const mons = scored.slice(0, Math.max(0, room)).map((x) => x[1]).sort((a, b) => a.pos - b.pos);
+  return { mons, left: scored.length - mons.length };
+}
+function renderUseBox() {
+  const n = boxMons();
+  $('use-box-on').checked = state.useBox;
+  $('box-sync-on').checked = state.boxSync;
+  $('use-box-label').textContent = n ? `Use the ${n} Pokémon in my box` : 'Use the Pokémon in my box (it is empty)';
+  $('box-sync-wrap').hidden = !state.useBox;
+  const note = $('use-box-note');
+  note.hidden = !state.useBox;
+  note.innerHTML = !state.useBox ? '' : !n ? 'Add Pokémon under <button class="linkbtn" type="button" data-view="box">My box</button> first.'
+    : `${boxUse.used ? `The planner can use ${boxUse.used} of them${boxUse.left ? `; ${boxUse.left} more could help but it takes 63 Pokémon at most, so it uses the best ones` : ''}.` : 'None of them can help with this goal yet.'} The Pokémon below are used too. <button class="linkbtn" type="button" data-view="box">Open my box</button>`;
+}
+$('use-box-on').addEventListener('change', (e) => { state.useBox = e.target.checked; renderUseBox(); renderMons(); changed(); });
+$('box-sync-on').addEventListener('change', (e) => { state.boxSync = e.target.checked; save(); schedule(); });
+// What hatches from a breed, as a box Pokémon: the guaranteed IVs, and the nature, ability and moves it was bred for.
+function hatchedMon(r) {
+  const n = r.node, t = state.target, species = n.baby || dex.hatchName(n.line, n.gender);
+  return { species, gender: n.gender === 'F' || n.gender === 'M' ? n.gender : genderChoices(species)[0], ivs: r.iv.map((v, i) => (t.ivs[i] != null && v >= t.ivs[i] ? v : null)),
+    nature: n.nat ? t.nature : '', ability: n.abil ? t.ability : '', moves: n.mv ? bredMoves() : [], from: r.sig };
+}
+const monLabel = (m) => `${m.gender === 'F' ? '♀ ' : m.gender === 'M' ? '♂ ' : ''}${m.nick || m.species}`;
+// Ticking breeds takes their parents out of the box (kept aside so unticking puts them back), and the
+// last breed puts the finished Pokémon in.
+function boxFollowDone(before, after) {
+  if (!state.useBox || !state.boxSync) return;
+  const took = [], back = [], touched = new Set();
+  let put = null, full = false, gone = 0;
+  for (const r of curOrder) {
+    if (!after.has(r.sig) || before.has(r.sig)) continue;
+    for (const c of [r.node.a, r.node.b]) {
+      const id = c.node.t === 'own' && c.node.p.src.boxId, at = id && findMon(id);
+      if (!at) continue;
+      box.boxes[at.b].slots[at.s] = null; touched.add(at.b);
+      box.spent.push({ sig: r.sig, mon: at.mon, box: at.b, slot: at.s });
+      took.push(at.mon);
+    }
+    if (!r.parent) {
+      const at = emptySlot(box.cur);
+      if (at) { put = cleanBoxMon({ ...hatchedMon(r), id: newPid() }); box.boxes[at.b].slots[at.s] = put; touched.add(at.b); } else full = true;
+    }
+  }
+  for (const sig of before) {
+    if (after.has(sig)) continue;
+    box.boxes.forEach((b, bi) => b.slots.forEach((m, si) => { if (m && m.from === sig) { b.slots[si] = null; touched.add(bi); gone++; } }));
+    box.spent.filter((x) => x.sig === sig).forEach((x) => {
+      const at = x.box < box.boxes.length && !box.boxes[x.box].slots[x.slot] ? { b: x.box, s: x.slot } : emptySlot(x.box);
+      if (!at) return;
+      box.boxes[at.b].slots[at.s] = x.mon; touched.add(at.b); back.push(x.mon);
+      box.spent = box.spent.filter((y) => y !== x);
+    });
+  }
+  if (!touched.size) return;
+  box.spent = box.spent.slice(-300);
+  const msg = [took.length && `Took ${andList(took.map(monLabel).map(esc))} out of your box.`,
+    put && `Put your new ${esc(monLabel(put))} in ${esc(boxWhere(put.id))}.`,
+    full && 'Your boxes are full, so the new Pokémon wasn\'t put in.',
+    back.length && `Put ${andList(back.map(monLabel).map(esc))} back in your box.`,
+    gone && 'Took the finished Pokémon back out.'].filter(Boolean).join(' ');
+  boxSyncMsg = msg;
+  const el = $('box-sync-msg');
+  if (el) { el.innerHTML = msg; el.hidden = !msg; }
+  saveBox([...touched], true);
+}
+
+// ---------- Planner / My box switcher ----------
+const VIEW_KEY = 'pokemmo-breeding-view';
+let pageView = 'planner';
+try { if (localStorage.getItem(VIEW_KEY) === 'box') pageView = 'box'; } catch (e) {}
+function setView(v, focus) {
+  pageView = v === 'box' ? 'box' : 'planner';
+  try { localStorage.setItem(VIEW_KEY, pageView); } catch (e) {}
+  $('view-planner').hidden = pageView !== 'planner';
+  $('view-box').hidden = pageView !== 'box';
+  ['planner', 'box'].forEach((k) => { const t = $('vt-' + k); t.setAttribute('aria-selected', String(k === pageView)); t.tabIndex = k === pageView ? 0 : -1; });
+  closeCombo(); hideTip();
+  if (pageView === 'box') { renderBox(); renderDraft(); }
+  syncToPlan();
+  if (focus) $('vt-' + pageView).focus();
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-view]');
+  if (!b) return;
+  setView(b.dataset.view);
+  if (!b.classList.contains('view-tab')) window.scrollTo({ top: 0 });
+});
+document.querySelector('.views').addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); setView(pageView === 'box' ? 'planner' : 'box', true); }
+});
 
 // ---------- saved builds ----------
 // On claude.ai builds are kept in your Claude account (private to you, on every device).
@@ -1921,5 +2846,7 @@ async function connectCloud() {
 
 renderAll();
 renderBuilds();
+renderBox(); renderDraft(); renderUseBox(); setView(pageView);
 connectCloud();
+connectBoxCloud();
 </script>
