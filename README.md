@@ -25,8 +25,15 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
   The tree pops out full screen.
 - **Egg moves and TMs.** It plans who has to know each egg move, or lets you teach it with a TM instead.
 - **Common builds.** Catching Breloom, Smeargle, gym re-run Typhlosion and Thief Dusknoir fill in the goal
-  in one click.
+  in one click, from their own dropdown above the goal.
+- **Event builds.** A second dropdown holds builds for the current seasonal event (Halloween for now). It can
+  be shown or hidden, see [Event builds](#event-builds).
 - **Saved builds.** Keep several setups, and move them to another device with a code.
+- **My box.** A second tab holds the Pokémon from your game in a PC box like PokeMMO's: box icons in a
+  6×5 grid, several named boxes, drag to move. Hover over one to see its IVs, nature, ability and egg moves.
+  Tick "Use the Pokémon in my box" and the planner breeds with them; ticking off breeds can take the parents
+  out of the box and put the finished Pokémon in (unticking puts them back). The box is kept apart from saved
+  builds and moves to another device with its own code. Box size is `BOX_COLS`/`BOX_ROWS` in `src/page.html`.
 - **Works anywhere.** Phone-friendly, light and dark themes, and it can be added to your home screen like
   an app. Nothing to sign up for, and what you enter stays in your browser.
 
@@ -73,6 +80,7 @@ Every push to `main` builds the site and publishes it to GitHub Pages
 | `src/planner.js` | The breeding search. Also runs in Node: `require('./src/planner.js')`. |
 | `data/species.json` | Every species' egg groups, gender ratio, abilities and egg moves. |
 | `data/tms.json` | Which species can learn each TM the page offers. |
+| `data/learners.json` | Which species learn each egg move by level-up, TM or tutor, for the egg move finder. |
 | `data/box-icons.png` | Box icons for all 649 species, 25 per row in dex order. |
 | `data/logo.png` | The Smearguru logo, painted onto Smeargle's box icon by `src/build-logo.py`. |
 | `src/items.py` | The brace, Everstone and incense icons, drawn as SVG. |
@@ -80,9 +88,19 @@ Every push to `main` builds the site and publishes it to GitHub Pages
 | `build.py` | Puts it all into `dist/`, along with `404.html`, `robots.txt` and `sitemap.xml`. Also writes `build/artifact.html`, a version for claude.ai. |
 | `site-url.txt` | The site's address, used for link previews and the sitemap. |
 | `goatcounter.txt` | Optional GoatCounter site code for visitor counts; off while it's empty. |
-| `src/extract-species.js`, `src/extract-tms.js`, `src/build-sprites.py` | Regenerate the data from Pokémon Showdown and PokeAPI. |
+| `src/extract-species.js`, `src/extract-tms.js`, `src/extract-learners.js`, `src/build-sprites.py` | Regenerate the data from Pokémon Showdown and PokeAPI. |
 
 The scripts that redraw images need Pillow; everything else needs only Python 3's standard library.
+
+## Event builds
+
+The event dropdown is set by `EVENT` in `src/page.html`, just after the common builds (`PRESETS`).
+
+- **Hide or show it:** set `on: false` to hide the dropdown once the event is over, `on: true` to show it.
+- **Next event:** change `label` (the dropdown's name), `banner` (the line above an event build's notes) and replace `presets`. Each build is written the same
+  way as a common build. Give event builds keys of their own (the Halloween ones start with `hw-`).
+
+Then run `python3 build.py` as usual.
 
 ## Credits
 
