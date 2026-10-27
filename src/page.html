@@ -337,14 +337,14 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .view-pane { display: grid; gap: 20px; min-width: 0; }
 /* My box: a PC box like the game's, a grid of box icons with the box name and arrows above it */
 .box-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
-@media (min-width: 1000px) { .box-cols { grid-template-columns: max-content minmax(0, 1fr); } }
+@media (min-width: 1200px) { .box-cols { grid-template-columns: max-content minmax(0, 1fr); } }
 .pc { display: grid; gap: 10px; justify-items: stretch; }
 .pc-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .pc-arrow { width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--sunk); cursor: pointer; font-size: 18px; line-height: 1; color: var(--ink); }
 .pc-arrow:hover:not(:disabled) { border-color: var(--accent); }
 .pc-arrow:disabled { opacity: 0.35; cursor: default; }
 .pc-name { text-align: center; font-family: var(--f-display); font-weight: 600; font-size: 17px; background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; width: 100%; color: var(--ink); }
-.pc-grid { --cell: 84px; display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); gap: 4px; padding: 10px; border-radius: 10px; justify-content: center;
+.pc-grid { --cell: min(66px, calc((100vw - 32px - 36px - 20px - 36px) / var(--cols))); display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); gap: 4px; padding: 10px; border-radius: 10px; justify-content: center;
   background: color-mix(in srgb, var(--accent) 9%, var(--sunk)); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
   background-image: radial-gradient(color-mix(in srgb, var(--accent) 16%, transparent) 1px, transparent 1.5px); background-size: 14px 14px; }
 .slot { position: relative; height: calc(var(--cell) * 0.78); border-radius: 8px; border: 1px solid transparent; background: color-mix(in srgb, var(--surface) 55%, transparent);
@@ -353,11 +353,18 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .slot.empty::after { content: "+"; opacity: 0; }
 .slot.empty:hover::after, .slot.empty:focus-visible::after { opacity: 0.7; }
 .slot[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent-soft); }
-.slot .spr { --s: 2 !important; }
+.slot .spr { --s: 1.5 !important; }
+/* An alpha is drawn like the game does it: a bigger icon with a red outline */
+.slot.alpha .spr { --s: 1.75 !important; filter: drop-shadow(1px 0 0 #d4202a) drop-shadow(-1px 0 0 #d4202a) drop-shadow(0 1px 0 #d4202a) drop-shadow(0 -1px 0 #d4202a); }
+.tip-alpha { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; background: #c4202a; border-radius: 4px; padding: 0 5px; }
 .slot .g { position: absolute; right: 5px; bottom: 1px; font-size: 12px; }
 .slot .n31 { position: absolute; left: 5px; top: 2px; font-family: var(--f-mono); font-size: 10.5px; color: var(--ink); opacity: 0.75; }
 .slot.dragging { opacity: 0.4; }
-@media (max-width: 600px) { .pc-grid { --cell: calc((100vw - 32px - 36px - 22px - 20px) / var(--cols)); gap: 3px; padding: 8px; } .slot .spr { --s: 1 !important; } .slot .n31 { font-size: 9.5px; left: 3px; } }
+/* Hidden ability: a blue diamond in the top right corner, as in the game */
+.slot .ha { position: absolute; right: 4px; top: 3px; width: 13px; height: 11px; }
+@media (max-width: 840px) { .slot .spr { --s: 1 !important; } .slot.alpha .spr { --s: 1.15 !important; } }
+@media (max-width: 600px) { .pc-grid { --cell: calc((100vw - 32px - 36px - 18px - 16px) / var(--cols)); gap: 2px; padding: 8px; } .slot { border-radius: 5px; }
+  .slot .spr { --s: 0.6 !important; } .slot.alpha .spr { --s: 0.7 !important; } .slot .n31 { display: none; } .slot .ha { width: 8px; height: 7px; right: 1px; top: 1px; } .slot .g { font-size: 9px; right: 2px; bottom: 0; } }
 .pc-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
 .pc-foot .row { gap: 6px; }
 .box-msg { font-size: 13px; }
@@ -1175,7 +1182,7 @@ $('finder').addEventListener('click', (e) => {
 const NATURE_FX = { Adamant: [1, 3], Bold: [2, 1], Brave: [1, 5], Calm: [4, 1], Careful: [4, 3], Gentle: [4, 2], Hasty: [5, 2], Impish: [2, 3], Jolly: [5, 3], Lax: [2, 4],
   Lonely: [1, 2], Mild: [3, 2], Modest: [3, 1], Naive: [5, 4], Naughty: [1, 4], Quiet: [3, 5], Rash: [3, 4], Relaxed: [2, 5], Sassy: [4, 5], Timid: [5, 1] };
 const SPECIES_ITEMS = SPECIES.map((s) => ({ value: s.n, label: s.n, icon: sprite(s.n, 1) }));
-const combo = { el: null, items: [], active: -1, q: '' };
+const combo = { el: null, items: [], active: -1, q: '', quiet: null };
 // Egg move fields that collect several moves as pills: a planner row's, and the box editor's.
 const isMulti = (el) => el.dataset.combo === 'moves' || el.dataset.combo === 'bmoves';
 const list = $('combo-list');
@@ -1243,6 +1250,7 @@ function placeCombo() {
   if (!combo.el || list.hidden) return;
   if (!combo.el.isConnected) return closeCombo();
   const box = (combo.el.closest('.multi') || combo.el).getBoundingClientRect();
+  if (box.bottom < 0 || box.top > window.innerHeight) return closeCombo(); // its field scrolled away
   list.style.left = Math.max(8, Math.min(box.left, window.innerWidth - Math.max(box.width, 220) - 8)) + 'px';
   list.style.width = Math.max(box.width, 220) + 'px';
   const below = window.innerHeight - box.bottom;
@@ -1262,6 +1270,9 @@ function setActive(i) {
   if (o) { o.scrollIntoView({ block: 'nearest' }); combo.el.setAttribute('aria-activedescendant', o.id); }
   else if (combo.el) combo.el.removeAttribute('aria-activedescendant');
 }
+// Put the cursor in a field without opening its list, so a list nobody asked for doesn't sit over the
+// controls below it (the box editor's IV buttons). It opens once you type, click the field or press ↓.
+function focusQuiet(el) { combo.quiet = el; el.focus(); combo.quiet = null; }
 function closeCombo() {
   if (combo.el) { combo.el.setAttribute('aria-expanded', 'false'); combo.el.removeAttribute('aria-activedescendant'); }
   list.hidden = true; combo.el = null;
@@ -1325,8 +1336,20 @@ document.addEventListener('focusin', (e) => {
   if (!el.dataset || !el.dataset.combo) return;
   // select the whole value so typing replaces it; a click's mouseup would otherwise drop the selection
   if (!isMulti(el)) { el.select(); el.dataset.skipUp = '1'; }
-  openCombo(el, '');
+  if (combo.quiet !== el) openCombo(el, '');
 });
+// Clicking a focused field whose list is closed opens it again.
+document.addEventListener('click', (e) => {
+  const el = e.target;
+  if (el.dataset && el.dataset.combo && el === document.activeElement && (list.hidden || combo.el !== el)) openCombo(el, isMulti(el) ? '' : typedText(el));
+});
+// Pressing anywhere outside the field and its list closes the list, even where the browser keeps the field
+// focused (tapping a button on iPhone) or the field was redrawn away while its list was open.
+document.addEventListener('pointerdown', (e) => {
+  if (list.hidden || list.contains(e.target)) return;
+  if (combo.el && combo.el.isConnected && (combo.el.closest('.multi') || combo.el).contains(e.target)) return;
+  closeCombo();
+}, true);
 document.addEventListener('focusout', (e) => {
   const el = e.target;
   if (!el.dataset || !el.dataset.combo) return;
@@ -1990,7 +2013,7 @@ $('pop-body').addEventListener('wheel', (e) => {
 // Pokémon kept on the site like a PC box in the game, separate from saved builds. The planner can use them
 // ("Use the Pokémon in my box"), and ticking off breeds takes the parents out and puts the finished Pokémon in.
 // On claude.ai the box is kept in your Claude account; anywhere else it lives in this browser.
-const BOX_COLS = 6, BOX_ROWS = 5, BOX_SIZE = BOX_COLS * BOX_ROWS, BOX_MAX = 30;
+const BOX_COLS = 10, BOX_ROWS = 6, BOX_SIZE = BOX_COLS * BOX_ROWS, BOX_MAX = 30;
 const BOX_KEY = 'pokemmo-breeding-box-v1';
 const newPid = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const okId = (v) => typeof v === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(v);
@@ -2000,7 +2023,7 @@ function cleanBoxMon(m) {
   if (!m || typeof m !== 'object' || !str(m.species).trim()) return null;
   const species = str(m.species).trim(), gs = genderChoices(species);
   return { id: okId(m.id) ? m.id : newPid(), species, nick: str(m.nick).trim().slice(0, 20), gender: gs.includes(m.gender) ? m.gender : gs[0],
-    ivs: ivList(m.ivs), nature: NATURES.includes(m.nature) ? m.nature : '', ability: str(m.ability), moves: strs(m.moves).slice(0, 8), from: okSig(m.from) ? m.from : '' };
+    ivs: ivList(m.ivs), nature: NATURES.includes(m.nature) ? m.nature : '', ability: str(m.ability), moves: strs(m.moves).slice(0, 8), from: okSig(m.from) ? m.from : '', alpha: m.alpha === true };
 }
 function cleanBox(b, i) {
   const slots = Array.from({ length: BOX_SIZE }, (_, k) => cleanBoxMon(b && Array.isArray(b.slots) ? b.slots[k] : null));
@@ -2142,6 +2165,8 @@ function afterBoxChange() {
   renderUseBox();
 }
 const n31 = (m) => m.ivs.filter((v) => v === 31).length;
+const hasHA = (m) => { const s = sp(m.species); return !!(s && s.h && m.ability === s.h); };
+const HA_ICON = '<svg class="ha" viewBox="0 0 13 11" aria-hidden="true"><path d="M3 .5h7l2.5 3-6 7-6-7z" fill="#3ec8f0" stroke="#1b7fae"/><path d="M3.6 1.5h2.2L4.6 3.6H1.9z" fill="#d8f6ff"/></svg>';
 function renderBox() {
   const b = box.boxes[box.cur];
   $('box-count').textContent = boxMons();
@@ -2158,8 +2183,8 @@ function renderBox() {
     const on = !!box.sel && box.sel.b === box.cur && box.sel.s === s;
     if (!m) return `<button type="button" class="slot empty" data-slot="${s}" aria-pressed="${on}" aria-label="Empty spot ${s + 1}, add a Pokémon"></button>`;
     const k = n31(m), name = m.nick || m.species;
-    return `<button type="button" class="slot" data-slot="${s}" draggable="true" aria-pressed="${on}" aria-label="${esc(`${name}${m.gender === 'F' ? ', female' : m.gender === 'M' ? ', male' : ''}${k ? `, ${k}×31` : ''}`)}">`
-      + `${sprite(m.species, 2).replace(' role="img"', ' aria-hidden="true"')}${k ? `<span class="n31">${k}×31</span>` : ''}${m.gender === 'F' || m.gender === 'M' ? `<span class="g">${gSym(m.gender)}</span>` : ''}</button>`;
+    return `<button type="button" class="slot${m.alpha ? ' alpha' : ''}" data-slot="${s}" draggable="true" aria-pressed="${on}" aria-label="${esc(`${m.alpha ? 'Alpha ' : ''}${name}${m.gender === 'F' ? ', female' : m.gender === 'M' ? ', male' : ''}${k ? `, ${k}×31` : ''}${hasHA(m) ? ', hidden ability' : ''}`)}">`
+      + `${sprite(m.species, 2).replace(' role="img"', ' aria-hidden="true"')}${k ? `<span class="n31">${k}×31</span>` : ''}${hasHA(m) ? HA_ICON : ''}${m.gender === 'F' || m.gender === 'M' ? `<span class="g">${gSym(m.gender)}</span>` : ''}</button>`;
   }).join('');
   try { localStorage.setItem(BOX_KEY + '-at', String(box.cur)); } catch (e) {}
 }
@@ -2173,7 +2198,7 @@ function monSummary(m) {
     ['Egg moves', m.moves.length ? m.moves.map(esc).join(', ') : '<span class="muted">None</span>'],
   ];
   if (s) rows.push(['Egg group', esc(lineGroups(dex.lineOf(s.n)) || 'None')]);
-  return `<div class="tip-head">${sprite(m.species, 1)}<b>${gSym(m.gender)} ${esc(m.nick || m.species)}</b>${m.nick ? `<span class="muted small">${esc(m.species)}</span>` : ''}</div>`
+  return `<div class="tip-head">${sprite(m.species, 1)}<b>${gSym(m.gender)} ${esc(m.nick || m.species)}</b>${m.nick ? `<span class="muted small">${esc(m.species)}</span>` : ''}${m.alpha ? '<span class="tip-alpha">Alpha</span>' : ''}</div>`
     + `<div class="tip-ivs">${ivs}</div>` + rows.map(([k, v]) => `<div class="tip-row"><span>${k}</span><span>${v}</span></div>`).join('');
 }
 const tip = $('box-tip');
@@ -2202,7 +2227,7 @@ let boxDraft = null;
 function openSlot(b, s) {
   box.sel = { b, s };
   const m = box.boxes[b].slots[s];
-  boxDraft = { isNew: !m, b, s, copies: 1, mon: m ? { ...m, ivs: m.ivs.slice(), moves: m.moves.slice() } : { species: '', nick: '', gender: 'F', ivs: [null, null, null, null, null, null], nature: '', ability: '', moves: [], from: '' } };
+  boxDraft = { isNew: !m, b, s, copies: 1, mon: m ? { ...m, ivs: m.ivs.slice(), moves: m.moves.slice() } : { species: '', nick: '', gender: 'F', ivs: [null, null, null, null, null, null], nature: '', ability: '', moves: [], from: '', alpha: false } };
   renderBox(); renderDraft();
 }
 function closeDraft() { box.sel = null; boxDraft = null; renderBox(); renderDraft(); }
@@ -2248,6 +2273,7 @@ function renderDraft() {
       <label class="f">Nickname (optional)<input type="text" id="bx-nick" maxlength="20" autocomplete="off" value="${esc(m.nick)}"></label>
       <label class="f">Gender<select id="bx-gender">${draftGenderOptions()}</select></label>
     </div>
+    <label class="check"><input type="checkbox" id="bx-alpha" ${m.alpha ? 'checked' : ''}>Alpha</label>
     <div style="display:grid;gap:6px">
       <div class="moves-head"><span class="eyebrow">IVs (blank = don't know)</span><button class="linkbtn small" type="button" id="bx-all31">Set all to 31</button></div>
       <div class="stats">${STAT_KEYS.map((k, i) => `<span class="iv-cell s-${k}">${ivControl(m.ivs, i, 'bx', true, 'Box Pokémon')}<button type="button" class="iv31" data-max31="${i}" aria-pressed="${m.ivs[i] === 31}" aria-label="Set ${STAT_LABEL[i]} to 31">31</button></span>`).join('')}</div>
@@ -2290,7 +2316,7 @@ function saveDraft() {
   const sp0 = $('bx-species');
   if (document.activeElement === sp0 || sp0.value !== boxDraft.mon.species) commitText(sp0);
   const m = boxDraft.mon, s = sp(m.species);
-  if (!s) { const w = $('bx-warn'); w.textContent = m.species ? 'Unknown species. Pick one from the list.' : 'Pick a species first.'; w.hidden = false; sp0.focus(); return; }
+  if (!s) { const w = $('bx-warn'); w.textContent = m.species ? 'Unknown species. Pick one from the list.' : 'Pick a species first.'; w.hidden = false; focusQuiet(sp0); return; }
   m.species = s.n;
   const { b, s: slot } = boxDraft;
   if (boxDraft.isNew) {
@@ -2308,7 +2334,7 @@ function saveDraft() {
       () => { added.forEach((at) => { box.boxes[at.b].slots[at.s] = null; }); saveBox([...new Set(added.map((x) => x.b))]); boxSay('Taken back out.'); });
     // ready for the next one, in the next empty spot
     const next = emptySlot(box.cur);
-    if (next && next.b === box.cur) { openSlot(next.b, next.s); $('bx-species').focus(); } else closeDraft();
+    if (next && next.b === box.cur) { openSlot(next.b, next.s); focusQuiet($('bx-species')); } else closeDraft();
     return;
   }
   const to = $('bx-moveto') && $('bx-moveto').value !== '' ? +$('bx-moveto').value : null;
@@ -2336,7 +2362,7 @@ function releaseDraft() {
 }
 $('box-edit').addEventListener('click', (e) => {
   const t = e.target;
-  if (t.closest('#box-add')) { const at = emptySlot(box.cur); if (!at) return boxSay('Your boxes are full. Add a new box first.'); box.cur = at.b; openSlot(at.b, at.s); $('bx-species').focus(); return; }
+  if (t.closest('#box-add')) { const at = emptySlot(box.cur); if (!at) return boxSay('Your boxes are full. Add a new box first.'); box.cur = at.b; openSlot(at.b, at.s); focusQuiet($('bx-species')); return; }
   if (t.closest('#bx-save')) return saveDraft();
   if (t.closest('#bx-cancel')) return closeDraft();
   if (t.closest('#bx-release')) return releaseDraft();
@@ -2357,6 +2383,7 @@ $('box-edit').addEventListener('change', (e) => {
   if (!boxDraft) return;
   if (e.target.id === 'bx-gender') boxDraft.mon.gender = e.target.value;
   if (e.target.id === 'bx-ability') boxDraft.mon.ability = e.target.value;
+  if (e.target.id === 'bx-alpha') boxDraft.mon.alpha = e.target.checked;
 });
 $('box-edit').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.matches('#bx-nick, #bx-copies, .ivnum input')) { e.preventDefault(); saveDraft(); }
@@ -2370,7 +2397,7 @@ $('box-grid').addEventListener('click', (e) => {
   const s = +sl.dataset.slot;
   if (box.sel && box.sel.b === box.cur && box.sel.s === s) return closeDraft();
   openSlot(box.cur, s);
-  if (boxDraft.isNew) $('bx-species').focus();
+  if (boxDraft.isNew) focusQuiet($('bx-species'));
   else if (matchMedia('(max-width: 999px)').matches) $('box-side').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 });
 // Drag a Pokémon onto another spot to move it there (swapping with whatever is there).

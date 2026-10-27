@@ -30,7 +30,7 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
   be shown or hidden, see [Event builds](#event-builds).
 - **Saved builds.** Keep several setups, and move them to another device with a code.
 - **My box.** A second tab holds the Pokémon from your game in a PC box like PokeMMO's: box icons in a
-  6×5 grid, several named boxes, drag to move. Hover over one to see its IVs, nature, ability and egg moves.
+  10×6 grid of 60 spots like PokeMMO's, several named boxes, alphas drawn bigger with a red outline and a blue diamond on hidden-ability Pokémon, drag to move. Hover over one to see its IVs, nature, ability and egg moves.
   Tick "Use the Pokémon in my box" and the planner breeds with them; ticking off breeds can take the parents
   out of the box and put the finished Pokémon in (unticking puts them back). The box is kept apart from saved
   builds and moves to another device with its own code. Box size is `BOX_COLS`/`BOX_ROWS` in `src/page.html`.
