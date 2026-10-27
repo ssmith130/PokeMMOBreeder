@@ -406,6 +406,7 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .imp-map span.seen { background: color-mix(in srgb, var(--line) 60%, var(--sunk)); }
 .imp-map span.got { background: var(--accent-soft); border-color: var(--accent); }
 .imp-map span.bad { background: var(--warn-soft); border-color: var(--warn); }
+.imp-map span.egg::after { content: ''; width: 34%; aspect-ratio: 3 / 4; border-radius: 50%; background: var(--line); }
 .imp-map .spr { --s: 0.7 !important; }
 .imp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 440px; overflow-y: auto; }
 .imp-row { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); font-size: 13px; }
@@ -2614,10 +2615,12 @@ function sixIvs(nums) {
 }
 // One Pokémon from the lines read off the box's side panel: an optional nickname at the top, then "Lv. 38 Fearow",
 // "Stats: …", "IVs: 15/15/15/15/15/15", "EVs: …", "Nature: Quirky", "Ability: Keen Eye", "Item Held: …",
-// "Markings:" and up to four moves. Null when there's no Pokémon in the spot (or no panel to read).
+// "Markings:" and up to four moves. Null when there's no Pokémon in the spot (or no panel to read). An egg
+// ("Lv. ??? Togepi Egg", with ??? for everything else) gives { egg: true }: it has nothing to read until it hatches.
 function readPanel(lines, gender) {
-  const at = lines.findIndex((l) => /\bL\s*[vV][.,:]?\s*\d/.test(l));
+  const at = lines.findIndex((l) => /\bL\s*[vV][.,:]?\s*[\d?]/.test(l));
   if (at < 0) return null;
+  if (/L\s*[vV][.,:]?\s*\d*\?|\beg+\W*$/i.test(lines[at])) return { egg: true };
   const problems = [], head = /L\s*[vV][.,:]?\s*\d+\s*(.*)$/.exec(lines[at])[1];
   const c = closestIn(head.replace(/[^A-Za-z0-9.'’\- ]/g, ' '), SPECIES_NAMES);
   let species = c.score >= 0.7 ? c.name : '';
@@ -2630,7 +2633,8 @@ function readPanel(lines, gender) {
   const top = lines.slice(0, Math.min(at, 3)).map(nameWords).find((ws) => ws.length);
   if (top && (!species || closest(top.join(' '), [species, species.replace(/-[FM]$/, '')]).score < 0.8)) mon.nick = top.join(' ').slice(0, 20);
   importGender(mon, gender, problems);
-  const rest = lines.slice(at + 1), value = (l) => l.replace(/^[^:]*:\s*/, '').trim();
+  // stray marks off the label boxes can come before a label (": Nature: Hasty"), so labels start at the first letter
+  const rest = lines.slice(at + 1).map((l) => l.replace(/^[^A-Za-z0-9]+/, '')), value = (l) => l.replace(/^[^:]*:\s*/, '').trim();
   // Stats, IVs and EVs are three lines of six numbers; the IVs are the middle one
   const numeric = rest.map((l) => {
     const i = l.search(/\d/), n = i < 0 ? [] : l.slice(i).match(/\d+/g);
@@ -2639,9 +2643,9 @@ function readPanel(lines, gender) {
   const ivl = numeric.find((x) => /^[il1]?vs$/.test(x.label)) || (numeric.length === 3 ? numeric[1] : null);
   const ivs = ivl && sixIvs(ivl.n);
   if (ivs) mon.ivs = ivs; else problems.push("Couldn't read its IVs.");
-  const natLine = rest.find((l) => /nat/i.test(l.split(':')[0]));
-  // just the first word: some interface mods add the stats it changes, as in "Gentle(+SpD-Def)"
-  const nat = natLine ? closest((/[A-Za-z]+/.exec(value(natLine)) || [''])[0], NATURES) : { score: 0 };
+  const natLine = rest.find((l) => /^nat/i.test(l));
+  // just the first word after the label: some interface mods add the stats it changes, as in "Gentle(+SpD-Def)"
+  const nat = natLine ? closest((natLine.match(/[A-Za-z]+/g) || []).slice(1)[0] || '', NATURES) : { score: 0 };
   if (nat.score >= 0.7) mon.nature = nat.name; else problems.push("Couldn't read its nature.");
   const abl = rest.findIndex((l) => /ab\W?[il1|]/i.test(l.split(':')[0]));
   if (abl >= 0) importAbility(mon, value(rest[abl]), problems); else problems.push("Couldn't read its ability.");
@@ -2803,6 +2807,14 @@ function readSex(img) {
   }
   return m > 6 && m > f * 2 ? 'M' : f > 6 && f > m * 2 ? 'F' : '';
 }
+// An alpha has a crimson claw mark, rgb(199,63,70), in the panel's top left corner. Crimson rather than any red:
+// an orange wall in the game behind the window's edge can fall in that corner too.
+function readAlpha(img, P) {
+  const p = img.data;
+  let n = 0;
+  for (let i = 0; i < p.length; i += 4) if (p[i] > 150 && p[i] - p[i + 1] > 80 && Math.abs(p[i + 1] - p[i + 2]) < 25) n++;
+  return n > P * P * 0.04;
+}
 // Which spot of the game's box each read came from, from where the cursor was. Spots one cursor step apart line
 // up in columns and rows, counted from the box's first spot (where the layout puts it, lined up with the spots
 // seen; without that, the top-left one seen). The party column on the right sits further off and is left out.
@@ -2943,15 +2955,19 @@ async function pumpReads() {
       for (let i = 0; i < all.length; i += 16) if (Math.min(all[i], all[i + 1], all[i + 2]) > 150) ink++;
       if (ink < all.length / 16 * 0.003) throw new Error('blank');
       const sexRow = job.c.getContext('2d').getImageData(0, Math.min(job.sex.y, job.c.height - 1), job.c.width, Math.max(1, Math.min(job.sex.h, job.c.height - job.sex.y)));
+      const alpha = readAlpha(job.c.getContext('2d').getImageData(0, 0, Math.round(job.c.width * 0.15), Math.round(job.P * 1.3)), job.P);
       // the type badges at the top right would read as part of the nickname
       const pc = job.c.getContext('2d');
       pc.fillStyle = '#000'; pc.fillRect(Math.round(job.c.width * 0.78), 0, job.c.width, Math.round(job.P * 1.3));
       const data = await ocr(inkCanvas(job.c, 0, 0, job.c.width, job.c.height, Math.min(4, Math.max(1, 90 / job.P))), false);
       text = data.text; sex = readSex(sexRow);
       got = readPanel(text.split('\n').map((l) => l.trim()).filter(Boolean), sex);
+      if (got && got.mon) got.mon.alpha = alpha;
     } catch (e) { /* counted as unreadable */ }
     if (imp.step === 'idle') break;
-    imp.reads.set(job.key, { ...job.at, read: got });
+    const egg = !!(got && got.egg);
+    if (egg) got = null;
+    imp.reads.set(job.key, { ...job.at, read: got, egg });
     if (imp.debug && text) imp.debug.reads.push({ at: job.at, text, sex, read: got, panel: job.c });
     renderImp();
   }
@@ -2967,12 +2983,15 @@ function stopReading(keep) {
   if (!imp.busy) finishReading();
 }
 function finishReading() {
-  const placed = placeReads([...imp.reads.values()], imp.first).filter((r) => r.read && r.slot >= 0).sort((a, b) => a.slot - b.slot);
+  const all = placeReads([...imp.reads.values()], imp.first).filter((r) => r.slot >= 0);
+  const placed = all.filter((r) => r.read).sort((a, b) => a.slot - b.slot);
   const seen = new Map();
   placed.forEach((r) => seen.set(r.slot, r));
   imp.review = [...seen.values()].map((r) => ({ ...r.read, slot: r.slot, on: !!r.read.mon.species }));
+  imp.eggs = new Set(all.filter((r) => r.egg && !seen.has(r.slot)).map((r) => r.slot)).size;
   Object.assign(imp, { step: imp.review.length ? 'review' : 'idle', from: 'screen', reads: new Map(), geo: null,
-    status: imp.review.length ? '' : "No Pokémon were read. Make sure the PC box is open in the window you share, then hold ← through it." });
+    status: imp.review.length ? '' : imp.eggs ? 'Only eggs were read. Eggs are left out: their IVs and nature only show once they hatch.'
+      : "No Pokémon were read. Make sure the PC box is open in the window you share, then hold ← through it." });
   renderImp();
 }
 
@@ -2993,7 +3012,7 @@ function saveDebug() {
 function impMap(cells) {
   return `<div class="imp-map" aria-hidden="true">${Array.from({ length: BOX_SIZE }, (_, s) => {
     const r = cells.get(s);
-    return !r ? '<span></span>' : !r.read ? '<span class="seen"></span>' : `<span class="got${r.read.problems.length ? ' bad' : ''}">${sprite(r.read.mon.species, 0.7)}</span>`;
+    return !r ? '<span></span>' : !r.read ? `<span class="${r.egg ? 'egg' : 'seen'}"></span>` : `<span class="got${r.read.problems.length ? ' bad' : ''}">${sprite(r.read.mon.species, 0.7)}</span>`;
   }).join('')}</div>`;
 }
 function impRow(it, i) {
@@ -3011,7 +3030,8 @@ function renderImp() {
   if (imp.step === 'review') {
     const on = imp.review.filter((x) => x.on).length, bad = imp.review.filter((x) => x.problems.length).length, screen = imp.from === 'screen';
     const room = box.boxes.length < BOX_MAX;
-    rev.innerHTML = `<p>${screen ? 'Read' : 'Found'} ${imp.review.length} Pokémon${bad ? `; ${bad} need a look (their notes are in red)` : ''}. Untick any you don't want${screen ? ', then put them in a new box in the same spots as in the game' : ''}. You can fix anything later by clicking it in the box.</p>`
+    const eggs = screen && imp.eggs ? ` ${imp.eggs === 1 ? 'An egg was' : `${imp.eggs} eggs were`} left out, as eggs don't show their IVs or nature until they hatch.` : '';
+    rev.innerHTML = `<p>${screen ? 'Read' : 'Found'} ${imp.review.length} Pokémon${bad ? `; ${bad} need a look (their notes are in red)` : ''}.${eggs} Untick any you don't want${screen ? ', then put them in a new box in the same spots as in the game' : ''}. You can fix anything later by clicking it in the box.</p>`
       + `<ul class="imp-list">${imp.review.map(impRow).join('')}</ul>`
       + (screen && room ? `<label class="f" style="max-width:240px">Name of the new box<input type="text" id="imp-name" maxlength="20" autocomplete="off" value="${esc(imp.name || 'From PokeMMO')}"></label>` : '')
       + `<div class="row"><button class="btn primary" type="button" id="imp-put" ${on ? '' : 'disabled'}>Put ${on} in ${screen && room ? 'a new box' : 'my box'}</button>`

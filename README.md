@@ -122,8 +122,8 @@ sent to it. The player moves the cursor by hand. PokeMMO's Code of Conduct bans 
 interception and anything that automates input, so the import is built to stay clear of all three; don't pair
 it with a macro or auto-clicker to step through the box.
 
-It is tuned to the default interface theme. Alphas can't be told apart on the panel, so tick Alpha by hand
-after importing.
+It is tuned to the default interface theme. Alphas are picked up from the red mark in the panel's corner.
+Eggs are left out, since the panel shows ??? for their IVs, nature and ability until they hatch.
 
 ## Credits
 
