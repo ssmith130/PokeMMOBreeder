@@ -397,6 +397,23 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .use-box { display: grid; gap: 6px; padding: 10px 12px; border-radius: 8px; background: var(--sunk); border: 1px solid var(--line); }
 .use-box .sub { padding-left: 22px; }
 .box-sync { font-size: 13px; }
+/* Importing from the game: a map of the box filling in as it's read, then a list to check before putting them in */
+.imp-body { display: grid; gap: 10px; }
+.imp-body p { margin: 0; }
+.imp-status { font-weight: 600; }
+.imp-map { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 2px; max-width: 380px; }
+.imp-map span { aspect-ratio: 4 / 3; border-radius: 4px; background: var(--sunk); border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; }
+.imp-map span.seen { background: color-mix(in srgb, var(--line) 60%, var(--sunk)); }
+.imp-map span.got { background: var(--accent-soft); border-color: var(--accent); }
+.imp-map span.bad { background: var(--warn-soft); border-color: var(--warn); }
+.imp-map .spr { --s: 0.7 !important; }
+.imp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 440px; overflow-y: auto; }
+.imp-row { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); font-size: 13px; }
+.imp-row.warn { border-color: var(--warn); }
+.imp-row input { accent-color: var(--accent); width: 16px; height: 16px; }
+.imp-ivs { font-family: var(--f-mono); font-size: 12px; }
+.imp-row .meta { color: var(--muted); }
+textarea.imp-paste { min-height: 120px; word-break: normal; white-space: pre; }
 </style>
 <script>
 // Apply a saved Light/Dark choice before the page draws, so it doesn't flash the other theme.
@@ -555,13 +572,27 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
           <div class="panel-head"><h2 id="h-box-edit">Add a Pokémon</h2><span class="eyebrow" id="box-edit-where"></span></div>
           <div id="box-edit" class="box-edit"></div>
         </section>
+        <section class="panel" aria-labelledby="h-imp" id="imp">
+          <div class="panel-head"><h2 id="h-imp">Import from PokeMMO</h2><span class="eyebrow">New</span></div>
+          <div id="imp-screen" class="imp-body"></div>
+          <div id="imp-review" class="imp-body" hidden></div>
+          <details class="codes" id="imp-text">
+            <summary>Or paste Pokémon as text</summary>
+            <div class="codes-body">
+              <p class="muted small">One Pokémon per block, in the Showdown / PokePaste format. Stats left out of the IVs line stay blank (unknown) rather than 31, and only egg moves are kept.</p>
+              <textarea class="code imp-paste" id="imp-paste" spellcheck="false" aria-label="Pokémon as text" placeholder="Kenya (Fearow) (M)&#10;Ability: Keen Eye&#10;Quirky Nature&#10;IVs: 31 HP / 31 Atk / 20 Def / 31 SpA / 31 SpD / 31 Spe&#10;- Roost"></textarea>
+              <p class="small mon-warn" id="imp-paste-msg" role="status" hidden></p>
+              <div class="row"><button class="btn" type="button" id="imp-paste-read">Read this text</button></div>
+            </div>
+          </details>
+        </section>
         <details class="panel fold" id="box-more">
           <summary class="panel-head"><h2>Fill or move your box</h2><span class="eyebrow">Optional</span></summary>
           <div class="codes-body">
             <p class="muted small" id="box-from-planner-help"></p>
             <div class="row"><button class="btn" type="button" id="box-from-planner">Copy my planner Pokémon into the box</button></div>
             <p class="muted small" id="box-codes-help"></p>
-            <div class="row"><button class="btn" type="button" id="box-code-copy">Copy a code for my whole box</button></div>
+            <div class="row"><button class="btn" type="button" id="box-code-copy">Copy a code for my whole box</button><button class="btn" type="button" id="box-text-copy">Copy this box as text</button></div>
             <textarea class="code" id="box-code-out" readonly hidden aria-label="Box code"></textarea>
             <label class="f">Import a box code<textarea class="code" id="box-code-in" spellcheck="false" placeholder="Paste a code that starts with PMBX1"></textarea></label>
             <div class="row"><button class="btn" type="button" id="box-code-import">Add these Pokémon to my box</button></div>
@@ -2511,6 +2542,530 @@ $('box-code-import').addEventListener('click', async () => {
   boxSay(n < mons.length ? `Added ${n} of the ${mons.length} Pokémon; your boxes are full.` : `Added ${n} Pokémon to your box.`);
 });
 
+// ---------- importing from the game ----------
+// Two ways to fill the box without typing each Pokémon in: read the PC box off a shared screen while you step
+// through it in the game, or paste Pokémon as text (the Showdown / PokePaste format). Both stay outside PokeMMO:
+// no mod, nothing read from the game's memory, and no key presses sent to it. You move the cursor yourself.
+const SPECIES_NAMES = SPECIES.map((s) => s.n);
+const EGG_MOVE_SET = new Set(SPECIES.flatMap((s) => s.m || []));
+const MOVE_NAMES = [...new Set([...Object.keys(LEARNERS), ...Object.keys(TM_LEARNERS), ...EGG_MOVE_SET])];
+const TYPE_NAMES = ['Normal', 'Fire', 'Water', 'Grass', 'Electric', 'Ice', 'Fighting', 'Poison', 'Ground', 'Flying', 'Psychic', 'Bug', 'Rock', 'Ghost', 'Dragon', 'Dark', 'Steel'];
+const squash = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+function editDistance(a, b) {
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+// The name in the list closest to some text read off the screen, and how alike they are (1 = the same).
+function closest(text, names) {
+  const t = squash(text);
+  let best = { name: '', score: 0 };
+  if (!t) return best;
+  for (const n of names) {
+    const s = squash(n), score = 1 - editDistance(t, s) / Math.max(t.length, s.length);
+    if (score > best.score) best = { name: n, score };
+  }
+  return best;
+}
+// The best match for any run of words at the start (or, with fromEnd, the end) of a line, so stray marks read off
+// a gender symbol or a move's type badge don't spoil it.
+function closestIn(line, names, fromEnd = false) {
+  const words = String(line).split(/\s+/).filter(Boolean);
+  let best = { name: '', score: 0 };
+  for (let k = 1; k <= words.length; k++) {
+    const c = closest((fromEnd ? words.slice(-k) : words.slice(0, k)).join(' '), names);
+    if (c.score > best.score) best = c;
+  }
+  return best;
+}
+// Only egg moves are kept, as in the box editor. Typed text has to name the move; text read off the screen may be
+// a letter or two out. Moves the site doesn't know (Spore, say) are dropped rather than taken for a near spelling.
+const eggMovesIn = (lines, min) => [...new Set(lines.map((l) => closestIn(l, MOVE_NAMES, true)).filter((c) => c.score >= min && EGG_MOVE_SET.has(c.name)).map((c) => c.name))];
+// Settles the gender: one-gender species need none, and a two-gender one without it is flagged.
+function importGender(mon, gender, problems) {
+  const gs = genderChoices(mon.species);
+  mon.gender = gs.includes(gender) ? gender : gs.length === 1 ? gs[0] : '';
+  if (!mon.gender && sp(mon.species)) { mon.gender = gs[0]; problems.push(`No gender found, so it is set to ${G_LABEL[gs[0]].slice(2).toLowerCase()}.`); }
+}
+function importAbility(mon, text, problems) {
+  const s = sp(mon.species), c = s && closestIn(text, [...s.a, s.h].filter(Boolean), true);
+  if (c && c.score >= 0.6) mon.ability = c.name;
+  else if (text) problems.push(`Ability "${text}" isn't one ${mon.species || 'it'} can have.`);
+}
+
+// Six IVs from the numbers on the IVs line. A slash read as a 1 joins two numbers ("22123" for 22/23), so with
+// one number short, a 1 inside a too-big number is taken for the missing slash.
+function sixIvs(nums) {
+  let n = nums.slice(0, 6);
+  if (nums.length === 5) {
+    const k = nums.findIndex((x) => x.length >= 3 && +x > 31);
+    const s = k < 0 ? '' : nums[k];
+    for (let i = 1; i < s.length - 1 && n.length < 6; i++) {
+      const a = s.slice(0, i), b = s.slice(i + 1);
+      if (s[i] === '1' && +a <= 31 && +b <= 31 && b.length <= 2) n = [...nums.slice(0, k), a, b, ...nums.slice(k + 1)];
+    }
+  }
+  n = n.map((x) => parseInt(x, 10));
+  return n.length === 6 && n.every((v) => v <= 31) ? n : null;
+}
+// One Pokémon from the lines read off the box's side panel: an optional nickname at the top, then "Lv. 38 Fearow",
+// "Stats: …", "IVs: 15/15/15/15/15/15", "EVs: …", "Nature: Quirky", "Ability: Keen Eye", "Item Held: …",
+// "Markings:" and up to four moves. Null when there's no Pokémon in the spot (or no panel to read).
+function readPanel(lines, gender) {
+  const at = lines.findIndex((l) => /\bL\s*[vV][.,:]?\s*\d/.test(l));
+  if (at < 0) return null;
+  const problems = [], head = /L\s*[vV][.,:]?\s*\d+\s*(.*)$/.exec(lines[at])[1];
+  const c = closestIn(head.replace(/[^A-Za-z0-9.'’\- ]/g, ' '), SPECIES_NAMES);
+  let species = c.score >= 0.7 ? c.name : '';
+  if (/^Nidoran/.test(species) && (gender === 'F' || gender === 'M')) species = 'Nidoran-' + gender;
+  const mon = { species, nick: '', gender: '', ivs: ivList(null), nature: '', ability: '', moves: [], alpha: false };
+  if (!species) problems.push(`Couldn't make out the species ("${head.trim().slice(0, 24)}").`);
+  // The nickname is at the top of the panel. The sprite and type badges under and beside it get read as stray
+  // marks too, so it's the first of the top lines that has real words in it, leaving out words that look like a type.
+  const nameWords = (l) => l.split(/\s+/).filter((w) => /^[A-Za-z][A-Za-z0-9.'’-]+$/.test(w) && closest(w, TYPE_NAMES).score < 0.7);
+  const top = lines.slice(0, Math.min(at, 3)).map(nameWords).find((ws) => ws.length);
+  if (top && (!species || closest(top.join(' '), [species, species.replace(/-[FM]$/, '')]).score < 0.8)) mon.nick = top.join(' ').slice(0, 20);
+  importGender(mon, gender, problems);
+  const rest = lines.slice(at + 1), value = (l) => l.replace(/^[^:]*:\s*/, '').trim();
+  // Stats, IVs and EVs are three lines of six numbers; the IVs are the middle one
+  const numeric = rest.map((l) => {
+    const i = l.search(/\d/), n = i < 0 ? [] : l.slice(i).match(/\d+/g);
+    return n.length >= 5 ? { label: squash(l.slice(0, i)), n } : null;
+  }).filter(Boolean);
+  const ivl = numeric.find((x) => /^[il1]?vs$/.test(x.label)) || (numeric.length === 3 ? numeric[1] : null);
+  const ivs = ivl && sixIvs(ivl.n);
+  if (ivs) mon.ivs = ivs; else problems.push("Couldn't read its IVs.");
+  const natLine = rest.find((l) => /nat/i.test(l.split(':')[0]));
+  const nat = natLine ? closestIn(value(natLine), NATURES, true) : { score: 0 };
+  if (nat.score >= 0.7) mon.nature = nat.name; else problems.push("Couldn't read its nature.");
+  const abl = rest.findIndex((l) => /ab\W?[il1|]/i.test(l.split(':')[0]));
+  if (abl >= 0) importAbility(mon, value(rest[abl]), problems); else problems.push("Couldn't read its ability.");
+  const mark = rest.findIndex((l) => /mark/i.test(l));
+  const from = mark >= 0 ? mark + 1 : abl >= 0 ? abl + 3 : rest.length - 4;
+  mon.moves = eggMovesIn(rest.slice(Math.max(0, from), Math.max(0, from) + 4), 0.85);
+  return { mon, problems };
+}
+
+// Pokémon written out as text, in the Showdown / PokePaste format:
+//   Kenya (Fearow) (M)
+//   Ability: Keen Eye
+//   Quirky Nature
+//   IVs: 31 HP / 31 Atk / 20 Def / 31 SpA / 31 SpD / 31 Spe
+//   - Roost
+// Stats missing from the IVs line stay blank (unknown) rather than 31 as in Showdown. "Alpha: Yes" marks an alpha.
+const IV_STAT = { hp: 0, atk: 1, attack: 1, def: 2, defense: 2, spa: 3, spatk: 3, spattack: 3, spd: 4, spdef: 4, spdefense: 4, spe: 5, speed: 5 };
+function parseSets(text) {
+  return String(text).replace(/\r/g, '').split(/\n\s*\n/).map((b) => b.split('\n').map((l) => l.trim()).filter(Boolean))
+    .filter((b) => b.length).slice(0, BOX_SIZE * BOX_MAX).map(parseSet);
+}
+function parseSet(lines) {
+  const problems = [];
+  let head = lines[0].replace(/\s*@.*$/, '').trim(), gender = '', nick = '';
+  const g = /\(([MF])\)$/i.exec(head);
+  if (g) { gender = g[1].toUpperCase(); head = head.slice(0, g.index).trim(); }
+  const p = /^(.*?)\s*\(([^()]+)\)$/.exec(head);
+  if (p && (sp(p[2]) || closest(p[2], SPECIES_NAMES).score >= 0.8)) { nick = p[1].trim(); head = p[2].trim(); }
+  const c = sp(head) ? { name: sp(head).n, score: 1 } : closest(head.replace(/♀/g, '-F').replace(/♂/g, '-M'), SPECIES_NAMES);
+  const species = c.score >= 0.8 ? c.name : '';
+  if (!species) problems.push(`Unknown species "${head.slice(0, 24)}".`);
+  const mon = { species, nick: squash(nick) === squash(species) ? '' : nick.slice(0, 20), gender: '', ivs: ivList(null), nature: '', ability: '', moves: [], alpha: false };
+  importGender(mon, gender, problems);
+  const moves = [];
+  for (const l of lines.slice(1)) {
+    let m;
+    if ((m = /^ability:\s*(.+)$/i.exec(l))) importAbility(mon, m[1].trim(), problems);
+    else if ((m = /^ivs:\s*(.+)$/i.exec(l))) {
+      for (const part of m[1].split('/')) {
+        const x = /^\s*(\d{1,2})\s*(.+)$/.exec(part), i = x ? IV_STAT[squash(x[2])] : undefined;
+        if (i !== undefined) mon.ivs[i] = Math.min(31, parseInt(x[1], 10));
+      }
+    } else if ((m = /^(\w+)\s+nature$/i.exec(l) || /^nature:\s*(\w+)$/i.exec(l))) {
+      const n = closest(m[1], NATURES);
+      if (n.score >= 0.8) mon.nature = n.name; else problems.push(`Unknown nature "${m[1]}".`);
+    } else if ((m = /^alpha(?::\s*(\w+))?$/i.exec(l))) mon.alpha = !m[1] || /^(yes|true|y)$/i.test(m[1]);
+    else if ((m = /^[-–•]\s*(.+)$/.exec(l))) moves.push(m[1].replace(/\[.*?\]/g, '').trim());
+  }
+  mon.moves = eggMovesIn(moves, 1);
+  return { mon, problems };
+}
+function monText(m) {
+  const lines = [`${m.nick ? `${m.nick} (${m.species})` : m.species}${m.gender === 'M' || m.gender === 'F' ? ` (${m.gender})` : ''}`];
+  if (m.alpha) lines.push('Alpha: Yes');
+  if (m.ability) lines.push(`Ability: ${m.ability}`);
+  if (m.nature) lines.push(`${m.nature} Nature`);
+  const ivs = m.ivs.map((v, i) => (v == null ? '' : `${v} ${STAT_LABEL[i]}`)).filter(Boolean);
+  if (ivs.length) lines.push('IVs: ' + ivs.join(' / '));
+  m.moves.forEach((mv) => lines.push('- ' + mv));
+  return lines.join('\n');
+}
+
+// ---------- reading the PC box off the screen ----------
+// You share the PokeMMO window (or your whole screen) with the page. The page finds the PC box's side panel by
+// its labels, then watches the blue cursor: each time it settles on a new spot, the side panel is copied and
+// read with Tesseract (open-source text recognition, loaded the first time it's needed and run in this browser).
+const OCR_LIB = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/';
+const OCR_CORE = 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1';
+const OCR_LANG = 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int';
+let ocrWorker = null, ocrChain = Promise.resolve();
+function loadOcr() {
+  if (!ocrWorker) {
+    ocrWorker = (window.Tesseract ? Promise.resolve() : new Promise((ok, fail) => {
+      const s = document.createElement('script');
+      s.src = OCR_LIB + 'tesseract.min.js'; s.onload = ok; s.onerror = () => fail(new Error('load'));
+      document.head.appendChild(s);
+    })).then(() => window.Tesseract.createWorker('eng', 1, { workerPath: OCR_LIB + 'worker.min.js', corePath: OCR_CORE, langPath: OCR_LANG }));
+    ocrWorker.catch(() => { ocrWorker = null; });
+  }
+  return ocrWorker;
+}
+// One recognition at a time, since the calibration and the panel reads share the worker.
+function ocr(canvas, sparse) {
+  const run = ocrChain.then(async () => {
+    const w = await loadOcr();
+    await w.setParameters({ tessedit_pageseg_mode: sparse ? '11' : '6' });
+    return (await w.recognize(canvas, {}, { text: true, blocks: !!sparse })).data;
+  });
+  ocrChain = run.catch(() => {});
+  return run;
+}
+// The game's text is light on dark: make it black on white, which Tesseract reads far better. Coloured type
+// badges and the gender symbol drop out, since only near-white pixels count as text.
+function inkCanvas(src, sx, sy, sw, sh, k) {
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(sw * k)); c.height = Math.max(1, Math.round(sh * k));
+  const x = c.getContext('2d', { willReadFrequently: true });
+  x.drawImage(src, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
+  for (let i = 0; i < p.length; i += 4) { const v = Math.min(p[i], p[i + 1], p[i + 2]) > 150 ? 0 : 255; p[i] = p[i + 1] = p[i + 2] = v; }
+  x.putImageData(d, 0, 0);
+  return c;
+}
+// The labels down the side panel, by row: their spacing gives the size of the game's interface on screen.
+const PANEL_ROWS = [[/^stat/i, 0], [/^evs?:?$/i, 2], [/^nat/i, 3], [/^ab.l/i, 4], [/^held/i, 5], [/^mark/i, 6]];
+function panelGeometry(words, fw, fh) {
+  const found = [];
+  for (const w of words) {
+    const a = PANEL_ROWS.find(([re]) => re.test(w.text));
+    if (a && !found.some((f) => f.row === a[1])) found.push({ row: a[1], y: (w.y0 + w.y1) / 2, w });
+  }
+  if (found.length < 2) return null;
+  const n = found.length, mr = found.reduce((a, f) => a + f.row, 0) / n, my = found.reduce((a, f) => a + f.y, 0) / n;
+  const P = found.reduce((a, f) => a + (f.row - mr) * (f.y - my), 0) / found.reduce((a, f) => a + (f.row - mr) ** 2, 0);
+  if (!(P > 6 && P < 200) || found.some((f) => Math.abs(my + (f.row - mr) * P - f.y) > 0.35 * P)) return null;
+  const y0 = my - mr * P;
+  // the values start where the first word after the Nature or Ability label does
+  const labels = found.filter((f) => f.row === 3 || f.row === 4);
+  const after = words.filter((w) => labels.some((f) => Math.abs((w.y0 + w.y1) / 2 - f.y) < 0.4 * P && w.x0 > f.w.x1));
+  const vx = after.length ? Math.min(...after.map((w) => w.x0)) : Math.max(...found.map((f) => f.w.x1)) + 0.35 * P;
+  const x = Math.max(0, Math.round(vx - 2.9 * P)), r = Math.min(fw, Math.round(vx + 6.6 * P));
+  const y = Math.max(0, Math.round(y0 - 8.7 * P)), b = Math.min(fh, Math.round(y0 + 10.6 * P)), gy = Math.max(0, Math.round(y0 - 4 * P));
+  // where the box's first spot should be, from the game's layout: just right of the panel, level with the sprite
+  return { P, panel: { x, y, w: r - x, h: b - y }, grid: { x: r, y: gy, w: fw - r, h: b - gy }, sex: { y: Math.max(0, Math.round(y0 - 1.6 * P - y)), h: Math.round(P) },
+    first: { x: vx + 7.67 * P, y: y0 - 2.38 * P } };
+}
+// The cursor is a box drawn in one bright blue; its top and bottom edges are the long runs of that blue.
+const isCursor = (r, g, b) => r < 60 && g > 150 && g < 225 && b > 210;
+function findCursor(img, minRun) {
+  const { data, width, height } = img, runs = [];
+  for (let y = 0; y < height; y++) {
+    let run = 0;
+    for (let x = 0; x <= width; x++) {
+      const i = (y * width + x) * 4;
+      if (x < width && isCursor(data[i], data[i + 1], data[i + 2])) run++;
+      else { if (run >= minRun) runs.push({ y, x0: x - run, x1: x - 1 }); run = 0; }
+    }
+  }
+  if (!runs.length) return null;
+  const top = runs[0], w = top.x1 - top.x0 + 1;
+  const edge = runs.filter((r) => r.x0 < top.x1 && r.x1 > top.x0 && r.y - top.y < w * 1.5);
+  const h = edge[edge.length - 1].y - top.y + 1;
+  return h < w * 0.3 ? null : { x: (top.x0 + top.x1) / 2, y: top.y + h / 2, w, h };
+}
+// Blue for male and pink for female, from the symbol after the species name.
+function readSex(img) {
+  const p = img.data;
+  let m = 0, f = 0;
+  for (let i = 0; i < p.length; i += 4) {
+    const r = p[i], g = p[i + 1], b = p[i + 2];
+    if (b > 200 && r < 140 && g > 90) m++; else if (r > 220 && g < 150 && b > 170) f++;
+  }
+  return m > 6 && m > f * 2 ? 'M' : f > 6 && f > m * 2 ? 'F' : '';
+}
+// Which spot of the game's box each read came from, from where the cursor was. Spots one cursor step apart line
+// up in columns and rows, counted from the box's first spot (where the layout puts it, lined up with the spots
+// seen; without that, the top-left one seen). The party column on the right sits further off and is left out.
+function placeReads(reads, first) {
+  if (!reads.length) return [];
+  const mid = (a) => a.slice().sort((x, y) => x - y)[a.length >> 1];
+  const w = mid(reads.map((r) => r.w)), h = mid(reads.map((r) => r.h));
+  const cluster = (vals, tol) => {
+    const out = [];
+    for (const v of vals.slice().sort((a, b) => a - b)) {
+      const o = out[out.length - 1];
+      if (o && v - o.last <= tol) { o.sum += v; o.n++; o.last = v; } else out.push({ sum: v, n: 1, last: v });
+    }
+    return out.map((o) => o.sum / o.n);
+  };
+  // the gap between neighbouring spots, from the closest two columns (or rows) seen; in the game it is a little more
+  // than the cursor's size, which is all there is to go on when only one column or row was read
+  const step = (cs, guess) => { const d = cs.slice(1).reduce((m, c, i) => Math.min(m, c - cs[i]), Infinity); return d < Infinity ? d / Math.max(1, Math.round(d / guess)) : guess; };
+  const xs = cluster(reads.map((r) => r.x), w * 0.3), ys = cluster(reads.map((r) => r.y), h * 0.3);
+  const sx = step(xs, w * 1.05), sy = step(ys, h * 1.1);
+  const x0 = first ? xs[0] - sx * Math.round((xs[0] - first.x) / sx) : xs[0], y0 = first ? ys[0] - sy * Math.round((ys[0] - first.y) / sy) : ys[0];
+  return reads.map((r) => {
+    const col = Math.round((r.x - x0) / sx), row = Math.round((r.y - y0) / sy);
+    return { ...r, slot: col >= 0 && row >= 0 && col < BOX_COLS && row < BOX_ROWS ? row * BOX_COLS + col : -1 };
+  });
+}
+
+const imp = { step: 'idle', status: '', stream: null, video: null, geo: null, first: null, reads: new Map(), queue: [], busy: false,
+  last: null, prev: null, still: 0, lost: 0, finding: false, review: null, from: '' };
+const canShare = () => !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+async function startReading() {
+  if (!canShare()) return;
+  let stream;
+  try { stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: false }); } catch (e) {
+    imp.status = e && e.name === 'NotAllowedError' ? 'Screen sharing was cancelled or blocked. If this page is inside another site, open smearguru.org directly.' : "Couldn't start screen sharing in this browser.";
+    return renderImp();
+  }
+  const video = document.createElement('video');
+  video.muted = true; video.playsInline = true; video.srcObject = stream;
+  await video.play().catch(() => {});
+  Object.assign(imp, { step: 'find', stream, video, geo: null, reads: new Map(), queue: [], last: null, prev: null, still: 0, lost: 0,
+    status: 'Loading the text reader (a few MB, only the first time)…' });
+  stream.getVideoTracks()[0].addEventListener('ended', () => stopReading(true));
+  renderImp();
+  loadOcr().then(() => { if (imp.step === 'find') { imp.status = 'Looking for your PC box. Open it in the game so its side panel shows a Pokémon.'; renderImp(); } },
+    () => { stopReading(false); imp.status = "Couldn't load the text reader. Check your connection and try again."; renderImp(); });
+  findPanel();
+  watch();
+}
+// Read the whole frame once to find the side panel's labels; tried again until they show up.
+async function findPanel() {
+  if (imp.finding || !imp.video || imp.step === 'idle') return;
+  imp.finding = true;
+  try {
+    const v = imp.video, fw = v.videoWidth, fh = v.videoHeight;
+    if (fw && fh) {
+      const k = fw < 1600 ? 2 : 1, data = await ocr(inkCanvas(v, 0, 0, fw, fh, k), true);
+      const words = [];
+      for (const b of data.blocks || []) for (const p of b.paragraphs) for (const l of p.lines) for (const w of l.words)
+        words.push({ text: w.text, x0: w.bbox.x0 / k, y0: w.bbox.y0 / k, x1: w.bbox.x1 / k, y1: w.bbox.y1 / k });
+      const geo = panelGeometry(words, fw, fh);
+      if (geo && imp.step !== 'idle') {
+        Object.assign(imp, { geo, first: geo.first, lost: 0, step: imp.step === 'find' ? 'read' : imp.step });
+        imp.status = 'Found your PC box. Now select its last spot and hold ← until the cursor reaches the first spot.';
+        renderImp();
+      }
+    }
+  } catch (e) { /* tried again below */ }
+  imp.finding = false;
+  if (!imp.geo && (imp.step === 'find' || imp.step === 'read')) setTimeout(findPanel, 1500);
+}
+const frame = document.createElement('canvas'), scratch = document.createElement('canvas'), scratchCtx = scratch.getContext('2d', { willReadFrequently: true });
+function grab(src, r, w, h, smooth) {
+  scratch.width = w; scratch.height = h;
+  scratchCtx.imageSmoothingEnabled = smooth;
+  scratchCtx.drawImage(src, r.x, r.y, r.w, r.h, 0, 0, w, h);
+  return scratchCtx.getImageData(0, 0, w, h);
+}
+// A small grey copy of the side panel, to notice when it changes.
+function panelPrint(v, g) {
+  const d = grab(v, g.panel, 24, 48, true).data, out = new Uint8Array(d.length / 4);
+  for (let i = 0; i < out.length; i++) out[i] = (d[i * 4] + d[i * 4 + 1] + d[i * 4 + 2]) / 3;
+  return out;
+}
+const printDiff = (a, b) => { if (!a || !b) return 255; let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]); return s / a.length; };
+// Every 25 ms: where the cursor is, and whether the side panel has settled on a new Pokémon.
+function watch() {
+  const v = imp.video;
+  if (!v || imp.step === 'idle' || imp.step === 'review') return;
+  // a timer rather than one call per video frame: screen capture sends no frames while nothing on screen changes
+  const next = () => setTimeout(watch, 25);
+  const g = imp.geo;
+  if (!g || imp.step !== 'read' || !v.videoWidth) return next();
+  // one still of the frame, so the cursor and the panel are looked at in the same moment
+  if (frame.width !== v.videoWidth || frame.height !== v.videoHeight) { frame.width = v.videoWidth; frame.height = v.videoHeight; }
+  frame.getContext('2d').drawImage(v, 0, 0);
+  const f = Math.min(1, Math.max(0.5, 24 / g.P)), gw = Math.round(g.grid.w * f), gh = Math.round(g.grid.h * f);
+  const cur = gw > 0 && gh > 0 ? findCursor(grab(frame, g.grid, gw, gh, false), Math.round(1.2 * g.P * f)) : null;
+  if (!cur) {
+    // the window moved, the PC was closed or the cursor is on the party: look for the panel again after a while
+    if (++imp.lost === 90) { imp.geo = null; imp.status = "Lost sight of the PC box. Keep it open on the screen you're sharing."; renderImp(); findPanel(); }
+    imp.prev = null;
+    return next();
+  }
+  imp.lost = 0;
+  const at = { x: g.grid.x + cur.x / f, y: g.grid.y + cur.y / f, w: cur.w / f, h: cur.h / f };
+  const key = `${Math.round(at.x / (at.w * 0.5))},${Math.round(at.y / (at.h * 0.5))}`, print = panelPrint(frame, g);
+  // Read the panel as soon as the cursor is on a new spot and the panel shows something new. When the panel looks
+  // the same as the last one read (an empty spot after an empty spot, or a frame where the panel hasn't caught up),
+  // wait for two frames alike in a row before trusting it.
+  imp.still = imp.prev && imp.prev.key === key && printDiff(imp.prev.print, print) < 3 ? imp.still + 1 : 0;
+  imp.prev = { key, print };
+  const fresh = !imp.last || printDiff(imp.last.print, print) > 6;
+  if (imp.last && imp.last.key === key ? fresh && imp.still >= 1 : fresh || imp.still >= 1) {
+    imp.last = { key, print };
+    const c = document.createElement('canvas');
+    c.width = g.panel.w; c.height = g.panel.h;
+    c.getContext('2d').drawImage(frame, g.panel.x, g.panel.y, g.panel.w, g.panel.h, 0, 0, c.width, c.height);
+    imp.queue.push({ key, at, c, P: g.P, sex: g.sex });
+    pumpReads();
+  }
+  next();
+}
+async function pumpReads() {
+  if (imp.busy) return;
+  imp.busy = true;
+  while (imp.queue.length) {
+    const job = imp.queue.shift();
+    let got = null;
+    try {
+      // an empty spot leaves the panel blank: nothing to read
+      const all = job.c.getContext('2d').getImageData(0, 0, job.c.width, job.c.height).data;
+      let ink = 0;
+      for (let i = 0; i < all.length; i += 16) if (Math.min(all[i], all[i + 1], all[i + 2]) > 150) ink++;
+      if (ink < all.length / 16 * 0.003) throw new Error('blank');
+      const sexRow = job.c.getContext('2d').getImageData(0, Math.min(job.sex.y, job.c.height - 1), job.c.width, Math.max(1, Math.min(job.sex.h, job.c.height - job.sex.y)));
+      const data = await ocr(inkCanvas(job.c, 0, 0, job.c.width, job.c.height, Math.min(4, Math.max(1, 90 / job.P))), false);
+      got = readPanel(data.text.split('\n').map((l) => l.trim()).filter(Boolean), readSex(sexRow));
+    } catch (e) { /* counted as unreadable */ }
+    if (imp.step === 'idle') break;
+    imp.reads.set(job.key, { ...job.at, read: got });
+    renderImp();
+  }
+  imp.busy = false;
+  if (imp.step === 'stopping') finishReading();
+}
+function stopReading(keep) {
+  if (imp.stream) imp.stream.getTracks().forEach((t) => t.stop());
+  imp.stream = null; imp.video = null;
+  if (!keep || !imp.reads.size && !imp.queue.length) { Object.assign(imp, { step: 'idle', status: '', reads: new Map(), queue: [], geo: null }); return renderImp(); }
+  imp.step = 'stopping';
+  renderImp();
+  if (!imp.busy) finishReading();
+}
+function finishReading() {
+  const placed = placeReads([...imp.reads.values()], imp.first).filter((r) => r.read && r.slot >= 0).sort((a, b) => a.slot - b.slot);
+  const seen = new Map();
+  placed.forEach((r) => seen.set(r.slot, r));
+  imp.review = [...seen.values()].map((r) => ({ ...r.read, slot: r.slot, on: !!r.read.mon.species }));
+  Object.assign(imp, { step: imp.review.length ? 'review' : 'idle', from: 'screen', reads: new Map(), geo: null,
+    status: imp.review.length ? '' : "No Pokémon were read. Make sure the PC box is open in the window you share, then hold ← through it." });
+  renderImp();
+}
+
+// ---------- the import panel ----------
+function impMap(cells) {
+  return `<div class="imp-map" aria-hidden="true">${Array.from({ length: BOX_SIZE }, (_, s) => {
+    const r = cells.get(s);
+    return !r ? '<span></span>' : !r.read ? '<span class="seen"></span>' : `<span class="got${r.read.problems.length ? ' bad' : ''}">${sprite(r.read.mon.species, 0.7)}</span>`;
+  }).join('')}</div>`;
+}
+function impRow(it, i) {
+  const m = it.mon, ivs = m.ivs.map((v) => (v == null ? '–' : v)).join('/');
+  const bits = [m.nature || 'no nature', m.ability || 'no ability', ...(m.moves.length ? [m.moves.join(', ')] : [])].map(esc).join(' · ');
+  return `<li class="imp-row${it.problems.length ? ' warn' : ''}"><input type="checkbox" data-imp="${i}" ${it.on ? 'checked' : ''} ${m.species ? '' : 'disabled'} aria-label="Import ${esc(m.nick || m.species || 'this one')}">`
+    + `${sprite(m.species, 1)}<span class="imp-what"><b>${gSym(m.gender)} ${esc(m.nick || m.species || 'Unknown')}</b>${m.nick ? ` <span class="muted small">${esc(m.species)}</span>` : ''}${m.alpha ? ' <span class="tip-alpha">Alpha</span>' : ''}`
+    + `${it.slot != null ? ` <span class="muted small">spot ${it.slot + 1}</span>` : ''}<br><span class="imp-ivs">${ivs}</span> <span class="meta">${bits}</span>`
+    + `${it.problems.length ? `<br><span class="mon-warn small">${esc(it.problems.join(' '))}</span>` : ''}</span></li>`;
+}
+function renderImp() {
+  const scr = $('imp-screen'), rev = $('imp-review');
+  rev.hidden = imp.step !== 'review';
+  scr.hidden = imp.step === 'review';
+  if (imp.step === 'review') {
+    const on = imp.review.filter((x) => x.on).length, bad = imp.review.filter((x) => x.problems.length).length, screen = imp.from === 'screen';
+    const room = box.boxes.length < BOX_MAX;
+    rev.innerHTML = `<p>${screen ? 'Read' : 'Found'} ${imp.review.length} Pokémon${bad ? `; ${bad} need a look (their notes are in red)` : ''}. Untick any you don't want${screen ? ', then put them in a new box in the same spots as in the game' : ''}. You can fix anything later by clicking it in the box.</p>`
+      + `<ul class="imp-list">${imp.review.map(impRow).join('')}</ul>`
+      + (screen && room ? `<label class="f" style="max-width:240px">Name of the new box<input type="text" id="imp-name" maxlength="20" autocomplete="off" value="${esc(imp.name || 'From PokeMMO')}"></label>` : '')
+      + `<div class="row"><button class="btn primary" type="button" id="imp-put" ${on ? '' : 'disabled'}>Put ${on} in ${screen && room ? 'a new box' : 'my box'}</button>`
+      + `<button class="btn" type="button" id="imp-drop">Throw these away</button></div>`;
+    return;
+  }
+  if (imp.step === 'idle') {
+    scr.innerHTML = `<p>Read your PC box straight off the screen. Share the PokeMMO window, open your PC, select the box's last spot and hold ← until the cursor reaches the first spot. Each Pokémon is read as the cursor passes it.</p>`
+      + `<p class="muted small">You press the keys yourself: the page only looks at the window you share and never touches the game. Don't use macros or auto-clickers with PokeMMO; the game bans them.</p>`
+      + (canShare() ? '<div class="row"><button class="btn primary" type="button" id="imp-start">Read my PC box</button></div>'
+        : '<p class="muted small">Reading the screen needs a computer browser such as Chrome, Edge or Firefox. You can still paste Pokémon as text below.</p>')
+      + (imp.status ? `<p class="small mon-warn" role="status">${esc(imp.status)}</p>` : '');
+    return;
+  }
+  const cells = new Map();
+  placeReads([...imp.reads.values()], imp.first).forEach((r) => { if (r.slot >= 0) cells.set(r.slot, r); });
+  const got = [...imp.reads.values()].filter((r) => r.read).length, waiting = imp.queue.length + (imp.busy ? 1 : 0);
+  scr.innerHTML = `<p class="imp-status" role="status">${imp.step === 'stopping' ? `Finishing the last ${waiting} reads…` : esc(imp.status)}</p>`
+    + (imp.step === 'read' || imp.step === 'stopping' ? `<p class="small">Read ${got} Pokémon${waiting ? `, ${waiting} still reading` : ''}. Missed one? Move the cursor back onto it.</p>${impMap(cells)}` : '')
+    + `<div class="row">${imp.step === 'stopping' ? '' : `<button class="btn primary" type="button" id="imp-done" ${got || waiting ? '' : 'disabled'}>Done</button>`}<button class="btn" type="button" id="imp-cancel">Cancel</button></div>`;
+}
+function putImported() {
+  const list = imp.review.filter((x) => x.on && sp(x.mon.species));
+  if (!list.length) return;
+  const added = [];
+  let made = -1;
+  if (imp.from === 'screen' && box.boxes.length < BOX_MAX) {
+    const name = ($('imp-name') ? $('imp-name').value.trim() : '') || 'From PokeMMO';
+    box.boxes.push(cleanBox({ name, slots: [] }, box.boxes.length));
+    made = box.boxes.length - 1;
+  }
+  for (const it of list) {
+    let at = made >= 0 && it.slot != null && !box.boxes[made].slots[it.slot] ? { b: made, s: it.slot } : emptySlot(made >= 0 ? made : box.cur);
+    if (!at && box.boxes.length < BOX_MAX) { box.boxes.push(cleanBox(null, box.boxes.length)); at = { b: box.boxes.length - 1, s: 0 }; }
+    if (!at) break;
+    const m = cleanBoxMon({ ...it.mon, id: newPid() });
+    box.boxes[at.b].slots[at.s] = m;
+    added.push(m.id);
+  }
+  if (made >= 0) box.cur = made;
+  saveBox('all', true);
+  if (!boxDraft) renderDraft();
+  if (imp.from === 'text') $('imp-paste').value = '';
+  Object.assign(imp, { step: 'idle', review: null, status: '' });
+  renderImp();
+  boxSay(added.length < list.length ? `Put ${added.length} of ${list.length} in; your boxes are full.` : `Put ${added.length} Pokémon in ${made >= 0 ? box.boxes[made].name : 'your box'}.`, () => {
+    added.forEach((id) => { const at = findMon(id); if (at) box.boxes[at.b].slots[at.s] = null; });
+    if (made >= 0 && made === box.boxes.length - 1 && !box.boxes[made].slots.some(Boolean) && box.boxes.length > 1) { box.boxes.pop(); box.cur = Math.min(box.cur, box.boxes.length - 1); }
+    saveBox('all', true); if (!boxDraft) renderDraft(); boxSay('Taken back out.');
+  });
+}
+document.getElementById('imp').addEventListener('click', (e) => {
+  const t = e.target;
+  if (t.closest('#imp-start')) { imp.status = ''; return startReading(); }
+  if (t.closest('#imp-done')) return stopReading(true);
+  if (t.closest('#imp-cancel')) return stopReading(false);
+  if (t.closest('#imp-put')) return putImported();
+  if (t.closest('#imp-drop')) { Object.assign(imp, { step: 'idle', review: null, status: '' }); return renderImp(); }
+  if (t.closest('#imp-paste-read')) {
+    const sets = parseSets($('imp-paste').value);
+    if (!sets.length) { $('imp-paste-msg').textContent = 'Paste one or more Pokémon first, each starting with its species on its own line.'; $('imp-paste-msg').hidden = false; return; }
+    $('imp-paste-msg').hidden = true;
+    if (imp.stream) stopReading(false);
+    Object.assign(imp, { step: 'review', from: 'text', review: sets.map((x) => ({ ...x, slot: null, on: !!x.mon.species })) });
+    renderImp();
+    $('imp').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+});
+document.getElementById('imp').addEventListener('change', (e) => {
+  const i = e.target.dataset.imp;
+  if (i != null && imp.review) { imp.review[+i].on = e.target.checked; const n = imp.review.filter((x) => x.on).length, b = $('imp-put'); b.disabled = !n; b.textContent = b.textContent.replace(/\d+/, n); }
+  if (e.target.id === 'imp-name') imp.name = e.target.value;
+});
+$('box-text-copy').addEventListener('click', async () => {
+  const mons = box.boxes[box.cur].slots.filter(Boolean);
+  if (!mons.length) return boxSay('This box is empty, so there is nothing to copy.');
+  const text = mons.map(monText).join('\n\n'), out = $('box-code-out');
+  out.value = text; out.hidden = false;
+  let copied = false;
+  try { await navigator.clipboard.writeText(text); copied = true; } catch (e) { out.focus(); out.select(); try { copied = document.execCommand('copy'); } catch (e2) {} }
+  out.focus(); out.select();
+  boxSay(copied ? `Copied ${mons.length} Pokémon from ${box.boxes[box.cur].name} as text.` : 'Here is the box as text. Select it and copy it.');
+});
+
 // ---------- the box in the planner ----------
 let boxUse = { used: 0, left: 0 }, boxSyncMsg = '';
 // The box Pokémon the planner gets, best first: matching IVs, nature, ability and egg moves, then same
@@ -2873,7 +3428,7 @@ async function connectCloud() {
 
 renderAll();
 renderBuilds();
-renderBox(); renderDraft(); renderUseBox(); setView(pageView);
+renderBox(); renderDraft(); renderUseBox(); renderImp(); setView(pageView);
 connectCloud();
 connectBoxCloud();
 </script>
