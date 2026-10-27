@@ -2640,7 +2640,8 @@ function readPanel(lines, gender) {
   const ivs = ivl && sixIvs(ivl.n);
   if (ivs) mon.ivs = ivs; else problems.push("Couldn't read its IVs.");
   const natLine = rest.find((l) => /nat/i.test(l.split(':')[0]));
-  const nat = natLine ? closestIn(value(natLine), NATURES, true) : { score: 0 };
+  // just the first word: some interface mods add the stats it changes, as in "Gentle(+SpD-Def)"
+  const nat = natLine ? closest((/[A-Za-z]+/.exec(value(natLine)) || [''])[0], NATURES) : { score: 0 };
   if (nat.score >= 0.7) mon.nature = nat.name; else problems.push("Couldn't read its nature.");
   const abl = rest.findIndex((l) => /ab\W?[il1|]/i.test(l.split(':')[0]));
   if (abl >= 0) importAbility(mon, value(rest[abl]), problems); else problems.push("Couldn't read its ability.");
@@ -2732,15 +2733,18 @@ function ocr(canvas, sparse) {
   ocrChain = run.catch(() => {});
   return run;
 }
-// The game's text is light on dark: make it black on white, which Tesseract reads far better. Coloured type
-// badges and the gender symbol drop out, since only near-white pixels count as text.
+// The game's text is light on dark: make it black on white, which Tesseract reads far better. Anything bright
+// counts as text, so the green a 31 IV is drawn in stays in; the dark panel and label boxes drop out.
 function inkCanvas(src, sx, sy, sw, sh, k) {
   const c = document.createElement('canvas');
   c.width = Math.max(1, Math.round(sw * k)); c.height = Math.max(1, Math.round(sh * k));
   const x = c.getContext('2d', { willReadFrequently: true });
   x.drawImage(src, sx, sy, sw, sh, 0, 0, c.width, c.height);
   const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
-  for (let i = 0; i < p.length; i += 4) { const v = Math.min(p[i], p[i + 1], p[i + 2]) > 150 ? 0 : 255; p[i] = p[i + 1] = p[i + 2] = v; }
+  for (let i = 0; i < p.length; i += 4) {
+    const r = p[i], g = p[i + 1], b = p[i + 2], v = 0.3 * r + 0.59 * g + 0.11 * b > 140 || (g > 120 && g - r > 40 && g - b > 40) ? 0 : 255;
+    p[i] = p[i + 1] = p[i + 2] = v;
+  }
   x.putImageData(d, 0, 0);
   return c;
 }
@@ -2764,7 +2768,8 @@ function panelGeometry(words, fw, fh) {
   const x = Math.max(0, Math.round(vx - 2.9 * P)), r = Math.min(fw, Math.round(vx + 6.6 * P));
   const y = Math.max(0, Math.round(y0 - 8.7 * P)), b = Math.min(fh, Math.round(y0 + 10.6 * P)), gy = Math.max(0, Math.round(y0 - 4 * P));
   // where the box's first spot should be, from the game's layout: just right of the panel, level with the sprite
-  return { P, panel: { x, y, w: r - x, h: b - y }, grid: { x: r, y: gy, w: fw - r, h: b - gy }, sex: { y: Math.max(0, Math.round(y0 - 1.6 * P - y)), h: Math.round(P) },
+  // the box grid and party column end about 24 rows' worth right of the panel, where the PC window does
+  return { P, panel: { x, y, w: r - x, h: b - y }, grid: { x: r, y: gy, w: Math.min(fw - r, Math.round(23.8 * P)), h: b - gy }, sex: { y: Math.max(0, Math.round(y0 - 1.6 * P - y)), h: Math.round(P) },
     first: { x: vx + 7.67 * P, y: y0 - 2.38 * P } };
 }
 // The cursor is a box drawn in one bright blue; its top and bottom edges are the long runs of that blue.
@@ -2779,11 +2784,14 @@ function findCursor(img, minRun) {
       else { if (run >= minRun) runs.push({ y, x0: x - run, x1: x - 1 }); run = 0; }
     }
   }
-  if (!runs.length) return null;
-  const top = runs[0], w = top.x1 - top.x0 + 1;
-  const edge = runs.filter((r) => r.x0 < top.x1 && r.x1 > top.x0 && r.y - top.y < w * 1.5);
-  const h = edge[edge.length - 1].y - top.y + 1;
-  return h < w * 0.3 ? null : { x: (top.x0 + top.x1) / 2, y: top.y + h / 2, w, h };
+  // runs lined up over each other make a box; the cursor is the one shaped like a spot, a bit wider than tall
+  for (const top of runs) {
+    const w = top.x1 - top.x0 + 1;
+    const edge = runs.filter((r) => Math.abs(r.x0 - top.x0) <= 2 && Math.abs(r.x1 - top.x1) <= 2 && r.y >= top.y && r.y - top.y < w * 1.5);
+    const h = edge[edge.length - 1].y - top.y + 1;
+    if (h > w * 0.6 && h < w * 1.1) return { x: (top.x0 + top.x1) / 2, y: top.y + h / 2, w, h };
+  }
+  return null;
 }
 // Blue for male and pink for female, from the symbol after the species name.
 function readSex(img) {
@@ -2857,6 +2865,10 @@ async function findPanel() {
         words.push({ text: w.text, x0: w.bbox.x0 / k, y0: w.bbox.y0 / k, x1: w.bbox.x1 / k, y1: w.bbox.y1 / k });
       const geo = panelGeometry(words, fw, fh);
       if (geo && imp.step !== 'idle') {
+        // kept for "Save what was read": the frame the panel was found in, and the words read off it
+        const still = document.createElement('canvas');
+        still.width = fw; still.height = fh; still.getContext('2d').drawImage(v, 0, 0);
+        imp.debug = { found: { geo, words, frame: still }, reads: [] };
         Object.assign(imp, { geo, first: geo.first, lost: 0, step: imp.step === 'find' ? 'read' : imp.step });
         imp.status = 'Found your PC box. Now select its last spot and hold ← until the cursor reaches the first spot.';
         renderImp();
@@ -2923,7 +2935,7 @@ async function pumpReads() {
   imp.busy = true;
   while (imp.queue.length) {
     const job = imp.queue.shift();
-    let got = null;
+    let got = null, text = '', sex = '';
     try {
       // an empty spot leaves the panel blank: nothing to read
       const all = job.c.getContext('2d').getImageData(0, 0, job.c.width, job.c.height).data;
@@ -2931,11 +2943,16 @@ async function pumpReads() {
       for (let i = 0; i < all.length; i += 16) if (Math.min(all[i], all[i + 1], all[i + 2]) > 150) ink++;
       if (ink < all.length / 16 * 0.003) throw new Error('blank');
       const sexRow = job.c.getContext('2d').getImageData(0, Math.min(job.sex.y, job.c.height - 1), job.c.width, Math.max(1, Math.min(job.sex.h, job.c.height - job.sex.y)));
+      // the type badges at the top right would read as part of the nickname
+      const pc = job.c.getContext('2d');
+      pc.fillStyle = '#000'; pc.fillRect(Math.round(job.c.width * 0.78), 0, job.c.width, Math.round(job.P * 1.3));
       const data = await ocr(inkCanvas(job.c, 0, 0, job.c.width, job.c.height, Math.min(4, Math.max(1, 90 / job.P))), false);
-      got = readPanel(data.text.split('\n').map((l) => l.trim()).filter(Boolean), readSex(sexRow));
+      text = data.text; sex = readSex(sexRow);
+      got = readPanel(text.split('\n').map((l) => l.trim()).filter(Boolean), sex);
     } catch (e) { /* counted as unreadable */ }
     if (imp.step === 'idle') break;
     imp.reads.set(job.key, { ...job.at, read: got });
+    if (imp.debug && text) imp.debug.reads.push({ at: job.at, text, sex, read: got, panel: job.c });
     renderImp();
   }
   imp.busy = false;
@@ -2960,6 +2977,19 @@ function finishReading() {
 }
 
 // ---------- the import panel ----------
+// A file with what the last read saw (the frame, each panel copied and the text read off it), so a bad read can
+// be sent along with a bug report and looked at.
+const debugLink = () => (imp.debug && imp.debug.reads.length ? '<p class="small"><button class="linkbtn" type="button" id="imp-debug">Save what was read</button> <span class="muted">(a file to send with a bug report)</span></p>' : '');
+function saveDebug() {
+  const d = imp.debug, png = (c) => c.toDataURL('image/png');
+  const out = { v: 1, at: new Date().toISOString(), agent: navigator.userAgent, geo: d.found.geo, words: d.found.words, frame: png(d.found.frame),
+    reads: d.reads.map((r) => ({ at: r.at, sex: r.sex, text: r.text, read: r.read, panel: png(r.panel) })) };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(out)], { type: 'application/json' }));
+  a.download = 'smearguru-import-debug.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
 function impMap(cells) {
   return `<div class="imp-map" aria-hidden="true">${Array.from({ length: BOX_SIZE }, (_, s) => {
     const r = cells.get(s);
@@ -2985,7 +3015,7 @@ function renderImp() {
       + `<ul class="imp-list">${imp.review.map(impRow).join('')}</ul>`
       + (screen && room ? `<label class="f" style="max-width:240px">Name of the new box<input type="text" id="imp-name" maxlength="20" autocomplete="off" value="${esc(imp.name || 'From PokeMMO')}"></label>` : '')
       + `<div class="row"><button class="btn primary" type="button" id="imp-put" ${on ? '' : 'disabled'}>Put ${on} in ${screen && room ? 'a new box' : 'my box'}</button>`
-      + `<button class="btn" type="button" id="imp-drop">Throw these away</button></div>`;
+      + `<button class="btn" type="button" id="imp-drop">Throw these away</button></div>` + debugLink();
     return;
   }
   if (imp.step === 'idle') {
@@ -2993,7 +3023,7 @@ function renderImp() {
       + `<p class="muted small">You press the keys yourself: the page only looks at the window you share and never touches the game. Don't use macros or auto-clickers with PokeMMO; the game bans them.</p>`
       + (canShare() ? '<div class="row"><button class="btn primary" type="button" id="imp-start">Read my PC box</button></div>'
         : '<p class="muted small">Reading the screen needs a computer browser such as Chrome, Edge or Firefox. You can still paste Pokémon as text below.</p>')
-      + (imp.status ? `<p class="small mon-warn" role="status">${esc(imp.status)}</p>` : '');
+      + (imp.status ? `<p class="small mon-warn" role="status">${esc(imp.status)}</p>` : '') + debugLink();
     return;
   }
   const cells = new Map();
@@ -3039,6 +3069,7 @@ document.getElementById('imp').addEventListener('click', (e) => {
   if (t.closest('#imp-done')) return stopReading(true);
   if (t.closest('#imp-cancel')) return stopReading(false);
   if (t.closest('#imp-put')) return putImported();
+  if (t.closest('#imp-debug')) return saveDebug();
   if (t.closest('#imp-drop')) { Object.assign(imp, { step: 'idle', review: null, status: '' }); return renderImp(); }
   if (t.closest('#imp-paste-read')) {
     const sets = parseSets($('imp-paste').value);
