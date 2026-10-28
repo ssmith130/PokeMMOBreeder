@@ -406,6 +406,7 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .imp-map span.seen { background: color-mix(in srgb, var(--line) 60%, var(--sunk)); }
 .imp-map span.got { background: var(--accent-soft); border-color: var(--accent); }
 .imp-map span.bad { background: var(--warn-soft); border-color: var(--warn); }
+.imp-map span.miss { border: 2px solid var(--warn); }
 .imp-map span.egg::after { content: ''; width: 34%; aspect-ratio: 3 / 4; border-radius: 50%; background: var(--line); }
 .imp-map .spr { --s: 0.7 !important; }
 .imp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 440px; overflow-y: auto; }
@@ -2815,6 +2816,23 @@ function readAlpha(img, P) {
   for (let i = 0; i < p.length; i += 4) if (p[i] > 150 && p[i] - p[i + 1] > 80 && Math.abs(p[i + 1] - p[i + 2]) < 25) n++;
   return n > P * P * 0.04;
 }
+// Which spots of the game's box hold something: those with a sprite and a level number in them, where an empty
+// spot is a plain grey square. Spots are about 2.1 rows of the side panel apart across and 1.76 down.
+function filledSpots(img, g) {
+  const { data, width } = img, P = g.P, out = new Set();
+  for (let s = 0; s < BOX_SIZE; s++) {
+    const cx = g.first.x + (s % BOX_COLS) * 2.093 * P - g.grid.x, cy = g.first.y + Math.floor(s / BOX_COLS) * 1.76 * P - g.grid.y;
+    let n = 0, all = 0;
+    for (let y = Math.round(cy - 0.6 * P); y < cy + 0.6 * P; y += 2) for (let x = Math.round(cx - 0.7 * P); x < cx + 0.7 * P; x += 2) {
+      if (x < 0 || y < 0 || x >= width || y >= img.height) continue;
+      const i = (y * width + x) * 4;
+      all++;
+      if (Math.max(data[i], data[i + 1], data[i + 2]) > 150) n++;
+    }
+    if (all && n > all * 0.03) out.add(s);
+  }
+  return out;
+}
 // Which spot of the game's box each read came from, from where the cursor was. Spots one cursor step apart line
 // up in columns and rows, counted from the box's first spot (where the layout puts it, lined up with the spots
 // seen; without that, the top-left one seen). The party column on the right sits further off and is left out.
@@ -2843,12 +2861,12 @@ function placeReads(reads, first) {
 }
 
 const imp = { step: 'idle', status: '', stream: null, video: null, geo: null, first: null, reads: new Map(), queue: [], busy: false,
-  last: null, prev: null, still: 0, lost: 0, finding: false, review: null, from: '' };
+  last: null, prev: null, still: 0, lost: 0, finding: false, review: null, from: '', frames: null, frameAt: 0, filled: null, filledAt: 0 };
 const canShare = () => !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
 async function startReading() {
   if (!canShare()) return;
   let stream;
-  try { stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: false }); } catch (e) {
+  try { stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 60 } }, audio: false }); } catch (e) {
     imp.status = e && e.name === 'NotAllowedError' ? 'Screen sharing was cancelled or blocked. If this page is inside another site, open smearguru.org directly.' : "Couldn't start screen sharing in this browser.";
     return renderImp();
   }
@@ -2856,13 +2874,31 @@ async function startReading() {
   video.muted = true; video.playsInline = true; video.srcObject = stream;
   await video.play().catch(() => {});
   Object.assign(imp, { step: 'find', stream, video, geo: null, reads: new Map(), queue: [], last: null, prev: null, still: 0, lost: 0,
-    status: 'Loading the text reader (a few MB, only the first time)…' });
+    filled: null, filledAt: 0, missed: null, status: 'Loading the text reader (a few MB, only the first time)…' });
   stream.getVideoTracks()[0].addEventListener('ended', () => stopReading(true));
   renderImp();
   loadOcr().then(() => { if (imp.step === 'find') { imp.status = 'Looking for your PC box. Open it in the game so its side panel shows a Pokémon.'; renderImp(); } },
     () => { stopReading(false); imp.status = "Couldn't load the text reader. Check your connection and try again."; renderImp(); });
   findPanel();
   watch();
+  followFrames(stream.getVideoTracks()[0]);
+}
+// Where the browser can hand over each frame of the shared screen as it arrives (Chrome and Edge), look at every
+// one: a held ← moves the cursor faster than a timer can keep up with, and a page behind the game window only
+// gets its timers run about once a second.
+async function followFrames(track) {
+  if (typeof MediaStreamTrackProcessor !== 'function') return;
+  let reader;
+  try { imp.frames = track.clone(); reader = new MediaStreamTrackProcessor({ track: imp.frames }).readable.getReader(); } catch (e) { return; }
+  for (;;) {
+    let r;
+    try { r = await reader.read(); } catch (e) { break; }
+    if (r.done) break;
+    const vf = r.value;
+    try { if (imp.step === 'read') { imp.frameAt = performance.now(); look(vf, vf.displayWidth, vf.displayHeight); } } catch (e) { imp.frameAt = 0; vf.close(); break; }
+    vf.close();
+  }
+  imp.frameAt = 0;
 }
 // Read the whole frame once to find the side panel's labels; tried again until they show up.
 async function findPanel() {
@@ -2904,26 +2940,36 @@ function panelPrint(v, g) {
   return out;
 }
 const printDiff = (a, b) => { if (!a || !b) return 255; let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]); return s / a.length; };
-// Every 25 ms: where the cursor is, and whether the side panel has settled on a new Pokémon.
+// Every 25 ms, look at the shared screen again. Screen capture sends no frames while nothing on it changes, so this
+// also catches a panel that has settled after the last frame came in.
 function watch() {
   const v = imp.video;
   if (!v || imp.step === 'idle' || imp.step === 'review') return;
-  // a timer rather than one call per video frame: screen capture sends no frames while nothing on screen changes
-  const next = () => setTimeout(watch, 25);
+  setTimeout(watch, 25);
+  if (performance.now() - imp.frameAt > 30) look(v, v.videoWidth, v.videoHeight);
+}
+// One look at the screen: where the cursor is, and whether the side panel has settled on a new Pokémon.
+function look(src, fw, fh) {
   const g = imp.geo;
-  if (!g || imp.step !== 'read' || !v.videoWidth) return next();
+  if (!g || imp.step !== 'read' || !fw) return;
   // one still of the frame, so the cursor and the panel are looked at in the same moment
-  if (frame.width !== v.videoWidth || frame.height !== v.videoHeight) { frame.width = v.videoWidth; frame.height = v.videoHeight; }
-  frame.getContext('2d').drawImage(v, 0, 0);
+  if (frame.width !== fw || frame.height !== fh) { frame.width = fw; frame.height = fh; }
+  frame.getContext('2d').drawImage(src, 0, 0);
   const f = Math.min(1, Math.max(0.5, 24 / g.P)), gw = Math.round(g.grid.w * f), gh = Math.round(g.grid.h * f);
   const cur = gw > 0 && gh > 0 ? findCursor(grab(frame, g.grid, gw, gh, false), Math.round(1.2 * g.P * f)) : null;
   if (!cur) {
     // the window moved, the PC was closed or the cursor is on the party: look for the panel again after a while
     if (++imp.lost === 90) { imp.geo = null; imp.status = "Lost sight of the PC box. Keep it open on the screen you're sharing."; renderImp(); findPanel(); }
     imp.prev = null;
-    return next();
+    return;
   }
   imp.lost = 0;
+  // which spots hold a Pokémon, to show the ones the cursor went past too fast to read
+  if (performance.now() - imp.filledAt > 400) {
+    imp.filledAt = performance.now();
+    const filled = filledSpots(grab(frame, g.grid, g.grid.w, g.grid.h, false), g);
+    if (!imp.filled || [...filled].join() !== [...imp.filled].join()) { imp.filled = filled; renderImp(); }
+  }
   const at = { x: g.grid.x + cur.x / f, y: g.grid.y + cur.y / f, w: cur.w / f, h: cur.h / f };
   const key = `${Math.round(at.x / (at.w * 0.5))},${Math.round(at.y / (at.h * 0.5))}`, print = panelPrint(frame, g);
   // Read the panel as soon as the cursor is on a new spot and the panel shows something new. When the panel looks
@@ -2940,13 +2986,12 @@ function watch() {
     imp.queue.push({ key, at, c, P: g.P, sex: g.sex });
     pumpReads();
   }
-  next();
 }
 async function pumpReads() {
   if (imp.busy) return;
   imp.busy = true;
   while (imp.queue.length) {
-    const job = imp.queue.shift();
+    const job = imp.current = imp.queue.shift();
     let got = null, text = '', sex = '';
     try {
       // an empty spot leaves the panel blank: nothing to read
@@ -2968,16 +3013,18 @@ async function pumpReads() {
     const egg = !!(got && got.egg);
     if (egg) got = null;
     imp.reads.set(job.key, { ...job.at, read: got, egg });
+    imp.current = null;
     if (imp.debug && text) imp.debug.reads.push({ at: job.at, text, sex, read: got, panel: job.c });
     renderImp();
   }
   imp.busy = false;
-  if (imp.step === 'stopping') finishReading();
+  if (imp.step === 'stopping') finishReading(); else renderImp();
 }
 function stopReading(keep) {
   if (imp.stream) imp.stream.getTracks().forEach((t) => t.stop());
-  imp.stream = null; imp.video = null;
-  if (!keep || !imp.reads.size && !imp.queue.length) { Object.assign(imp, { step: 'idle', status: '', reads: new Map(), queue: [], geo: null }); return renderImp(); }
+  if (imp.frames) imp.frames.stop();
+  imp.stream = null; imp.video = null; imp.frames = null;
+  if (!keep || !imp.reads.size && !imp.queue.length) { Object.assign(imp, { step: 'idle', status: '', reads: new Map(), queue: [], current: null, geo: null }); return renderImp(); }
   imp.step = 'stopping';
   renderImp();
   if (!imp.busy) finishReading();
@@ -2989,6 +3036,7 @@ function finishReading() {
   placed.forEach((r) => seen.set(r.slot, r));
   imp.review = [...seen.values()].map((r) => ({ ...r.read, slot: r.slot, on: !!r.read.mon.species }));
   imp.eggs = new Set(all.filter((r) => r.egg && !seen.has(r.slot)).map((r) => r.slot)).size;
+  imp.missed = missedSpots(all, imp.filled, -1);
   Object.assign(imp, { step: imp.review.length ? 'review' : 'idle', from: 'screen', reads: new Map(), geo: null,
     status: imp.review.length ? '' : imp.eggs ? 'Only eggs were read. Eggs are left out: their IVs and nature only show once they hatch.'
       : "No Pokémon were read. Make sure the PC box is open in the window you share, then hold ← through it." });
@@ -3009,10 +3057,17 @@ function saveDebug() {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
-function impMap(cells) {
+// Spots after `from` that hold a Pokémon but weren't read: passed too fast, or the read failed.
+function missedSpots(placed, filled, from) {
+  if (!filled) return [];
+  const done = new Set(placed.filter((r) => r.read || r.egg || r.pending).map((r) => r.slot));
+  return [...filled].filter((s) => s > from && !done.has(s)).sort((a, b) => a - b);
+}
+const spotList = (list) => (list.length === 1 ? `spot ${list[0] + 1}` : `spots ${list.slice(0, -1).map((s) => s + 1).join(', ')} and ${list[list.length - 1] + 1}`);
+function impMap(cells, missed) {
   return `<div class="imp-map" aria-hidden="true">${Array.from({ length: BOX_SIZE }, (_, s) => {
     const r = cells.get(s);
-    return !r ? '<span></span>' : !r.read ? `<span class="${r.egg ? 'egg' : 'seen'}"></span>` : `<span class="got${r.read.problems.length ? ' bad' : ''}">${sprite(r.read.mon.species, 0.7)}</span>`;
+    return missed.includes(s) ? '<span class="miss"></span>' : !r ? '<span></span>' : !r.read ? `<span class="${r.egg ? 'egg' : 'seen'}"></span>` : `<span class="got${r.read.problems.length ? ' bad' : ''}">${sprite(r.read.mon.species, 0.7)}</span>`;
   }).join('')}</div>`;
 }
 function impRow(it, i) {
@@ -3030,8 +3085,9 @@ function renderImp() {
   if (imp.step === 'review') {
     const on = imp.review.filter((x) => x.on).length, bad = imp.review.filter((x) => x.problems.length).length, screen = imp.from === 'screen';
     const room = box.boxes.length < BOX_MAX;
+    const missed = screen && imp.missed && imp.missed.length ? ` The cursor went past ${spotList(imp.missed)} too fast to read ${imp.missed.length === 1 ? 'it' : 'them'}; add ${imp.missed.length === 1 ? 'that one' : 'those'} by hand, or throw these away and read the box again more slowly.` : '';
     const eggs = screen && imp.eggs ? ` ${imp.eggs === 1 ? 'An egg was' : `${imp.eggs} eggs were`} left out, as eggs don't show their IVs or nature until they hatch.` : '';
-    rev.innerHTML = `<p>${screen ? 'Read' : 'Found'} ${imp.review.length} Pokémon${bad ? `; ${bad} need a look (their notes are in red)` : ''}.${eggs} Untick any you don't want${screen ? ', then put them in a new box in the same spots as in the game' : ''}. You can fix anything later by clicking it in the box.</p>`
+    rev.innerHTML = `<p>${screen ? 'Read' : 'Found'} ${imp.review.length} Pokémon${bad ? `; ${bad} need a look (their notes are in red)` : ''}.${missed}${eggs} Untick any you don't want${screen ? ', then put them in a new box in the same spots as in the game' : ''}. You can fix anything later by clicking it in the box.</p>`
       + `<ul class="imp-list">${imp.review.map(impRow).join('')}</ul>`
       + (screen && room ? `<label class="f" style="max-width:240px">Name of the new box<input type="text" id="imp-name" maxlength="20" autocomplete="off" value="${esc(imp.name || 'From PokeMMO')}"></label>` : '')
       + `<div class="row"><button class="btn primary" type="button" id="imp-put" ${on ? '' : 'disabled'}>Put ${on} in ${screen && room ? 'a new box' : 'my box'}</button>`
@@ -3039,18 +3095,23 @@ function renderImp() {
     return;
   }
   if (imp.step === 'idle') {
-    scr.innerHTML = `<p>Read your PC box straight off the screen. Share the PokeMMO window, open your PC, select the box's last spot and hold ← until the cursor reaches the first spot. Each Pokémon is read as the cursor passes it.</p>`
+    scr.innerHTML = `<p>Read your PC box straight off the screen. Share the PokeMMO window, open your PC, select the box's last spot and hold ← until the cursor reaches the first spot. Each Pokémon is read as the cursor passes it, and any it goes past too fast are outlined in red so you can go back to them.</p>`
       + `<p class="muted small">You press the keys yourself: the page only looks at the window you share and never touches the game. Don't use macros or auto-clickers with PokeMMO; the game bans them.</p>`
       + (canShare() ? '<div class="row"><button class="btn primary" type="button" id="imp-start">Read my PC box</button></div>'
         : '<p class="muted small">Reading the screen needs a computer browser such as Chrome, Edge or Firefox. You can still paste Pokémon as text below.</p>')
       + (imp.status ? `<p class="small mon-warn" role="status">${esc(imp.status)}</p>` : '') + debugLink();
     return;
   }
-  const cells = new Map();
-  placeReads([...imp.reads.values()], imp.first).forEach((r) => { if (r.slot >= 0) cells.set(r.slot, r); });
+  // spots still being read count as seen, so they aren't shown as missed in the meantime
+  const pending = [...imp.queue, ...(imp.current ? [imp.current] : [])].map((j) => ({ ...j.at, pending: true }));
+  const cells = new Map(), placed = placeReads([...imp.reads.values(), ...pending], imp.first).filter((r) => r.slot >= 0);
+  placed.forEach((r) => { if (!r.pending || !cells.has(r.slot)) cells.set(r.slot, r); });
   const got = [...imp.reads.values()].filter((r) => r.read).length, waiting = imp.queue.length + (imp.busy ? 1 : 0);
+  // the cursor goes from the last spot to the first, so a Pokémon after the lowest spot seen has been passed
+  const missed = missedSpots(placed, imp.filled, Math.min(BOX_SIZE, ...placed.map((r) => r.slot)));
   scr.innerHTML = `<p class="imp-status" role="status">${imp.step === 'stopping' ? `Finishing the last ${waiting} reads…` : esc(imp.status)}</p>`
-    + (imp.step === 'read' || imp.step === 'stopping' ? `<p class="small">Read ${got} Pokémon${waiting ? `, ${waiting} still reading` : ''}. Missed one? Move the cursor back onto it.</p>${impMap(cells)}` : '')
+    + (imp.step === 'read' || imp.step === 'stopping' ? `<p class="small">Read ${got} Pokémon${waiting ? `, ${waiting} still reading` : ''}.`
+      + `${missed.length ? ` <span class="mon-warn">Went past ${missed.length} too fast (outlined in red): move the cursor back onto ${missed.length === 1 ? 'it' : 'them'}.</span>` : ' Missed one? Move the cursor back onto it.'}</p>${impMap(cells, missed)}` : '')
     + `<div class="row">${imp.step === 'stopping' ? '' : `<button class="btn primary" type="button" id="imp-done" ${got || waiting ? '' : 'disabled'}>Done</button>`}<button class="btn" type="button" id="imp-cancel">Cancel</button></div>`;
 }
 function putImported() {

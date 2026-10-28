@@ -117,6 +117,10 @@ jsDelivr the first time and run in the browser), and the text is matched against
 abilities and egg moves. The spot comes from where the cursor was, so the direction you go doesn't matter and a
 spot visited twice is just read again. The party column is left out.
 
+In Chrome and Edge every frame of the shared window is looked at as it arrives (other browsers check about 40
+times a second), so a held ← is usually fine. The page also tells filled spots from empty ones by their sprites
+and level numbers, and outlines in red any it went past too fast, so you can move the cursor back onto them.
+
 It never touches PokeMMO: no mod, nothing read from the game's memory or network traffic, and no key presses
 sent to it. The player moves the cursor by hand. PokeMMO's Code of Conduct bans client modification, packet
 interception and anything that automates input, so the import is built to stay clear of all three; don't pair
