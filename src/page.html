@@ -2728,26 +2728,32 @@ function loadOcr() {
   }
   return ocrWorker;
 }
-// One recognition at a time, since the calibration and the panel reads share the worker.
+// One recognition at a time, since the calibration and the panel reads share the worker. The mode is true for
+// words scattered over a whole frame, 'line' for one line of text, 'digits' for a line of numbers and slashes,
+// and otherwise a block of lines.
 function ocr(canvas, sparse) {
   const run = ocrChain.then(async () => {
     const w = await loadOcr();
-    await w.setParameters({ tessedit_pageseg_mode: sparse ? '11' : '6' });
-    return (await w.recognize(canvas, {}, { text: true, blocks: !!sparse })).data;
+    await w.setParameters({ tessedit_pageseg_mode: sparse === true ? '11' : sparse ? '7' : '6', tessedit_char_whitelist: sparse === 'digits' ? '0123456789/' : '' });
+    return (await w.recognize(canvas, {}, { text: true, blocks: sparse === true || sparse === 'digits' })).data;
   });
   ocrChain = run.catch(() => {});
   return run;
 }
-// The game's text is light on dark: make it black on white, which Tesseract reads far better. Anything bright
-// counts as text, so the green a 31 IV is drawn in stays in; the dark panel and label boxes drop out.
-function inkCanvas(src, sx, sy, sw, sh, k) {
+// The game's text is light on dark: make it black on white, which Tesseract reads far better. Brightness turns
+// into a shade of grey rather than a hard cut, so thin strokes a screen share has blurred survive; the dark panel
+// and label boxes drop out. With white set, only white counts.
+let INK_LO = 100, INK_K = 2.5;
+function inkCanvas(src, sx, sy, sw, sh, k, white) {
   const c = document.createElement('canvas');
   c.width = Math.max(1, Math.round(sw * k)); c.height = Math.max(1, Math.round(sh * k));
   const x = c.getContext('2d', { willReadFrequently: true });
   x.drawImage(src, sx, sy, sw, sh, 0, 0, c.width, c.height);
   const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
   for (let i = 0; i < p.length; i += 4) {
-    const r = p[i], g = p[i + 1], b = p[i + 2], v = 0.3 * r + 0.59 * g + 0.11 * b > 140 || (g > 120 && g - r > 40 && g - b > 40) ? 0 : 255;
+    // the green of a 31 IV peaks at about 183 where white is 255, so green counts for as much as white would
+    const r = p[i], g = p[i + 1], b = p[i + 2], m = white ? Math.min(r, g, b) : g - Math.max(r, b) > 15 ? Math.min(255, g * 1.4) : Math.max(r, g, b);
+    const v = 255 - Math.min(255, Math.max(0, (m - INK_LO) * INK_K));
     p[i] = p[i + 1] = p[i + 2] = v;
   }
   x.putImageData(d, 0, 0);
@@ -2775,7 +2781,7 @@ function panelGeometry(words, fw, fh) {
   // where the box's first spot should be, from the game's layout: just right of the panel, level with the sprite
   // the box grid and party column end about 24 rows' worth right of the panel, where the PC window does
   return { P, panel: { x, y, w: r - x, h: b - y }, grid: { x: r, y: gy, w: Math.min(fw - r, Math.round(23.8 * P)), h: b - gy }, sex: { y: Math.max(0, Math.round(y0 - 1.6 * P - y)), h: Math.round(P) },
-    first: { x: vx + 7.67 * P, y: y0 - 2.38 * P } };
+    first: { x: vx + 7.67 * P, y: y0 - 2.38 * P }, rows: { y0: y0 - y, vx: vx - x } };
 }
 // The cursor is a box drawn in one bright blue; its top and bottom edges are the long runs of that blue.
 const isCursor = (r, g, b) => r < 60 && g > 150 && g < 225 && b > 210;
@@ -2983,32 +2989,110 @@ function look(src, fw, fh) {
     const c = document.createElement('canvas');
     c.width = g.panel.w; c.height = g.panel.h;
     c.getContext('2d').drawImage(frame, g.panel.x, g.panel.y, g.panel.w, g.panel.h, 0, 0, c.width, c.height);
-    imp.queue.push({ key, at, c, P: g.P, sex: g.sex });
+    imp.queue.push({ key, at, c, P: g.P, sex: g.sex, rows: g.rows });
     pumpReads();
   }
+}
+// The lines of the side panel by where they sit: a label to put in front, the row (in label rows from the Stats
+// label), where the text starts and ends (in rows from where the values start), and how to read it.
+// The nickname and level lines are white, so only white counts as text there: the sprite can reach into them.
+const PANEL_LINES = [['', -8.27, -1.6, 4.6, 'white'], ['', -1.16, -2.6, 4.6, 'white'], ['IVs: ', 1, -0.2, 6.5, 'digits'],
+  ['Nature: ', 3, -0.2, 6.5, 'line'], ['Ability: ', 4, -0.2, 6.5, 'line'], ['Markings:', null],
+  ...[0, 1, 2, 3].map((i) => ['', 6.95 + 0.93 * i, -0.65, 6.5, 'line'])];
+function lineCanvas(job, row, x0, x1, k, mode) {
+  const P = job.P, r = job.rows, sx = Math.max(0, Math.round(r.vx + x0 * P)), ex = Math.min(job.c.width, Math.round(r.vx + x1 * P));
+  const sy = Math.max(0, Math.round(r.y0 + (row - 0.48) * P)), ey = Math.min(job.c.height, Math.round(r.y0 + (row + 0.48) * P));
+  const ink = inkCanvas(job.c, sx, sy, Math.max(1, ex - sx), Math.max(1, ey - sy), k, mode === 'white'), pad = Math.round(P * k * 0.3);
+  // nothing written there (no nickname): Tesseract would make something up out of a blank line
+  const d = ink.getContext('2d').getImageData(0, 0, ink.width, ink.height).data;
+  let dark = 0;
+  for (let i = 0; i < d.length; i += 4) if (d[i] < 128) dark++;
+  if (dark < d.length / 4 * 0.003) return null;
+  const c = document.createElement('canvas');
+  c.width = ink.width + pad * 2; c.height = ink.height + pad * 2;
+  const x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(ink, pad, pad);
+  c.from = { sx, sy, ey, pad, k };
+  return c;
+}
+// The IVs line read as digits, with each number drawn in green taken as 31: the game shows a 31 in green, and
+// that colour survives a blurry screen share better than the shape of a thin green 3 does.
+function ivsText(data, job, from) {
+  const syms = [];
+  for (const b of data.blocks || []) for (const p of b.paragraphs) for (const l of p.lines) for (const w of l.words) for (const y of w.symbols) syms.push(y);
+  if (!syms.length) return data.text;
+  const nums = [[]];
+  for (const y of syms) if (y.text === '/') nums.push([]); else nums[nums.length - 1].push(y);
+  const d = job.c.getContext('2d').getImageData(0, 0, job.c.width, job.c.height).data, W = job.c.width;
+  return nums.map((n) => {
+    if (!n.length) return '';
+    const x0 = Math.max(0, Math.floor(from.sx + (Math.min(...n.map((y) => y.bbox.x0)) - from.pad) / from.k));
+    const x1 = Math.min(W - 1, Math.ceil(from.sx + (Math.max(...n.map((y) => y.bbox.x1)) - from.pad) / from.k));
+    // how much greener than grey the number's bright pixels are, on average: white text comes out near 0
+    let tint = 0, lit = 0;
+    for (let y = from.sy; y < from.ey; y++) for (let x = x0; x <= x1; x++) {
+      const i = (y * W + x) * 4, r = d[i], g = d[i + 1], b = d[i + 2];
+      if (Math.max(r, g, b) > 110) { tint += g - (r + b) / 2; lit++; }
+    }
+    return lit > 3 && tint / lit > 8 ? '31' : n.map((y) => y.text).join('');
+  }).join('/');
+}
+// What the line-by-line read missed, taken from the whole-panel read.
+function fillGaps(a, b) {
+  if (!b || !b.mon) return a;
+  if (!a || a.egg || !a.mon.species) return b.mon.species || !a ? b : a;
+  const m = { ...a.mon }, fixed = [];
+  if (m.ivs.every((v) => v == null) && b.mon.ivs.some((v) => v != null)) { m.ivs = b.mon.ivs; fixed.push(/IVs/); }
+  if (!m.nature && b.mon.nature) { m.nature = b.mon.nature; fixed.push(/nature/); }
+  if (!m.ability && b.mon.ability) { m.ability = b.mon.ability; fixed.push(/bility/); }
+  if (!m.moves.length) m.moves = b.mon.moves;
+  return { mon: m, problems: a.problems.filter((p) => !fixed.some((re) => re.test(p))) };
+}
+// Read one copy of the side panel. got is null for an empty spot or one that couldn't be read.
+async function readJob(job) {
+  let got = null, text = '', sex = '';
+  try {
+    // an empty spot leaves the panel blank: nothing to read
+    const all = job.c.getContext('2d').getImageData(0, 0, job.c.width, job.c.height).data;
+    let ink = 0;
+    for (let i = 0; i < all.length; i += 16) if (Math.min(all[i], all[i + 1], all[i + 2]) > 150) ink++;
+    if (ink < all.length / 16 * 0.003) throw new Error('blank');
+    const sexRow = job.c.getContext('2d').getImageData(0, Math.min(job.sex.y, job.c.height - 1), job.c.width, Math.max(1, Math.min(job.sex.h, job.c.height - job.sex.y)));
+    const alpha = readAlpha(job.c.getContext('2d').getImageData(0, 0, Math.round(job.c.width * 0.15), Math.round(job.P * 1.3)), job.P);
+    // the type badges at the top right would read as part of the nickname
+    const pc = job.c.getContext('2d');
+    pc.fillStyle = '#000'; pc.fillRect(Math.round(job.c.width * 0.78), 0, job.c.width, Math.round(job.P * 1.3));
+    sex = readSex(sexRow);
+    const k = Math.min(4, Math.max(1, 90 / job.P));
+    if (job.rows) {
+      // each line on its own, where the layout puts it: the sprite and background can't get mixed in, and the
+      // IVs are read as digits only
+      const lines = [];
+      for (const [label, row, x0, x1, mode] of PANEL_LINES) {
+        const c = row == null ? null : lineCanvas(job, row, x0, x1, k, mode);
+        const data = c && await ocr(c, mode === 'white' ? 'line' : mode);
+        const t = !c ? '' : (mode === 'digits' ? ivsText(data, job, c.from) : data.text).replace(/\s+/g, ' ').trim();
+        lines.push(label + t);
+      }
+      text = lines.join('\n');
+      got = readPanel(lines.filter((l) => l.trim()), sex);
+    }
+    if (!got || got.problems.length) {
+      // the whole panel at once, which copes with a layout a little off from the usual
+      const t = (await ocr(inkCanvas(job.c, 0, 0, job.c.width, job.c.height, k), false)).text;
+      got = fillGaps(got, readPanel(t.split('\n').map((l) => l.trim()).filter(Boolean), sex));
+      text += '\n---\n' + t;
+    }
+    if (got && got.mon) got.mon.alpha = alpha;
+  } catch (e) { /* counted as unreadable */ }
+  return { got, text, sex };
 }
 async function pumpReads() {
   if (imp.busy) return;
   imp.busy = true;
   while (imp.queue.length) {
     const job = imp.current = imp.queue.shift();
-    let got = null, text = '', sex = '';
-    try {
-      // an empty spot leaves the panel blank: nothing to read
-      const all = job.c.getContext('2d').getImageData(0, 0, job.c.width, job.c.height).data;
-      let ink = 0;
-      for (let i = 0; i < all.length; i += 16) if (Math.min(all[i], all[i + 1], all[i + 2]) > 150) ink++;
-      if (ink < all.length / 16 * 0.003) throw new Error('blank');
-      const sexRow = job.c.getContext('2d').getImageData(0, Math.min(job.sex.y, job.c.height - 1), job.c.width, Math.max(1, Math.min(job.sex.h, job.c.height - job.sex.y)));
-      const alpha = readAlpha(job.c.getContext('2d').getImageData(0, 0, Math.round(job.c.width * 0.15), Math.round(job.P * 1.3)), job.P);
-      // the type badges at the top right would read as part of the nickname
-      const pc = job.c.getContext('2d');
-      pc.fillStyle = '#000'; pc.fillRect(Math.round(job.c.width * 0.78), 0, job.c.width, Math.round(job.P * 1.3));
-      const data = await ocr(inkCanvas(job.c, 0, 0, job.c.width, job.c.height, Math.min(4, Math.max(1, 90 / job.P))), false);
-      text = data.text; sex = readSex(sexRow);
-      got = readPanel(text.split('\n').map((l) => l.trim()).filter(Boolean), sex);
-      if (got && got.mon) got.mon.alpha = alpha;
-    } catch (e) { /* counted as unreadable */ }
+    let { got, text, sex } = await readJob(job);
     if (imp.step === 'idle') break;
     const egg = !!(got && got.egg);
     if (egg) got = null;
