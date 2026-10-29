@@ -402,12 +402,12 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .imp-body p { margin: 0; }
 .imp-status { font-weight: 600; }
 .imp-map { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 2px; max-width: 380px; }
-.imp-map span { aspect-ratio: 4 / 3; border-radius: 4px; background: var(--sunk); border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; }
-.imp-map span.seen { background: color-mix(in srgb, var(--line) 60%, var(--sunk)); }
-.imp-map span.got { background: var(--accent-soft); border-color: var(--accent); }
-.imp-map span.bad { background: var(--warn-soft); border-color: var(--warn); }
-.imp-map span.miss { border: 2px solid var(--warn); }
-.imp-map span.egg::after { content: ''; width: 34%; aspect-ratio: 3 / 4; border-radius: 50%; background: var(--line); }
+.imp-map > span { aspect-ratio: 4 / 3; border-radius: 4px; background: var(--sunk); border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; }
+.imp-map > span.seen { background: color-mix(in srgb, var(--line) 60%, var(--sunk)); }
+.imp-map > span.got { background: var(--accent-soft); border-color: var(--accent); }
+.imp-map > span.bad { background: var(--warn-soft); border-color: var(--warn); }
+.imp-map > span.miss { border: 2px solid var(--warn); }
+.imp-map > span.egg::after { content: ''; width: 34%; aspect-ratio: 3 / 4; border-radius: 50%; background: var(--line); }
 .imp-map .spr { --s: 0.7 !important; }
 .imp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 440px; overflow-y: auto; }
 .imp-row { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); font-size: 13px; }
@@ -2781,7 +2781,7 @@ function panelGeometry(words, fw, fh) {
   // where the box's first spot should be, from the game's layout: just right of the panel, level with the sprite
   // the box grid and party column end about 24 rows' worth right of the panel, where the PC window does
   return { P, panel: { x, y, w: r - x, h: b - y }, grid: { x: r, y: gy, w: Math.min(fw - r, Math.round(23.8 * P)), h: b - gy }, sex: { y: Math.max(0, Math.round(y0 - 1.6 * P - y)), h: Math.round(P) },
-    first: { x: vx + 7.67 * P, y: y0 - 2.38 * P }, rows: { y0: y0 - y, vx: vx - x } };
+    first: { x: vx + 7.67 * P, y: y0 - 2.38 * P, sx: 2.093 * P, sy: 1.76 * P }, rows: { y0: y0 - y, vx: vx - x } };
 }
 // The cursor is a box drawn in one bright blue; its top and bottom edges are the long runs of that blue.
 const isCursor = (r, g, b) => r < 60 && g > 150 && g < 225 && b > 210;
@@ -2823,11 +2823,11 @@ function readAlpha(img, P) {
   return n > P * P * 0.04;
 }
 // Which spots of the game's box hold something: those with a sprite and a level number in them, where an empty
-// spot is a plain grey square. Spots are about 2.1 rows of the side panel apart across and 1.76 down.
+// spot is a plain grey square.
 function filledSpots(img, g) {
   const { data, width } = img, P = g.P, out = new Set();
   for (let s = 0; s < BOX_SIZE; s++) {
-    const cx = g.first.x + (s % BOX_COLS) * 2.093 * P - g.grid.x, cy = g.first.y + Math.floor(s / BOX_COLS) * 1.76 * P - g.grid.y;
+    const cx = g.first.x + (s % BOX_COLS) * g.first.sx - g.grid.x, cy = g.first.y + Math.floor(s / BOX_COLS) * g.first.sy - g.grid.y;
     let n = 0, all = 0;
     for (let y = Math.round(cy - 0.6 * P); y < cy + 0.6 * P; y += 2) for (let x = Math.round(cx - 0.7 * P); x < cx + 0.7 * P; x += 2) {
       if (x < 0 || y < 0 || x >= width || y >= img.height) continue;
@@ -2839,11 +2839,18 @@ function filledSpots(img, g) {
   }
   return out;
 }
-// Which spot of the game's box each read came from, from where the cursor was. Spots one cursor step apart line
-// up in columns and rows, counted from the box's first spot (where the layout puts it, lined up with the spots
-// seen; without that, the top-left one seen). The party column on the right sits further off and is left out.
+// The column and row of the spot at a point, from the box's first spot and the gap between spots that the layout
+// gives (about 2.1 rows of the side panel across and 1.76 down). The party column comes out as column 10.
+const spotCell = (p, first) => [Math.round((p.x - first.x) / first.sx), Math.round((p.y - first.y) / first.sy)];
+// Which spot of the game's box each read came from, from where the cursor was. With the layout's spacing it is
+// the nearest spot; without it, spots one cursor step apart line up in columns and rows, counted from the box's
+// first spot (lined up with the spots seen) or else the top-left one seen. The party column is left out.
 function placeReads(reads, first) {
   if (!reads.length) return [];
+  if (first && first.sx) return reads.map((r) => {
+    const [col, row] = spotCell(r, first);
+    return { ...r, slot: col >= 0 && row >= 0 && col < BOX_COLS && row < BOX_ROWS ? row * BOX_COLS + col : -1 };
+  });
   const mid = (a) => a.slice().sort((x, y) => x - y)[a.length >> 1];
   const w = mid(reads.map((r) => r.w)), h = mid(reads.map((r) => r.h));
   const cluster = (vals, tol) => {
@@ -2980,7 +2987,9 @@ function look(src, fw, fh) {
     if (!imp.filled || [...filled].join() !== [...imp.filled].join()) { imp.filled = filled; renderImp(); }
   }
   const at = { x: g.grid.x + cur.x / f, y: g.grid.y + cur.y / f, w: cur.w / f, h: cur.h / f };
-  const key = `${Math.round(at.x / (at.w * 0.5))},${Math.round(at.y / (at.h * 0.5))}`, print = panelPrint(frame, g);
+  // which spot it is, by the layout's spacing: the cursor's measured size wobbles a pixel or two with the video,
+  // too much to tell neighbouring spots apart by on the right of a wide screen
+  const key = spotCell(at, g.first).join(), print = panelPrint(frame, g);
   // Read the panel whenever it shows something new, for the spot the cursor is on. When the cursor moves but the
   // panel still matches the last one read, the panel may not have caught up yet, so wait until the cursor has
   // rested there a moment (an empty spot after an empty one, or two exact copies). Once rested, a spot without a
