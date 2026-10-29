@@ -2931,7 +2931,7 @@ async function findPanel() {
         still.width = fw; still.height = fh; still.getContext('2d').drawImage(v, 0, 0);
         imp.debug = { found: { geo, words, frame: still }, reads: [] };
         Object.assign(imp, { geo, first: geo.first, lost: 0, step: imp.step === 'find' ? 'read' : imp.step });
-        imp.status = 'Found your PC box. Now select its last spot and hold ← until the cursor reaches the first spot.';
+        imp.status = 'Found your PC box. Select its last spot, then tap ← and wait for each Pokémon to show up below before moving on.';
         renderImp();
       }
     }
@@ -3146,7 +3146,7 @@ function finishReading() {
   imp.missed = missedSpots(all, imp.filled, -1);
   Object.assign(imp, { step: imp.review.length ? 'review' : 'idle', from: 'screen', reads: new Map(), geo: null,
     status: imp.review.length ? '' : imp.eggs ? 'Only eggs were read. Eggs are left out: their IVs and nature only show once they hatch.'
-      : "No Pokémon were read. Make sure the PC box is open in the window you share, then hold ← through it." });
+      : "No Pokémon were read. Make sure the PC box is open in the window you share, then tap ← through it." });
   renderImp();
 }
 
@@ -3192,7 +3192,7 @@ function renderImp() {
   if (imp.step === 'review') {
     const on = imp.review.filter((x) => x.on).length, bad = imp.review.filter((x) => x.problems.length).length, screen = imp.from === 'screen';
     const room = box.boxes.length < BOX_MAX;
-    const missed = screen && imp.missed && imp.missed.length ? ` The cursor went past ${spotList(imp.missed)} too fast to read ${imp.missed.length === 1 ? 'it' : 'them'}; add ${imp.missed.length === 1 ? 'that one' : 'those'} by hand, or throw these away and read the box again more slowly.` : '';
+    const missed = screen && imp.missed && imp.missed.length ? ` ${spotList(imp.missed)[0].toUpperCase() + spotList(imp.missed).slice(1)} ${imp.missed.length === 1 ? 'wasn\'t' : 'weren\'t'} read; add ${imp.missed.length === 1 ? 'that one' : 'those'} by hand, or throw these away and read the box again.` : '';
     const eggs = screen && imp.eggs ? ` ${imp.eggs === 1 ? 'An egg was' : `${imp.eggs} eggs were`} left out, as eggs don't show their IVs or nature until they hatch.` : '';
     rev.innerHTML = `<p>${screen ? 'Read' : 'Found'} ${imp.review.length} Pokémon${bad ? `; ${bad} need a look (their notes are in red)` : ''}.${missed}${eggs} Untick any you don't want${screen ? ', then put them in a new box in the same spots as in the game' : ''}. You can fix anything later by clicking it in the box.</p>`
       + `<ul class="imp-list">${imp.review.map(impRow).join('')}</ul>`
@@ -3202,8 +3202,10 @@ function renderImp() {
     return;
   }
   if (imp.step === 'idle') {
-    scr.innerHTML = `<p>Read your PC box straight off the screen. Share the PokeMMO window, open your PC, select the box's last spot and hold ← until the cursor reaches the first spot. Each Pokémon is read as the cursor passes it, and any it goes past too fast are outlined in red so you can go back to them.</p>`
-      + `<p class="muted small">You press the keys yourself: the page only looks at the window you share and never touches the game. Don't use macros or auto-clickers with PokeMMO; the game bans them.</p>`
+    scr.innerHTML = `<p>Read your PC box straight off the screen. Share the PokeMMO window, open your PC and select the box's last spot. Then tap ← to go through your Pokémon one at a time, and wait for each one to show up on the little map here before moving on. You can always go back to a spot to read it again, or fix anything by hand afterwards.</p>`
+      + `<p class="muted small"><b>Nothing is saved or uploaded.</b> The page only looks at the window you share while it's reading. Each copy of the side panel stays in your browser's memory and is gone when you read again or close the page; no screenshots are stored or sent anywhere. The one exception is "Save what was read", which downloads them as a file, and only when you press it.</p>`
+      + `<p class="muted small"><b>It isn't perfect.</b> Reading text off the screen can get things wrong, so check the list before adding them. It's built for the game's default look; interface mods, themes and texture packs can make it less reliable.</p>`
+      + `<p class="muted small">You press the keys yourself: the page never touches the game. Don't use macros or auto-clickers with PokeMMO; the game bans them.</p>`
       + (canShare() ? '<div class="row"><button class="btn primary" type="button" id="imp-start">Read my PC box</button></div>'
         : '<p class="muted small">Reading the screen needs a computer browser such as Chrome, Edge or Firefox. You can still paste Pokémon as text below.</p>')
       + (imp.status ? `<p class="small mon-warn" role="status">${esc(imp.status)}</p>` : '') + debugLink();
@@ -3218,7 +3220,7 @@ function renderImp() {
   const missed = missedSpots(placed, imp.filled, Math.min(BOX_SIZE, ...placed.map((r) => r.slot)));
   scr.innerHTML = `<p class="imp-status" role="status">${imp.step === 'stopping' ? `Finishing the last ${waiting} reads…` : esc(imp.status)}</p>`
     + (imp.step === 'read' || imp.step === 'stopping' ? `<p class="small">Read ${got} Pokémon${waiting ? `, ${waiting} still reading` : ''}.`
-      + `${missed.length ? ` <span class="mon-warn">Went past ${missed.length} too fast (outlined in red): move the cursor back onto ${missed.length === 1 ? 'it' : 'them'}.</span>` : ' Missed one? Move the cursor back onto it.'}</p>${impMap(cells, missed)}` : '')
+      + `${missed.length ? ` <span class="mon-warn">Missed ${missed.length} (outlined in red): move the cursor back onto ${missed.length === 1 ? 'it' : 'them'}.</span>` : ' Missed one? Move the cursor back onto it.'}</p>${impMap(cells, missed)}` : '')
     + `<div class="row">${imp.step === 'stopping' ? '' : `<button class="btn primary" type="button" id="imp-done" ${got || waiting ? '' : 'disabled'}>Done</button>`}<button class="btn" type="button" id="imp-cancel">Cancel</button></div>`;
 }
 function putImported() {
