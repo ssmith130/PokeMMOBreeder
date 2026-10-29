@@ -2867,7 +2867,7 @@ function placeReads(reads, first) {
 }
 
 const imp = { step: 'idle', status: '', stream: null, video: null, geo: null, first: null, reads: new Map(), queue: [], busy: false,
-  last: null, prev: null, still: 0, lost: 0, finding: false, review: null, from: '', frames: null, frameAt: 0, filled: null, filledAt: 0 };
+  last: null, lost: 0, finding: false, review: null, from: '', frames: null, frameAt: 0, filled: null, filledAt: 0 };
 const canShare = () => !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
 async function startReading() {
   if (!canShare()) return;
@@ -2879,7 +2879,7 @@ async function startReading() {
   const video = document.createElement('video');
   video.muted = true; video.playsInline = true; video.srcObject = stream;
   await video.play().catch(() => {});
-  Object.assign(imp, { step: 'find', stream, video, geo: null, reads: new Map(), queue: [], last: null, prev: null, still: 0, lost: 0,
+  Object.assign(imp, { step: 'find', stream, video, geo: null, reads: new Map(), queue: [], last: null, lost: 0,
     filled: null, filledAt: 0, missed: null, here: null, status: 'Loading the text reader (a few MB, only the first time)…' });
   stream.getVideoTracks()[0].addEventListener('ended', () => stopReading(true));
   renderImp();
@@ -2939,13 +2939,17 @@ function grab(src, r, w, h, smooth) {
   scratchCtx.drawImage(src, r.x, r.y, r.w, r.h, 0, 0, w, h);
   return scratchCtx.getImageData(0, 0, w, h);
 }
-// A small grey copy of the side panel, to notice when it changes.
+// A small copy of the panel's values, from the Stats line to the Ability line, to notice when it changes. Two
+// Pokémon of the same species look alike everywhere else, but their stats almost never match; the sprite and the
+// background behind it, which can move, are left out.
 function panelPrint(v, g) {
-  const d = grab(v, g.panel, 24, 48, true).data, out = new Uint8Array(d.length / 4);
-  for (let i = 0; i < out.length; i++) out[i] = (d[i * 4] + d[i * 4 + 1] + d[i * 4 + 2]) / 3;
+  const P = g.P, r = { x: g.panel.x + g.rows.vx - 0.2 * P, y: g.panel.y + g.rows.y0 - 0.5 * P, w: 6.7 * P, h: 5 * P };
+  const d = grab(v, r, 80, 60, true).data, out = new Uint8Array(d.length / 4);
+  for (let i = 0; i < out.length; i++) out[i] = Math.max(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]);
   return out;
 }
-const printDiff = (a, b) => { if (!a || !b) return 255; let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]); return s / a.length; };
+// How many points of the copy changed clearly: one digit changing is a dozen or so.
+const printDiff = (a, b) => { if (!a || !b) return Infinity; let n = 0; for (let i = 0; i < a.length; i++) if (Math.abs(a[i] - b[i]) > 40) n++; return n; };
 // Every 25 ms, look at the shared screen again. Screen capture sends no frames while nothing on it changes, so this
 // also catches a panel that has settled after the last frame came in.
 function watch() {
@@ -2966,7 +2970,6 @@ function look(src, fw, fh) {
   if (!cur) {
     // the window moved, the PC was closed or the cursor is on the party: look for the panel again after a while
     if (++imp.lost === 90) { imp.geo = null; imp.status = "Lost sight of the PC box. Keep it open on the screen you're sharing."; renderImp(); findPanel(); }
-    imp.prev = null;
     return;
   }
   imp.lost = 0;
@@ -2978,25 +2981,22 @@ function look(src, fw, fh) {
   }
   const at = { x: g.grid.x + cur.x / f, y: g.grid.y + cur.y / f, w: cur.w / f, h: cur.h / f };
   const key = `${Math.round(at.x / (at.w * 0.5))},${Math.round(at.y / (at.h * 0.5))}`, print = panelPrint(frame, g);
-  // Read the panel as soon as the cursor is on a new spot and the panel shows something new. When the panel looks
-  // the same as the last one read (an empty spot after an empty spot, or a frame where the panel hasn't caught up),
-  // wait for two frames alike in a row before trusting it.
-  imp.still = imp.prev && imp.prev.key === key && printDiff(imp.prev.print, print) < 3 ? imp.still + 1 : 0;
-  imp.prev = { key, print };
-  const fresh = !imp.last || printDiff(imp.last.print, print) > 6;
-  // Once the cursor has rested on a spot for a moment, read it once more unless it already read cleanly: the first
-  // copy can be of a frame the game was still drawing, and a Pokémon next to one of the same species can look too
-  // alike to count as new.
-  const now = performance.now();
-  if (!imp.here || imp.here.key !== key) imp.here = { key, t: now, again: false };
-  const done = imp.reads.get(key), again = !imp.here.again && now - imp.here.t > 300 && !(done && (done.egg || done.read && !done.read.problems.length));
-  if (again || (imp.last && imp.last.key === key ? fresh && imp.still >= 1 : fresh || imp.still >= 1)) {
-    if (again) imp.here.again = true;
+  // Read the panel whenever it shows something new, for the spot the cursor is on. When the cursor moves but the
+  // panel still matches the last one read, the panel may not have caught up yet, so wait until the cursor has
+  // rested there a moment (an empty spot after an empty one, or two exact copies). Once rested, a spot without a
+  // clean read is read once more: the first copy can be of a frame the game was still drawing.
+  const now = performance.now(), fresh = !imp.last || printDiff(imp.last.print, print) > 8;
+  if (!imp.here || imp.here.key !== key) imp.here = { key, t: now, took: false, again: false };
+  const rested = now - imp.here.t > 250, done = imp.reads.get(key), clean = done && (done.egg || done.read && !done.read.problems.length);
+  const kind = fresh ? 'new' : !rested ? '' : !imp.here.took ? 'rest' : !imp.here.again && !clean ? 'again' : '';
+  if (kind) {
+    imp.here.took = true;
+    if (kind === 'again') imp.here.again = true;
     imp.last = { key, print };
     const c = document.createElement('canvas');
     c.width = g.panel.w; c.height = g.panel.h;
     c.getContext('2d').drawImage(frame, g.panel.x, g.panel.y, g.panel.w, g.panel.h, 0, 0, c.width, c.height);
-    imp.queue.push({ key, at, c, P: g.P, sex: g.sex, rows: g.rows });
+    imp.queue.push({ key, at, c, P: g.P, sex: g.sex, rows: g.rows, kind });
     pumpReads();
   }
 }
@@ -3103,9 +3103,11 @@ async function pumpReads() {
     if (imp.step === 'idle') break;
     const egg = !!(got && got.egg);
     if (egg) got = null;
-    // a spot read twice keeps the better read
+    // A newer copy of a spot's panel wins, as the panel may have caught up since the last one; a second read of the
+    // same panel only wins if it read better.
     const before = imp.reads.get(job.key), score = (r) => (r.egg ? 99 : !r.read ? 0 : !r.read.mon.species ? 1 : 50 - r.read.problems.length);
-    if (!before || score({ read: got, egg }) >= score(before)) imp.reads.set(job.key, { ...job.at, read: got, egg });
+    const after = score({ read: got, egg });
+    if (!before || (job.kind === 'again' ? after >= score(before) : after > 0 || score(before) <= 1)) imp.reads.set(job.key, { ...job.at, read: got, egg });
     imp.current = null;
     if (imp.debug && text) imp.debug.reads.push({ at: job.at, text, sex, read: got, panel: job.c });
     renderImp();
