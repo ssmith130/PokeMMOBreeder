@@ -3001,9 +3001,12 @@ function look(src, fw, fh) {
   }
 }
 // The lines of the side panel by where they sit: a label to put in front, the row (in label rows from the Stats
-// label), where the text starts and ends (in rows from where the values start), and how to read it.
+// label), where the text starts and ends (in rows from where the values start), how to read it, and how sure the
+// reader must be to keep it.
 // The nickname and level lines are white, so only white counts as text there: the sprite can reach into them.
-const PANEL_LINES = [['', -8.27, -1.6, 4.6, 'white'], ['', -1.16, -2.6, 4.6, 'white'], ['IVs: ', 1, -0.2, 6.5, 'digits'],
+// Some sprites send white smoke or sparkles up into the nickname's row, which reads as a jumble of letters that
+// Tesseract isn't sure of, so a nickname it's less than half sure of is dropped.
+const PANEL_LINES = [['', -8.27, -1.6, 4.6, 'white', 50], ['', -1.16, -2.6, 4.6, 'white'], ['IVs: ', 1, -0.2, 6.5, 'digits'],
   ['Nature: ', 3, -0.2, 6.5, 'line'], ['Ability: ', 4, -0.2, 6.5, 'line'], ['Markings:', null],
   ...[0, 1, 2, 3].map((i) => ['', 6.95 + 0.93 * i, -0.65, 6.5, 'line'])];
 function lineCanvas(job, row, x0, x1, k, mode) {
@@ -3075,11 +3078,11 @@ async function readJob(job) {
       // each line on its own, where the layout puts it: the sprite and background can't get mixed in, and the
       // IVs are read as digits only
       const lines = [];
-      for (const [label, row, x0, x1, mode] of PANEL_LINES) {
+      for (const [label, row, x0, x1, mode, minConf] of PANEL_LINES) {
         const c = row == null ? null : lineCanvas(job, row, x0, x1, k, mode);
         const data = c && await ocr(c, mode === 'white' ? 'line' : mode);
         const t = !c ? '' : (mode === 'digits' ? ivsText(data, job, c.from) : data.text).replace(/\s+/g, ' ').trim();
-        lines.push(label + t);
+        lines.push(label + (c && data.confidence < (minConf || 0) ? '' : t));
       }
       text = lines.join('\n');
       got = readPanel(lines.filter((l) => l.trim()), sex);
