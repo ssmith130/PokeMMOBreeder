@@ -2880,7 +2880,7 @@ async function startReading() {
   video.muted = true; video.playsInline = true; video.srcObject = stream;
   await video.play().catch(() => {});
   Object.assign(imp, { step: 'find', stream, video, geo: null, reads: new Map(), queue: [], last: null, prev: null, still: 0, lost: 0,
-    filled: null, filledAt: 0, missed: null, status: 'Loading the text reader (a few MB, only the first time)…' });
+    filled: null, filledAt: 0, missed: null, here: null, status: 'Loading the text reader (a few MB, only the first time)…' });
   stream.getVideoTracks()[0].addEventListener('ended', () => stopReading(true));
   renderImp();
   loadOcr().then(() => { if (imp.step === 'find') { imp.status = 'Looking for your PC box. Open it in the game so its side panel shows a Pokémon.'; renderImp(); } },
@@ -2984,7 +2984,14 @@ function look(src, fw, fh) {
   imp.still = imp.prev && imp.prev.key === key && printDiff(imp.prev.print, print) < 3 ? imp.still + 1 : 0;
   imp.prev = { key, print };
   const fresh = !imp.last || printDiff(imp.last.print, print) > 6;
-  if (imp.last && imp.last.key === key ? fresh && imp.still >= 1 : fresh || imp.still >= 1) {
+  // Once the cursor has rested on a spot for a moment, read it once more unless it already read cleanly: the first
+  // copy can be of a frame the game was still drawing, and a Pokémon next to one of the same species can look too
+  // alike to count as new.
+  const now = performance.now();
+  if (!imp.here || imp.here.key !== key) imp.here = { key, t: now, again: false };
+  const done = imp.reads.get(key), again = !imp.here.again && now - imp.here.t > 300 && !(done && (done.egg || done.read && !done.read.problems.length));
+  if (again || (imp.last && imp.last.key === key ? fresh && imp.still >= 1 : fresh || imp.still >= 1)) {
+    if (again) imp.here.again = true;
     imp.last = { key, print };
     const c = document.createElement('canvas');
     c.width = g.panel.w; c.height = g.panel.h;
@@ -3096,7 +3103,9 @@ async function pumpReads() {
     if (imp.step === 'idle') break;
     const egg = !!(got && got.egg);
     if (egg) got = null;
-    imp.reads.set(job.key, { ...job.at, read: got, egg });
+    // a spot read twice keeps the better read
+    const before = imp.reads.get(job.key), score = (r) => (r.egg ? 99 : !r.read ? 0 : !r.read.mon.species ? 1 : 50 - r.read.problems.length);
+    if (!before || score({ read: got, egg }) >= score(before)) imp.reads.set(job.key, { ...job.at, read: got, egg });
     imp.current = null;
     if (imp.debug && text) imp.debug.reads.push({ at: job.at, text, sex, read: got, panel: job.c });
     renderImp();
