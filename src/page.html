@@ -368,6 +368,13 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .pc-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
 .pc-foot .row { gap: 6px; }
 .box-msg { font-size: 13px; }
+/* Asking before something that deletes Pokémon */
+.ask { width: min(420px, calc(100vw - 32px)); border: 1px solid var(--line-strong); border-radius: 10px; padding: 18px; background: var(--surface); color: var(--ink);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.3); }
+.ask::backdrop { background: rgb(0 0 0 / 0.45); }
+.ask[open] { display: grid; gap: 10px; }
+.ask p { color: var(--muted); font-size: 14px; }
+.ask .row { justify-content: flex-end; margin-top: 4px; }
 /* The details shown when hovering a Pokémon in the box */
 .box-tip { position: fixed; z-index: 70; width: 260px; pointer-events: none; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px;
   box-shadow: 0 12px 30px rgb(0 0 0 / 0.22); padding: 10px 12px; display: grid; gap: 7px; font-size: 13px; }
@@ -631,6 +638,11 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
 
 <div class="combo-list" id="combo-list" role="listbox" hidden></div>
 <div class="box-tip" id="box-tip" role="tooltip" hidden></div>
+<dialog class="ask" id="ask" aria-labelledby="ask-title" aria-describedby="ask-body">
+  <h2 id="ask-title"></h2>
+  <p id="ask-body"></p>
+  <div class="row"><button class="btn" type="button" id="ask-no">Cancel</button><button class="btn danger" type="button" id="ask-yes"></button></div>
+</dialog>
 
 <script id="planner-src">
 /*PLANNER*/
@@ -2209,7 +2221,7 @@ function renderBox() {
   $('box-next').disabled = box.cur === box.boxes.length - 1;
   const used = b.slots.filter(Boolean).length;
   $('box-of').textContent = `Box ${box.cur + 1} of ${box.boxes.length} · ${used} / ${BOX_SIZE}`;
-  $('box-del').hidden = used > 0 || box.boxes.length < 2;
+  $('box-del').hidden = !used && box.boxes.length < 2;
   const grid = $('box-grid');
   grid.style.setProperty('--cols', BOX_COLS);
   grid.innerHTML = b.slots.map((m, s) => {
@@ -2480,14 +2492,54 @@ $('box-new').addEventListener('click', () => {
   box.cur = box.boxes.length - 1;
   saveBox([box.cur], true);
 });
-$('box-del').addEventListener('click', () => {
-  if (box.boxes.length < 2 || box.boxes[box.cur].slots.some(Boolean)) return;
-  box.boxes.splice(box.cur, 1);
+// A yes/no question in a small window over the page; Cancel is picked unless you choose otherwise.
+function ask(title, body, yes) {
+  const d = $('ask');
+  $('ask-title').textContent = title; $('ask-body').textContent = body; $('ask-yes').textContent = yes;
+  return new Promise((done) => {
+    const finish = (ok) => { d.removeEventListener('close', onClose); if (d.open) d.close(); done(ok); };
+    const onClose = () => finish(false);
+    d.addEventListener('close', onClose);
+    $('ask-yes').onclick = () => finish(true);
+    $('ask-no').onclick = () => finish(false);
+    d.onclick = (e) => { if (e.target === d) { const r = d.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) finish(false); } };
+    d.showModal();
+    $('ask-no').focus();
+  });
+}
+// Deleting a box takes its Pokémon with it (after asking). The only box can't go, so it's emptied instead.
+$('box-del').addEventListener('click', async () => {
+  const i = box.cur, b = box.boxes[i], n = b.slots.filter(Boolean).length, only = box.boxes.length < 2;
+  if (only && !n) return;
+  const lose = n ? `${n === 1 ? 'The Pokémon' : `All ${n} Pokémon`} in it will be deleted too. You can undo this right after.` : "It's empty, so no Pokémon will be lost.";
+  const ok = await ask(only ? `Empty “${b.name}”?` : `Delete “${b.name}”?`,
+    only ? `It's your only box, so it stays, but ${n === 1 ? 'the Pokémon' : `all ${n} Pokémon`} in it will be deleted. You can undo this right after.` : lose, only ? 'Empty box' : 'Delete box');
+  if (!ok || box.boxes[i] !== b) return;
   box.sel = null; boxDraft = null;
-  box.cur = Math.min(box.cur, box.boxes.length - 1);
-  // the spots taken out by ticked breeds point at box numbers, so shift them down too
+  if (only) {
+    box.boxes[0] = cleanBox(null, 0);
+    saveBox('all', true); renderDraft(); $('box-del').focus();
+    return boxSay(`Emptied ${b.name}.`, () => {
+      // anything put in since goes in a box of its own, rather than being lost
+      if (box.boxes[0].slots.some(Boolean) && box.boxes.length < BOX_MAX) { box.boxes.unshift(b); box.spent.forEach((x) => { x.box++; }); } else box.boxes[0] = b;
+      box.cur = 0; saveBox('all', true); boxSay(`Put ${b.name} back.`);
+    });
+  }
+  box.boxes.splice(i, 1);
+  box.cur = Math.min(i, box.boxes.length - 1);
+  // Pokémon taken out by ticked breeds remember a box number, so the ones after this box move down one
+  const moved = box.spent.filter((x) => x.box > i);
+  moved.forEach((x) => { x.box--; });
   saveBox('all', true);
   renderDraft();
+  boxSay(`Deleted ${b.name}${n ? ` and the ${n === 1 ? 'Pokémon' : `${n} Pokémon`} in it` : ''}.`, () => {
+    if (box.boxes.length >= BOX_MAX) return boxSay(`Couldn't put it back: that's the most boxes (${BOX_MAX}).`);
+    const at = Math.min(i, box.boxes.length);
+    box.boxes.splice(at, 0, b);
+    moved.forEach((x) => { if (box.spent.includes(x)) x.box++; });
+    box.cur = at;
+    saveBox('all', true); boxSay(`Put ${b.name} back.`);
+  });
 });
 document.addEventListener('click', (e) => { if (e.target.closest('#box-undo') && boxUndo) { const f = boxUndo; boxUndo = null; $('box-msg').hidden = true; f(); } });
 
