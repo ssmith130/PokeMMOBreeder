@@ -30,10 +30,15 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
   be shown or hidden, see [Event builds](#event-builds).
 - **Saved builds.** Keep several setups, and move them to another device with a code.
 - **My box.** A second tab holds the Pokémon from your game in a PC box like PokeMMO's: box icons in a
-  10×6 grid of 60 spots like PokeMMO's, several named boxes, alphas drawn bigger with a red outline and a blue diamond on hidden-ability Pokémon, drag to move. Hover over one to see its IVs, nature, ability and egg moves.
+  10×6 grid of 60 spots like PokeMMO's, several named boxes (Delete this box asks first, then offers Undo), alphas drawn bigger with a red outline and a blue diamond on hidden-ability Pokémon, drag to move. Hover over one to see its IVs, nature, ability and egg moves.
   Tick "Use the Pokémon in my box" and the planner breeds with them; ticking off breeds can take the parents
   out of the box and put the finished Pokémon in (unticking puts them back). The box is kept apart from saved
   builds and moves to another device with its own code. Box size is `BOX_COLS`/`BOX_ROWS` in `src/page.html`.
+- **Import from PokeMMO.** Fill the box without typing: share the PokeMMO window with the page, open your PC
+  and tap ← from the box's last spot to its first. Each Pokémon is read off the box's side panel as the cursor
+  reaches it (species, gender, IVs, nature, ability, egg moves) and lands in the same spot of a new box, after a
+  check-over list. Pokémon can also be pasted as text in the Showdown / PokePaste format, and any box copied out
+  as text. See [Importing from PokeMMO](#importing-from-pokemmo).
 - **Works anywhere.** Phone-friendly, light and dark themes, and it can be added to your home screen like
   an app. Nothing to sign up for, and what you enter stays in your browser.
 
@@ -101,6 +106,35 @@ The event dropdown is set by `EVENT` in `src/page.html`, just after the common b
   way as a common build. Give event builds keys of their own (the Halloween ones start with `hw-`).
 
 Then run `python3 build.py` as usual.
+
+## Importing from PokeMMO
+
+The import reads the screen, not the game. The page asks the browser to share a window (as for a video call),
+finds the PC box's side panel by its labels (Stats, Nature, Ability, Markings), and watches for the blue box
+cursor. Each time the cursor settles on a new spot, a copy of the panel is read with
+[Tesseract.js](https://github.com/naptha/tesseract.js) (open-source text recognition, about 4 MB, loaded from
+jsDelivr the first time and run in the browser), and the text is matched against the site's species, natures,
+abilities and egg moves. The spot comes from where the cursor was, so the direction you go doesn't matter and a
+spot visited twice is just read again. The party column is left out.
+
+The most reliable way is to tap ← and wait for each Pokémon to show up on the page's map before moving on.
+Holding ← works too (in Chrome and Edge every frame of the shared window is looked at as it arrives; other
+browsers check about 40 times a second), but the game's key repeat can outrun the screen share. The page tells
+filled spots from empty ones by their sprites and level numbers, and outlines in red any it missed, so you can
+move the cursor back onto them.
+
+Nothing is saved or uploaded. Copies of the side panel stay in the browser's memory and are dropped when the
+player reads again or closes the page; "Save what was read" downloads them as a file for a bug report, and only
+when pressed. Reading text off the screen isn't perfect, so the check-over list matters, and interface mods,
+themes and texture packs can make it less reliable.
+
+It never touches PokeMMO: no mod, nothing read from the game's memory or network traffic, and no key presses
+sent to it. The player moves the cursor by hand. PokeMMO's Code of Conduct bans client modification, packet
+interception and anything that automates input, so the import is built to stay clear of all three; don't pair
+it with a macro or auto-clicker to step through the box.
+
+It is tuned to the default interface theme. Alphas are picked up from the red mark in the panel's corner.
+Eggs are left out, since the panel shows ??? for their IVs, nature and ability until they hatch.
 
 ## Credits
 

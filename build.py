@@ -37,7 +37,8 @@ here = os.path.dirname(os.path.abspath(__file__))
 
 
 def read(path, mode='r'):
-    with open(os.path.join(here, path), mode) as f:
+    # UTF-8 spelled out: Windows would otherwise read the page in its own code page and stop at the first ♀ or ←
+    with open(os.path.join(here, path), mode, encoding=None if 'b' in mode else 'utf-8') as f:
         return f.read()
 
 
