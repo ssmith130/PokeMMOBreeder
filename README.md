@@ -31,12 +31,21 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
 - **Saved builds.** Keep several setups, and move them to another device with a code.
 - **My box.** A second tab holds the Pokémon from your game in a PC box like PokeMMO's: box icons in a
   10×6 grid of 60 spots like PokeMMO's, several named boxes (Delete this box asks first, then offers Undo), alphas drawn bigger with a red outline and a blue diamond on hidden-ability Pokémon, drag to move. Hover over one to see its IVs, nature, ability and egg moves.
+  Sort works like the game's sort menu: pick one or more of Level, Pokédex Number, 31 IV, Total IV, Gender, Egg group,
+  Primary type, Catch Date and Name (the first picked decides the order, the next breaks ties, each can be flipped),
+  then Sort this box or all of them, with Undo. Catch date is when a Pokémon went into the box on the site; level is
+  optional (set in the editor, read off the game's panel or a "Level:" line, 1 for hatched Pokémon).
   Tick "Use the Pokémon in my box" and the planner breeds with them; ticking off breeds can take the parents
   out of the box and put the finished Pokémon in (unticking puts them back). The box is kept apart from saved
   builds and moves to another device with its own code. Box size is `BOX_COLS`/`BOX_ROWS` in `src/page.html`.
+- **Short codes.** Build and box codes (PMB2 / PMBX2) pack each Pokémon into a few bytes rather than JSON, so a
+  code for one box (about 800 characters) fits in a Discord message, which tops out at 2,000. The copy message
+  says when a code is too long and Discord will send it as a file. Older PMB1 / PMBX1 codes still import, and a
+  code can be pasted with the rest of the Discord message around it. Natures are stored as their place in
+  `NATURES` and species as dex numbers, so that list must not be reordered.
 - **Import from PokeMMO.** Fill the box without typing: share the PokeMMO window with the page, open your PC
   and tap ← from the box's last spot to its first. Each Pokémon is read off the box's side panel as the cursor
-  reaches it (species, gender, IVs, nature, ability, egg moves) and lands in the same spot of a new box, after a
+  reaches it (species, level, gender, IVs, nature, ability, egg moves) and lands in the same spot of a new box, after a
   check-over list. Pokémon can also be pasted as text in the Showdown / PokePaste format, and any box copied out
   as text. See [Importing from PokeMMO](#importing-from-pokemmo).
 - **Works anywhere.** Phone-friendly, light and dark themes, and it can be added to your home screen like
@@ -83,11 +92,13 @@ Every push to `main` builds the site and publishes it to GitHub Pages
 | --- | --- |
 | `src/page.html` | The page: layout, styles and UI code. |
 | `src/planner.js` | The breeding search. Also runs in Node: `require('./src/planner.js')`. |
-| `data/species.json` | Every species' egg groups, gender ratio, abilities and egg moves. |
+| `test/planner.test.js` | Checks for the breeding search (`node test/planner.test.js`). |
+| `data/species.json` | Every species' types (Gen 5, so no Fairy), egg groups, gender ratio, abilities and egg moves. |
 | `data/tms.json` | Which species can learn each TM the page offers. |
 | `data/learners.json` | Which species learn each egg move by level-up, TM or tutor, for the egg move finder. |
 | `data/box-icons.png` | Box icons for all 649 species, 25 per row in dex order. |
 | `data/logo.png` | The Smearguru logo, painted onto Smeargle's box icon by `src/build-logo.py`. |
+| `data/unknown-icon.png` | The "?" icon shown for an unknown or empty species (the sheet's own "?" at the end is no longer used). |
 | `src/items.py` | The brace, Everstone and incense icons, drawn as SVG. |
 | `public/` | App icons, favicons, the link-preview image and the web app manifest (redrawn by `src/build-icons.py`), and the page's fonts (`public/fonts`, under the SIL Open Font License). |
 | `build.py` | Puts it all into `dist/`, along with `404.html`, `robots.txt` and `sitemap.xml`. Also writes `build/artifact.html`, a version for claude.ai. |

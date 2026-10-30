@@ -209,6 +209,15 @@
       if (!relaxed && !bound) return remember(null);
       if (!relaxed && (++calls > LIMIT || ((calls & 1023) === 0 && Date.now() > deadline))) calls = LIMIT + 1;
       if (!relaxed && calls > LIMIT) { truncated = true; return null; }
+
+      // 1-2. A Pokémon you own, or one to buy. Nothing beats a Pokémon you already have.
+      let best = leaf(req, avail);
+      if (best && !best.bought) return remember(best);
+      return remember(breed(req, avail, relaxed, bound, best));
+    }
+
+    // A Pokémon that meets the request without breeding: one you own, or a 1x31 off the GTL.
+    function leaf(req, avail) {
       let best = null;
 
       // 1. A Pokémon you already own.
@@ -224,9 +233,7 @@
         if (req.incense && p.name !== tSpecies.n) continue;
         best = pick(best, leafOwned(p));
       }
-
-      // Nothing beats a Pokémon you already have.
-      if (best) return remember(best);
+      if (best) return best;
 
       // 2. Buy a 1x31 off the GTL to fill a gap.
       if (opts.buy && popcount(req.need) <= 1 && !req.abil && !req.mv && !req.incense) {
@@ -235,8 +242,11 @@
         if (L && L.groups.size && (g === 'A' || (g === 'M' ? hasMales(L.ratio) : hasFemales(L.ratio))))
           best = pick(best, buyLeaf(req.line, g, req.need, req.nat, false, req.kind));
       }
+      return best;
+    }
 
-      // 3. Breed it.
+    // 3. Breed it.
+    function breed(req, avail, relaxed, bound, best) {
       const lines = new Set();
       if (req.kind === 'L') lines.add(req.line);
       else {
@@ -263,36 +273,43 @@
         pairings.push('ditto');
         for (const pairing of pairings) {
           const combos = braceCombos(R, req.nat, !!req.incense);
-          for (const [bA, bB, holder, inc] of combos) {
+          for (const [bA, bB, holder, inc, fewer] of combos) {
             const needA = req.need & ~(bB >= 0 ? 1 << bB : 0);
             const needB = req.need & ~(bA >= 0 ? 1 << bA : 0);
             const reqA = { kind: 'L', line: m, gender: pairing === 'mf' ? 'F' : (req.mv ? 'M' : 'A'),
               need: needA, nat: holder === 'A', abil: req.abil, mv: pairing === 'ditto' && req.mv };
-            if (size(reqA) >= mySize) continue;
-            let reqB = null;
+            // A parent that must be as good as this request can't be bred for it (the search would never
+            // end). With fewer braces it can still be one you own or buy: two 6x31 parents need no brace.
+            const asLeaf = (r) => size(r) >= mySize || (fewer && r.need === req.need);
+            const leafA = asLeaf(reqA);
+            if (leafA && !fewer) continue;
+            let reqB = null, leafB = false;
             if (pairing === 'mf') {
               reqB = { kind: 'C', line: m, gender: 'M', need: needB, nat: holder === 'B', abil: false, mv: req.mv };
-              if (size(reqB) >= mySize) continue;
+              leafB = asLeaf(reqB);
+              if (leafB && !fewer) continue;
             }
             const items = (bA >= 0 ? 1 : 0) + (bB >= 0 ? 1 : 0);
             const stepCost = items * prices.brace + (req.nat ? prices.everstone : 0) + (inc ? prices.incense || 0 : 0) + gCost;
-            const solveB = (av, r) => pairing === 'mf' ? solve(reqB, av, r) : solveDitto(needB, holder === 'B', av);
+            const solveA = (av, r) => leafA ? leaf(reqA, av) : solve(reqA, av, r);
+            const solveB = (av, r) => pairing !== 'mf' ? solveDitto(needB, holder === 'B', av) : leafB ? leaf(reqB, av) : solve(reqB, av, r);
             // The best each side could do with unlimited Pokémon: skip the breed if even that can't win.
-            const lbA = relaxed ? null : solve(reqA, full, true);
+            const lbA = relaxed ? null : solveA(full, true);
             const lbB = relaxed ? null : solveB(full, true);
             if (!relaxed && (!lbA || !lbB || !beats(sum(lbA, lbB, stepCost)))) continue;
-            // Solve the mother's side first; only if the father's side then runs
-            // short, try the other way round.
+            // Solve the mother's side first. If the father's side then runs short, or the two together
+            // do worse than each could alone (the mother took a Pokémon the father needed), try the
+            // other way round.
             for (const order of relaxed ? [0] : [0, 1]) {
               let a, b;
               if (order === 0) {
-                a = solve(reqA, avail, relaxed); if (!a) break;
+                a = solveA(avail, relaxed); if (!a) break;
                 if (!relaxed && !beats(sum(a, lbB, stepCost))) break;
                 b = solveB(relaxed ? avail : avail - a.used, relaxed); if (!b) continue;
               } else {
                 b = solveB(avail); if (!b) break;
                 if (!beats(sum(lbA, b, stepCost))) break;
-                a = solve(reqA, avail - b.used); if (!a) continue;
+                a = solveA(avail - b.used); if (!a) continue;
               }
               const iv = [];
               for (let s = 0; s < 6; s++) iv.push(s === bA ? a.iv[s] : s === bB ? b.iv[s] : Math.min(a.iv[s], b.iv[s]));
@@ -306,12 +323,13 @@
               best = pick(best, res);
               // nothing can beat the unlimited pass, so stop once the plan matches it
               if (bound && better(best, bound) <= 0) break search;
-              break;
+              const lb = sum(lbA || a, lbB || b, stepCost);
+              if (relaxed || order === 1 || (res.breeds === lb.breeds && res.cost === lb.cost)) break;
             }
           }
         }
       }
-      return remember(best);
+      return best;
     }
     const sum = (a, b, step) => ({ breeds: a.breeds + b.breeds + 1, cost: a.cost + b.cost + step });
 
@@ -328,17 +346,21 @@
         }
         return out;
       }
+      // The last value marks a breed with fewer braces than usual, kept for parents you own (or buy):
+      // a stat both parents already have passes on without a brace.
       if (nat) {
         // the Everstone holder can't hold a brace
         for (const b of R) { out.push([-1, b, 'A']); out.push([b, -1, 'B']); }
         if (R.length === 0) { out.push([-1, -1, 'A']); out.push([-1, -1, 'B']); }
+        else { out.push([-1, -1, 'A', null, true]); out.push([-1, -1, 'B', null, true]); }
         return out;
       }
       for (const a of R) for (const b of R) if (a !== b) out.push([a, b, null]);
       if (R.length <= 2) {
         for (const a of R) { out.push([a, -1, null]); out.push([-1, a, null]); }
         if (R.length === 0) out.push([-1, -1, null]);
-      }
+      } else for (const a of R) { out.push([a, -1, null, null, true]); out.push([-1, a, null, null, true]); }
+      if (R.length > 0) out.push([-1, -1, null, null, true]);
       return out;
     }
 

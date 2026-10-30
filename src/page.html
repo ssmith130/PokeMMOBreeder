@@ -10,6 +10,7 @@
   --line: #d5dce4; --line-strong: #9aa7b6; --accent: #1d7656; --accent-soft: #dcefe6; --on-accent: #ffffff;
   --cost: #9a5a0c; --warn: #b3261e; --warn-soft: #fbe7e5;
   /* Stat colours follow the power items in PokeMMO: Weight green, Bracer red, Belt orange, Lens pink, Band yellow, Anklet blue */
+  --female: #c4245f; --male: #1f5fcc;
   --hp: #3fb950; --atk: #e5484d; --def: #d4873a; --spa: #d24fdc; --spd: #d4b81e; --spe: #1fa6d9;
   --f-display: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
   --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
@@ -19,12 +20,12 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #10151b; --surface: #18202a; --sunk: #141b23; --ink: #e6ebf1; --muted: #93a0b0;
   --line: #2a3542; --line-strong: #4e5d6e; --accent: #4cc195; --accent-soft: #173a2e; --on-accent: #0b1f17;
-  --cost: #e2a54b; --warn: #f2867d; --warn-soft: #3a1f1d; color-scheme: dark;
+  --cost: #e2a54b; --warn: #f2867d; --warn-soft: #3a1f1d; --female: #ff7eac; --male: #74adff; color-scheme: dark;
 } }
 :root[data-theme="dark"] {
   --bg: #10151b; --surface: #18202a; --sunk: #141b23; --ink: #e6ebf1; --muted: #93a0b0;
   --line: #2a3542; --line-strong: #4e5d6e; --accent: #4cc195; --accent-soft: #173a2e; --on-accent: #0b1f17;
-  --cost: #e2a54b; --warn: #f2867d; --warn-soft: #3a1f1d; color-scheme: dark;
+  --cost: #e2a54b; --warn: #f2867d; --warn-soft: #3a1f1d; --female: #ff7eac; --male: #74adff; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -91,7 +92,9 @@ details.fold > summary { cursor: pointer; list-style: none; }
 details.fold > summary::-webkit-details-marker { display: none; }
 details.fold > summary h2::after { content: " +"; color: var(--muted); }
 details.fold[open] > summary h2::after { content: " −"; }
-/* <details> doesn't lay its contents out as a grid, so space them here */
+/* Older browsers don't lay out a <details> as a grid and newer ones do, which doubled the space under the heading.
+   Lay it out as a plain block everywhere and space its contents here. */
+details.panel.fold { display: block; }
 details.fold > :not(summary) { margin-top: 14px; }
 details.prices-wrap > .extras { margin-top: 22px; }
 .est { font-family: var(--f-mono); font-size: 10.5px; color: var(--cost); letter-spacing: 0.05em; text-transform: uppercase; }
@@ -134,7 +137,9 @@ ol.steps li { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10
 .card.buy { border-style: dashed; border-color: var(--cost); }
 .card.result { border-color: var(--accent); background: var(--accent-soft); }
 .card .name { font-weight: 600; }
-.g-F { color: #d6457a; } .g-M { color: #3b78d8; }
+/* the symbols are thin in most fonts, so they get a stroke, a little more size and stronger colours per theme */
+.g-F, .g-M { font-weight: 700; font-size: 1.3em; line-height: 1; -webkit-text-stroke: 0.7px currentColor; }
+.g-F { color: var(--female); } .g-M { color: var(--male); }
 .hold { font-size: 12px; font-family: var(--f-mono); color: var(--muted); }
 .hold b { color: var(--ink); font-weight: 500; }
 .ivs { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -158,7 +163,7 @@ ol.steps li { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10
 .pick-val { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
 .pick-val > span:last-child, .pick-list .opt > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The "?" icon is drawn low in its cell; lift it to sit level with the text */
-.pick .spr.unk { background-position-y: calc(var(--y) * -30px - 5px); }
+.pick .spr.unk { background-position: 0 -3px; }
 .pick-chev { width: 12px; height: 12px; flex: none; color: var(--muted); }
 .pick-list { position: absolute; z-index: 50; left: 0; top: calc(100% + 4px); min-width: 100%; width: max-content; max-width: min(360px, calc(100vw - 32px));
   max-height: 320px; overflow-y: auto; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px;
@@ -252,10 +257,12 @@ body.popped { overflow: hidden; }
 .spr { --s: 1; display: inline-block; flex: none; width: calc(40px * var(--s)); height: calc(30px * var(--s)); background-image: var(--sheet);
   background-repeat: no-repeat; background-size: calc(1000px * var(--s)) calc(780px * var(--s));
   background-position: calc(var(--x) * var(--s) * -40px) calc(var(--y) * var(--s) * -30px); image-rendering: pixelated; }
+.spr.unk { background-image: var(--unknown-icon); background-size: 100% 100%; background-position: 0 0; }
 .who { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .who .name { min-width: 0; }
 .card.buy .who .spr { opacity: 0.55; }
 .btn.mini { padding: 3px 9px; font-size: 12.5px; }
+.btn-ic { width: 1.1em; height: 1.1em; vertical-align: -0.2em; margin-right: 5px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .linkbtn { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; }
 /* Saved builds */
 .save-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
@@ -362,12 +369,33 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .slot.dragging { opacity: 0.4; }
 /* Hidden ability: a blue diamond in the top right corner, as in the game */
 .slot .ha { position: absolute; right: 4px; top: 3px; width: 13px; height: 11px; }
+.slot .lv { position: absolute; left: 3px; bottom: 2px; padding: 0 2px; border-radius: 3px; font-family: var(--f-mono); font-size: 9.5px; line-height: 1.25; color: var(--ink);
+  background: color-mix(in srgb, var(--surface) 75%, transparent); }
 @media (max-width: 840px) { .slot .spr { --s: 1 !important; } .slot.alpha .spr { --s: 1.15 !important; } }
 @media (max-width: 600px) { .pc-grid { --cell: calc((100vw - 32px - 36px - 18px - 16px) / var(--cols)); gap: 2px; padding: 8px; } .slot { border-radius: 5px; }
-  .slot .spr { --s: 0.6 !important; } .slot.alpha .spr { --s: 0.7 !important; } .slot .n31 { display: none; } .slot .ha { width: 8px; height: 7px; right: 1px; top: 1px; } .slot .g { font-size: 9px; right: 2px; bottom: 0; } }
+  .slot .spr { --s: 0.6 !important; } .slot.alpha .spr { --s: 0.7 !important; } .slot .n31, .slot .lv { display: none; } .slot .ha { width: 8px; height: 7px; right: 1px; top: 1px; } .slot .g { font-size: 9px; right: 2px; bottom: 0; } }
 .pc-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
 .pc-foot .row { gap: 6px; }
-.box-msg { font-size: 13px; }
+/* The sort menu, a list like the game's: pick one or more, then Sort */
+.sort-wrap { position: relative; }
+.sort-menu { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 60; width: 290px; max-width: calc(100vw - 32px); display: grid; gap: 8px; padding: 10px;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 10px 30px rgb(0 0 0 / 0.25); }
+.sort-menu[hidden] { display: none; }
+.sort-menu.below { bottom: auto; top: calc(100% + 6px); }
+.sort-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-family: var(--f-display); font-weight: 600; font-size: 15px; }
+.sort-opts { display: grid; gap: 2px; }
+.sort-opt { display: flex; align-items: center; gap: 4px; }
+.sort-pick { flex: 1; display: flex; align-items: center; gap: 9px; text-align: left; padding: 6px 9px; border: 1px solid transparent; border-radius: 7px; background: none; color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+.sort-pick:hover { background: var(--sunk); border-color: var(--line); }
+.sort-pick[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.sort-n { flex: none; width: 19px; height: 19px; border-radius: 50%; display: inline-grid; place-items: center; font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line-strong); color: transparent; }
+.sort-pick[aria-pressed="true"] .sort-n { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.sort-dir { flex: none; border: 1px solid var(--line); background: var(--sunk); color: var(--muted); border-radius: 6px; padding: 3px 7px; font: inherit; font-size: 11.5px; cursor: pointer; white-space: nowrap; }
+.sort-dir:hover { border-color: var(--accent); color: var(--ink); }
+.sort-scope { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.sort-menu .row { gap: 6px; }
+.sort-menu .note { font-size: 12px; color: var(--muted); }
+.box-msg { font-size: 13px; width: 0; min-width: 100%; } /* the box column is as wide as the box, so a long message wraps instead of widening it */
 /* Asking before something that deletes Pokémon */
 .ask { width: min(420px, calc(100vw - 32px)); border: 1px solid var(--line-strong); border-radius: 10px; padding: 18px; background: var(--surface); color: var(--ink);
   box-shadow: 0 16px 40px rgb(0 0 0 / 0.3); }
@@ -465,7 +493,7 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
             <p class="muted small" id="codes-help"></p>
             <div class="row"><button class="btn" type="button" id="code-this">Copy code for this setup</button><button class="btn" type="button" id="code-all">Copy code for all saved builds</button></div>
             <textarea class="code" id="code-out" readonly hidden aria-label="Build code"></textarea>
-            <label class="f">Import a code<textarea class="code" id="code-in" spellcheck="false" placeholder="Paste a code that starts with PMB1"></textarea></label>
+            <label class="f">Import a code<textarea class="code" id="code-in" spellcheck="false" placeholder="Paste a code that starts with PMB"></textarea></label>
             <div class="row"><button class="btn" type="button" id="code-import">Import</button></div>
           </div>
         </details>
@@ -571,7 +599,14 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
           <div class="pc-grid" id="box-grid" aria-label="Box contents"></div>
           <div class="pc-foot">
             <span class="small muted" id="box-of"></span>
-            <div class="row"><button class="btn mini" type="button" id="box-new">+ New box</button><button class="btn ghost mini" type="button" id="box-del" hidden>Delete this box</button></div>
+            <div class="row"><span class="sort-wrap"><button class="btn mini" type="button" id="box-sort-btn" aria-haspopup="true" aria-expanded="false" aria-controls="box-sort">Sort</button>
+              <div class="sort-menu" id="box-sort" role="group" aria-labelledby="box-sort-h" hidden>
+                <div class="sort-head"><span id="box-sort-h">Sort by</span><span class="small muted" style="font-family:var(--f-body);font-weight:400">pick one or more</span></div>
+                <div class="sort-opts" id="box-sort-opts"></div>
+                <div class="sort-scope"><label class="check"><input type="radio" name="box-sort-scope" value="box" checked> This box</label><label class="check"><input type="radio" name="box-sort-scope" value="all"> All my boxes</label></div>
+                <div class="row"><button class="btn primary" type="button" id="box-sort-go">Sort</button><button class="btn ghost" type="button" id="box-sort-clear">Clear</button></div>
+                <p class="note" id="box-sort-note"></p>
+              </div></span><button class="btn mini" type="button" id="box-code-foot" title="Copy a code for this box to paste in Discord or on another device"><svg class="btn-ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5v-.5a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 3v5A1.5 1.5 0 0 0 4 9.5h.5"/></svg>Copy code</button><button class="btn mini" type="button" id="box-new">+ New box</button><button class="btn ghost mini" type="button" id="box-del" hidden>Delete this box</button></div>
           </div>
         </div>
         <p class="box-msg" id="box-msg" role="status" hidden></p>
@@ -598,13 +633,12 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
         <details class="panel fold" id="box-more">
           <summary class="panel-head"><h2>Fill or move your box</h2><span class="eyebrow">Optional</span></summary>
           <div class="codes-body">
-            <p class="muted small" id="box-from-planner-help"></p>
             <div class="row"><button class="btn" type="button" id="box-from-planner">Copy my planner Pokémon into the box</button></div>
-            <p class="muted small" id="box-codes-help"></p>
-            <div class="row"><button class="btn" type="button" id="box-code-copy">Copy a code for my whole box</button><button class="btn" type="button" id="box-text-copy">Copy this box as text</button></div>
+            <p class="muted small" id="box-codes-help">A box code moves your Pokémon to another device or site, or to a friend. A code for one box usually fits in one Discord message.</p>
+            <div class="row"><button class="btn" type="button" id="box-code-this">Copy a code for this box</button><button class="btn" type="button" id="box-code-copy">Copy a code for all my boxes</button><!-- <button class="btn" type="button" id="box-text-copy">Copy this box as text</button> --></div>
             <textarea class="code" id="box-code-out" readonly hidden aria-label="Box code"></textarea>
-            <label class="f">Import a box code<textarea class="code" id="box-code-in" spellcheck="false" placeholder="Paste a code that starts with PMBX1"></textarea></label>
-            <div class="row"><button class="btn" type="button" id="box-code-import">Add these Pokémon to my box</button></div>
+            <label class="f">Import a box code<textarea class="code" id="box-code-in" spellcheck="false" placeholder="Paste a code that starts with PMBX"></textarea></label>
+            <div class="row"><button class="btn" type="button" id="box-code-import"><svg class="btn-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5"/><path d="M2.5 10.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>Import box code</button></div>
           </div>
         </details>
       </div>
@@ -651,6 +685,7 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
 const SPECIES = /*SPECIES*/[];
 const SHEET = '/*SHEET*/';
 document.documentElement.style.setProperty('--sheet', `url(${SHEET})`);
+document.documentElement.style.setProperty('--unknown-icon', 'url(/*UNKNOWN*/)');
 const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 const STAT_LABEL = ['HP', 'Atk', 'Def', 'SpA', 'SpD', 'Spe'];
 const BRACE = ['Power Weight', 'Power Bracer', 'Power Belt', 'Power Lens', 'Power Band', 'Power Anklet'];
@@ -700,11 +735,11 @@ const sp = (name) => dex.byName.get(String(name || '').trim().toLowerCase());
 const $ = (id) => document.getElementById(id);
 const money = (n) => '$' + Math.round(n).toLocaleString('en-US');
 // Box icon from the sprite sheet (25 per row, 40x30 each, ordered by dex number).
-// Unknown or empty species get the "?" icon at the end of the sheet.
+// Unknown or empty species get the "?" icon (data/unknown-icon.png), drawn on its own rather than from the sheet.
 function sprite(name, scale = 2) {
   const s = sp(name);
   const i = s && s.i ? s.i - 1 : 649;
-  return `<span class="spr" style="--x:${i % 25};--y:${Math.floor(i / 25)};--s:${scale}" role="img" aria-label="${s ? esc(s.n) : 'Unknown Pokémon'}"></span>`;
+  return `<span class="spr${s && s.i ? '' : ' unk'}" style="--x:${i % 25};--y:${Math.floor(i / 25)};--s:${scale}" role="img" aria-label="${s ? esc(s.n) : 'Unknown Pokémon'}"></span>`;
 }
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 // What an egg of this line hatches as. Nidoran and Volbeat/Illumise eggs depend on their gender.
@@ -1014,7 +1049,7 @@ const EVENT = { on: true, label: '🎃 Halloween event builds 🎃', banner: '�
 function makePick(id, builds, onPick) {
   const root = $(id), btn = $(id + '-btn'), box = $(id + '-list');
   const items = [{ key: '', label: 'None, fill in my own' }, ...builds];
-  const row = (it) => (it.species ? sprite(it.species, 1) : sprite('', 1).replace('class="spr"', 'class="spr unk"')) + `<span>${esc(it.label)}</span>`;
+  const row = (it) => sprite(it.species || '', 1) + `<span>${esc(it.label)}</span>`;
   box.innerHTML = items.map((it, i) => `<div class="opt" role="option" id="${id}-o${i}" data-i="${i}" aria-selected="false">${row(it)}</div>`).join('');
   let value = null, active = -1;
   const mark = (i) => {
@@ -2063,12 +2098,14 @@ const BOX_KEY = 'pokemmo-breeding-box-v1';
 const newPid = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const okId = (v) => typeof v === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(v);
 const okSig = (v) => typeof v === 'string' && /^[a-z0-9.]{1,24}$/.test(v);
+// A level from 1 to 100, or null when it isn't known.
+const okLevel = (v) => { const n = parseInt(v, 10); return n >= 1 && n <= 100 ? n : null; };
 // One stored Pokémon, cleaned up so a damaged or old copy can't break the page.
 function cleanBoxMon(m) {
   if (!m || typeof m !== 'object' || !str(m.species).trim()) return null;
   const species = str(m.species).trim(), gs = genderChoices(species);
   return { id: okId(m.id) ? m.id : newPid(), species, nick: str(m.nick).trim().slice(0, 20), gender: gs.includes(m.gender) ? m.gender : gs[0],
-    ivs: ivList(m.ivs), nature: NATURES.includes(m.nature) ? m.nature : '', ability: str(m.ability), moves: strs(m.moves).slice(0, 8), from: okSig(m.from) ? m.from : '', alpha: m.alpha === true };
+    ivs: ivList(m.ivs), nature: NATURES.includes(m.nature) ? m.nature : '', ability: str(m.ability), moves: strs(m.moves).slice(0, 8), from: okSig(m.from) ? m.from : '', alpha: m.alpha === true, level: okLevel(m.level) };
 }
 function cleanBox(b, i) {
   const slots = Array.from({ length: BOX_SIZE }, (_, k) => cleanBoxMon(b && Array.isArray(b.slots) ? b.slots[k] : null));
@@ -2210,6 +2247,8 @@ function afterBoxChange() {
   renderUseBox();
 }
 const n31 = (m) => m.ivs.filter((v) => v === 31).length;
+// The egg groups of a species' breeding line (a baby's are its line's), or its own for one with no line, like Ditto.
+const monGroups = (s) => lineGroups(dex.lineOf(s.n)) || s.e.join(' / ');
 const hasHA = (m) => { const s = sp(m.species); return !!(s && s.h && m.ability === s.h); };
 const HA_ICON = '<svg class="ha" viewBox="0 0 13 11" aria-hidden="true"><path d="M3 .5h7l2.5 3-6 7-6-7z" fill="#3ec8f0" stroke="#1b7fae"/><path d="M3.6 1.5h2.2L4.6 3.6H1.9z" fill="#d8f6ff"/></svg>';
 function renderBox() {
@@ -2228,8 +2267,8 @@ function renderBox() {
     const on = !!box.sel && box.sel.b === box.cur && box.sel.s === s;
     if (!m) return `<button type="button" class="slot empty" data-slot="${s}" aria-pressed="${on}" aria-label="Empty spot ${s + 1}, add a Pokémon"></button>`;
     const k = n31(m), name = m.nick || m.species;
-    return `<button type="button" class="slot${m.alpha ? ' alpha' : ''}" data-slot="${s}" draggable="true" aria-pressed="${on}" aria-label="${esc(`${m.alpha ? 'Alpha ' : ''}${name}${m.gender === 'F' ? ', female' : m.gender === 'M' ? ', male' : ''}${k ? `, ${k}×31` : ''}${hasHA(m) ? ', hidden ability' : ''}`)}">`
-      + `${sprite(m.species, 2).replace(' role="img"', ' aria-hidden="true"')}${k ? `<span class="n31">${k}×31</span>` : ''}${hasHA(m) ? HA_ICON : ''}${m.gender === 'F' || m.gender === 'M' ? `<span class="g">${gSym(m.gender)}</span>` : ''}</button>`;
+    return `<button type="button" class="slot${m.alpha ? ' alpha' : ''}" data-slot="${s}" draggable="true" aria-pressed="${on}" aria-label="${esc(`${m.alpha ? 'Alpha ' : ''}${name}${m.level ? `, level ${m.level}` : ''}${m.gender === 'F' ? ', female' : m.gender === 'M' ? ', male' : ''}${k ? `, ${k}×31` : ''}${hasHA(m) ? ', hidden ability' : ''}`)}">`
+      + `${sprite(m.species, 2).replace(' role="img"', ' aria-hidden="true"')}${k ? `<span class="n31">${k}×31</span>` : ''}${m.level ? `<span class="lv">Lv${m.level}</span>` : ''}${hasHA(m) ? HA_ICON : ''}${m.gender === 'F' || m.gender === 'M' ? `<span class="g">${gSym(m.gender)}</span>` : ''}</button>`;
   }).join('');
   try { localStorage.setItem(BOX_KEY + '-at', String(box.cur)); } catch (e) {}
 }
@@ -2242,8 +2281,8 @@ function monSummary(m) {
     ['Ability', m.ability ? esc(m.ability) + (s && s.h === m.ability ? ' <span class="muted">(hidden)</span>' : '') : '<span class="muted">Not set</span>'],
     ['Egg moves', m.moves.length ? m.moves.map(esc).join(', ') : '<span class="muted">None</span>'],
   ];
-  if (s) rows.push(['Egg group', esc(lineGroups(dex.lineOf(s.n)) || 'None')]);
-  return `<div class="tip-head">${sprite(m.species, 1)}<b>${gSym(m.gender)} ${esc(m.nick || m.species)}</b>${m.nick ? `<span class="muted small">${esc(m.species)}</span>` : ''}${m.alpha ? '<span class="tip-alpha">Alpha</span>' : ''}</div>`
+  if (s) rows.push(['Egg group', esc(monGroups(s) || 'None')], ['Type', esc(s.t.join(' / '))]);
+  return `<div class="tip-head">${sprite(m.species, 1)}<b>${gSym(m.gender)} ${esc(m.nick || m.species)}</b>${m.nick ? `<span class="muted small">${esc(m.species)}</span>` : ''}${m.level ? `<span class="muted small">Lv. ${m.level}</span>` : ''}${m.alpha ? '<span class="tip-alpha">Alpha</span>' : ''}</div>`
     + `<div class="tip-ivs">${ivs}</div>` + rows.map(([k, v]) => `<div class="tip-row"><span>${k}</span><span>${v}</span></div>`).join('');
 }
 const tip = $('box-tip');
@@ -2272,7 +2311,7 @@ let boxDraft = null;
 function openSlot(b, s) {
   box.sel = { b, s };
   const m = box.boxes[b].slots[s];
-  boxDraft = { isNew: !m, b, s, copies: 1, mon: m ? { ...m, ivs: m.ivs.slice(), moves: m.moves.slice() } : { species: '', nick: '', gender: 'F', ivs: [null, null, null, null, null, null], nature: '', ability: '', moves: [], from: '', alpha: false } };
+  boxDraft = { isNew: !m, b, s, copies: 1, mon: m ? { ...m, ivs: m.ivs.slice(), moves: m.moves.slice() } : { species: '', nick: '', gender: 'F', ivs: [null, null, null, null, null, null], nature: '', ability: '', moves: [], from: '', alpha: false, level: null } };
   renderBox(); renderDraft();
 }
 function closeDraft() { box.sel = null; boxDraft = null; renderBox(); renderDraft(); }
@@ -2318,7 +2357,8 @@ function renderDraft() {
       <label class="f">Nickname (optional)<input type="text" id="bx-nick" maxlength="20" autocomplete="off" value="${esc(m.nick)}"></label>
       <label class="f">Gender<select id="bx-gender">${draftGenderOptions()}</select></label>
     </div>
-    <label class="check"><input type="checkbox" id="bx-alpha" ${m.alpha ? 'checked' : ''}>Alpha</label>
+    <div class="row" style="align-items:end;gap:16px"><label class="f" style="max-width:110px">Level (optional)<input type="number" id="bx-level" min="1" max="100" inputmode="numeric" value="${m.level || ''}"></label>
+      <label class="check" style="margin-bottom:8px"><input type="checkbox" id="bx-alpha" ${m.alpha ? 'checked' : ''}>Alpha</label></div>
     <div style="display:grid;gap:6px">
       <div class="moves-head"><span class="eyebrow">IVs (blank = don't know)</span><button class="linkbtn small" type="button" id="bx-all31">Set all to 31</button></div>
       <div class="stats">${STAT_KEYS.map((k, i) => `<span class="iv-cell s-${k}">${ivControl(m.ivs, i, 'bx', true, 'Box Pokémon')}<button type="button" class="iv31" data-max31="${i}" aria-pressed="${m.ivs[i] === 31}" aria-label="Set ${STAT_LABEL[i]} to 31">31</button></span>`).join('')}</div>
@@ -2422,6 +2462,7 @@ $('box-edit').addEventListener('input', (e) => {
   if (!boxDraft || el.dataset.combo) return;
   if (el.dataset.iv != null) { boxDraft.mon.ivs[+el.dataset.iv] = readIv(el); syncIv31(); }
   else if (el.id === 'bx-nick') boxDraft.mon.nick = el.value;
+  else if (el.id === 'bx-level') boxDraft.mon.level = okLevel(el.value);
   else if (el.id === 'bx-copies') boxDraft.copies = Math.max(1, Math.min(BOX_SIZE, parseInt(el.value, 10) || 1));
 });
 $('box-edit').addEventListener('change', (e) => {
@@ -2431,7 +2472,7 @@ $('box-edit').addEventListener('change', (e) => {
   if (e.target.id === 'bx-alpha') boxDraft.mon.alpha = e.target.checked;
 });
 $('box-edit').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && e.target.matches('#bx-nick, #bx-copies, .ivnum input')) { e.preventDefault(); saveDraft(); }
+  if (e.key === 'Enter' && e.target.matches('#bx-nick, #bx-level, #bx-copies, .ivnum input')) { e.preventDefault(); saveDraft(); }
   else if (e.key === 'Escape' && !e.defaultPrevented && boxDraft && list.hidden) { e.preventDefault(); const s = boxDraft.s; closeDraft(); const sl = document.querySelector(`.slot[data-slot="${s}"]`); if (sl) sl.focus(); }
 });
 
@@ -2541,6 +2582,132 @@ $('box-del').addEventListener('click', async () => {
     saveBox('all', true); boxSay(`Put ${b.name} back.`);
   });
 });
+// ---------- sorting the box ----------
+// Like the game's sort menu: pick one or more things to sort by, then Sort. The first one picked decides the order,
+// the next breaks ties, and so on; Pokémon that tie on all of them keep their order. They fill the box from the first
+// spot, leaving the empty spots at the end. A Pokémon missing what's sorted on (no level, say) goes after the rest.
+// Catch date is when it went into the box on this site, read off its id, as the game's own date isn't known here.
+const caughtAt = (m) => { const t = /^p([0-9a-z]{8})/.exec(m.id); return t ? parseInt(t[1], 36) : null; };
+const BOX_SORTS = [
+  { k: 'level', label: 'Level', say: 'level', dirs: ['Highest first', 'Lowest first'], down: true, key: (m) => m.level },
+  { k: 'dex', label: 'Pokédex Number', say: 'Pokédex number', dirs: ['Lowest first', 'Highest first'], key: (m, s) => (s ? s.i : null) },
+  { k: 'n31', label: '31 IV', say: 'number of 31 IVs', dirs: ['Most first', 'Fewest first'], down: true, key: (m) => n31(m) },
+  { k: 'total', label: 'Total IV', say: 'total IVs', dirs: ['Highest first', 'Lowest first'], down: true, key: (m) => (m.ivs.some((v) => v != null) ? m.ivs.reduce((a, v) => a + (v || 0), 0) : null) },
+  { k: 'gender', label: 'Gender', say: 'gender', dirs: ['♂ first', '♀ first'], key: (m) => ({ M: 0, F: 1 })[m.gender] ?? null },
+  { k: 'egg', label: 'Egg group', say: 'egg group', dirs: ['A–Z', 'Z–A'], key: (m, s) => (s && monGroups(s)) || null },
+  { k: 'type', label: 'Primary type', say: 'primary type', dirs: ['A–Z', 'Z–A'], key: (m, s) => (s ? s.t[0] : null) },
+  { k: 'caught', label: 'Catch Date', say: 'catch date', dirs: ['Oldest first', 'Newest first'], key: caughtAt },
+  { k: 'name', label: 'Name', say: 'name', dirs: ['A–Z', 'Z–A'], key: (m) => m.nick || m.species },
+];
+const SORT_KEY = 'pokemmo-breeding-box-sort';
+let boxSort = { picks: [], all: false };
+try {
+  const o = JSON.parse(localStorage.getItem(SORT_KEY));
+  if (o && Array.isArray(o.picks)) boxSort = { picks: o.picks.filter((p, i, a) => p && BOX_SORTS.some((x) => x.k === p.k) && a.findIndex((q) => q && q.k === p.k) === i).map((p) => ({ k: p.k, rev: p.rev === true })), all: o.all === true };
+} catch (e) {}
+const saveSortPrefs = () => { try { localStorage.setItem(SORT_KEY, JSON.stringify(boxSort)); } catch (e) {} };
+const byText = (a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true });
+function sortMons(mons, picks) {
+  const keyed = mons.map((m, i) => { const s = sp(m.species); return { m, i, keys: picks.map((p) => p.key(m, s)) }; });
+  keyed.sort((a, b) => {
+    for (let j = 0; j < picks.length; j++) {
+      const x = a.keys[j], y = b.keys[j];
+      if (x == null || y == null) { if (x != null || y != null) return x == null ? 1 : -1; continue; }
+      const d = typeof x === 'string' ? byText(x, y) : x - y;
+      if (d) return !!picks[j].down !== picks[j].rev ? -d : d;
+    }
+    return a.i - b.i;
+  });
+  return keyed.map((x) => x.m);
+}
+// After the Pokémon move, the one open in the editor is followed to its new spot.
+function followDraft() {
+  if (!boxDraft) return;
+  const at = !boxDraft.isNew && findMon(boxDraft.mon.id);
+  if (!at) { box.sel = null; boxDraft = null; return; }
+  box.sel = { b: at.b, s: at.s }; boxDraft.b = at.b; boxDraft.s = at.s;
+}
+function sortBox() {
+  const picks = boxSort.picks.map((p) => ({ ...BOX_SORTS.find((x) => x.k === p.k), rev: p.rev }));
+  if (!picks.length) return;
+  const which = boxSort.all ? box.boxes.map((_, i) => i) : [box.cur];
+  const before = which.map((b) => box.boxes[b].slots.map((m) => m && m.id));
+  const sorted = sortMons(which.flatMap((b) => box.boxes[b].slots.filter(Boolean)), picks);
+  if (!sorted.length) return boxSay(boxSort.all ? 'Your boxes are empty, so there is nothing to sort.' : 'This box is empty, so there is nothing to sort.');
+  which.forEach((b, i) => { box.boxes[b].slots = Array.from({ length: BOX_SIZE }, (_, s) => sorted[i * BOX_SIZE + s] || null); });
+  const where = boxSort.all ? 'your boxes' : box.boxes[box.cur].name;
+  if (which.every((b, i) => box.boxes[b].slots.every((m, s) => (m && m.id) === before[i][s]))) return boxSay(`${where[0].toUpperCase() + where.slice(1)} ${boxSort.all ? 'are' : 'is'} already in that order.`);
+  followDraft();
+  saveBox(which);
+  renderDraft();
+  const by = picks.map((p) => p.say + (p.rev ? ` (${p.dirs[1].toLowerCase()})` : ''));
+  boxSay(`Sorted ${where} by ${by.length > 1 ? `${by.slice(0, -1).join(', ')}, then ${by[by.length - 1]}` : by[0]}.`, () => {
+    if (which.some((b) => b >= box.boxes.length)) return boxSay("Couldn't undo the sort: your boxes have changed since.");
+    // each Pokémon goes back to its old spot; any put in since take the first empty spots
+    const now = new Map();
+    which.forEach((b) => box.boxes[b].slots.forEach((m) => { if (m) now.set(m.id, m); }));
+    which.forEach((b, i) => { box.boxes[b].slots = before[i].map((id) => { const m = id && now.get(id); if (m) now.delete(id); return m || null; }); });
+    for (const m of now.values()) { const b = which.find((x) => box.boxes[x].slots.includes(null)); box.boxes[b].slots[box.boxes[b].slots.indexOf(null)] = m; }
+    followDraft(); saveBox(which); renderDraft();
+    boxSay(`Put ${where} back the way ${boxSort.all ? 'they were' : 'it was'}.`);
+  });
+}
+// The menu itself.
+function renderSortMenu(focus) {
+  $('box-sort-opts').innerHTML = BOX_SORTS.map((x) => {
+    const at = boxSort.picks.findIndex((p) => p.k === x.k), p = boxSort.picks[at];
+    return `<div class="sort-opt"><button type="button" class="sort-pick" data-sort="${x.k}" aria-pressed="${at >= 0}"><span class="sort-n" aria-hidden="true">${at >= 0 ? at + 1 : ''}</span>${esc(x.label)}</button>`
+      + (p ? `<button type="button" class="sort-dir" data-sortdir="${x.k}" aria-label="${esc(`${x.label}: ${x.dirs[+p.rev].toLowerCase()}. Switch to ${x.dirs[+!p.rev].toLowerCase()}`)}">${esc(x.dirs[+p.rev])}</button>` : '') + '</div>';
+  }).join('');
+  document.querySelectorAll('[name="box-sort-scope"]').forEach((r) => { r.checked = (r.value === 'all') === boxSort.all; });
+  $('box-sort-go').disabled = !boxSort.picks.length;
+  $('box-sort-clear').hidden = !boxSort.picks.length;
+  const p = boxSort.picks;
+  $('box-sort-note').textContent = !p.length ? 'Pick what to sort by. Pick more than one and the next one breaks ties.'
+    : p.some((x) => x.k === 'level') ? 'Pokémon without a level go last. You can set one by clicking a Pokémon.'
+    : p.some((x) => x.k === 'caught') ? 'Catch date is when the Pokémon was put in your box on this site.'
+    : p.length > 1 ? `Sorts by ${BOX_SORTS.find((x) => x.k === p[0].k).say} first; the others break ties in order.` : 'Pick more to break ties.';
+  if (focus) { const el = document.querySelector(focus); if (el) el.focus(); }
+}
+const sortMenu = $('box-sort'), sortBtn = $('box-sort-btn');
+function openSortMenu() {
+  renderSortMenu();
+  sortMenu.hidden = false; sortBtn.setAttribute('aria-expanded', 'true'); hideTip();
+  // open above the button, or below it when there's more room there; kept on the screen sideways
+  sortMenu.classList.remove('below'); sortMenu.style.right = '';
+  let r = sortMenu.getBoundingClientRect();
+  const b = sortBtn.getBoundingClientRect();
+  if (r.top < 8 && window.innerHeight - b.bottom > b.top) { sortMenu.classList.add('below'); r = sortMenu.getBoundingClientRect(); }
+  if (r.left < 8) sortMenu.style.right = (r.left - 8) + 'px';
+  if (r.top < 0 || r.bottom > window.innerHeight) sortMenu.scrollIntoView({ block: 'nearest' });
+  const first = sortMenu.querySelector('.sort-pick[aria-pressed="true"]') || sortMenu.querySelector('.sort-pick');
+  if (first) first.focus();
+}
+function closeSortMenu(refocus) {
+  if (sortMenu.hidden) return;
+  sortMenu.hidden = true; sortBtn.setAttribute('aria-expanded', 'false');
+  if (refocus) sortBtn.focus();
+}
+sortBtn.addEventListener('click', () => (sortMenu.hidden ? openSortMenu() : closeSortMenu()));
+sortMenu.addEventListener('click', (e) => {
+  const pick = e.target.closest('[data-sort]'), dir = e.target.closest('[data-sortdir]');
+  if (pick) {
+    const k = pick.dataset.sort, at = boxSort.picks.findIndex((p) => p.k === k);
+    if (at >= 0) boxSort.picks.splice(at, 1); else boxSort.picks.push({ k, rev: false });
+    saveSortPrefs(); return renderSortMenu(`[data-sort="${k}"]`);
+  }
+  if (dir) {
+    const p = boxSort.picks.find((x) => x.k === dir.dataset.sortdir);
+    if (p) { p.rev = !p.rev; saveSortPrefs(); renderSortMenu(`[data-sortdir="${p.k}"]`); }
+    return;
+  }
+  if (e.target.closest('#box-sort-clear')) { boxSort.picks = []; saveSortPrefs(); return renderSortMenu('.sort-pick'); }
+  if (e.target.closest('#box-sort-go')) { closeSortMenu(true); sortBox(); }
+});
+sortMenu.addEventListener('change', (e) => { if (e.target.name === 'box-sort-scope') { boxSort.all = e.target.value === 'all'; saveSortPrefs(); } });
+sortMenu.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeSortMenu(true); } });
+document.addEventListener('pointerdown', (e) => { if (!sortMenu.hidden && !e.target.closest('.sort-wrap')) closeSortMenu(); });
+document.addEventListener('focusin', (e) => { if (!sortMenu.hidden && !e.target.closest('.sort-wrap')) closeSortMenu(); });
 document.addEventListener('click', (e) => { if (e.target.closest('#box-undo') && boxUndo) { const f = boxUndo; boxUndo = null; $('box-msg').hidden = true; f(); } });
 
 // Copy the planner's list into the box, and box codes to move a box to another device or site.
@@ -2557,29 +2724,61 @@ $('box-from-planner').addEventListener('click', () => {
   saveBox([...touched]);
   boxSay(full ? `Copied ${n}; your boxes are full, so add a new box for the rest.` : `Copied ${n} Pokémon from the planner into your box. Turn on "Use the Pokémon in my box" in the planner and you can clear its list.`);
 });
-async function makeBoxCode() {
-  const bytes = new TextEncoder().encode(JSON.stringify({ v: 1, boxes: box.boxes.map((b) => ({ name: b.name, slots: b.slots.map((m) => m && { ...m, id: undefined, from: undefined }) })) }));
-  if (window.CompressionStream) { try { return 'PMBX1z.' + toB64(await pipe(bytes, new CompressionStream('deflate-raw'))); } catch (e) {} }
-  return 'PMBX1.' + toB64(bytes);
+// A box code holds each box's name and which spots are filled (as gaps between Pokémon), then the Pokémon.
+// Importing puts the Pokémon in your empty spots in order; the names and spots are kept for later use.
+function packBoxes(boxes) {
+  return packBits((w) => {
+    w.num(boxes.length);
+    boxes.forEach((b, i) => {
+      const named = b.name !== `Box ${i + 1}`;
+      w.bit(named);
+      if (named) w.word(b.name);
+      const at = [];
+      b.slots.forEach((m, s) => { if (m) at.push(s); });
+      w.num(at.length);
+      at.forEach((s, k) => {
+        const m = b.slots[s], lv = Number.isInteger(m.level) && m.level >= 1 && m.level <= 100 ? m.level : 0;
+        w.num(s - (k ? at[k - 1] : -1) - 1);
+        putMon(w, m);
+        w.bit(m.alpha === true);
+        w.bit(!!m.nick);
+        if (m.nick) w.word(m.nick);
+        w.bit(!!lv);
+        if (lv) w.put(lv - 1, 7);
+      });
+    });
+  });
 }
-$('box-code-copy').addEventListener('click', async () => {
-  if (!boxMons()) return boxSay('Your box is empty, so there is nothing to copy yet.');
-  const code = await makeBoxCode(), out = $('box-code-out');
-  out.value = code; out.hidden = false;
-  let copied = false;
-  try { await navigator.clipboard.writeText(code); copied = true; } catch (e) { out.focus(); out.select(); try { copied = document.execCommand('copy'); } catch (e2) {} }
-  out.focus(); out.select();
-  boxSay(copied ? 'Copied the code for your box. Paste it under "Import a box code" on the other device or site.' : "Here's the code for your box. Select it and copy it.");
-});
+function unpackBoxes(bytes) {
+  const r = bitReader(bytes), boxes = [];
+  for (let n = r.num(BOX_MAX * 10), i = 0; i < n; i++) {
+    const name = r.bit() ? r.word() : `Box ${i + 1}`, slots = [];
+    for (let k = r.num(BOX_SIZE * 10), s = -1; k > 0; k--) {
+      s += r.num(BOX_SIZE * 10) + 1;
+      if (s >= BOX_SIZE * 10) throw new Error('bad');
+      const mon = { ...getMon(r), alpha: !!r.bit() };
+      if (r.bit()) mon.nick = r.word();
+      if (r.bit()) mon.level = r.get(7) + 1;
+      slots[s] = mon;
+    }
+    boxes.push({ name, slots: Array.from({ length: Math.max(BOX_SIZE, slots.length) }, (_, k) => slots[k] || null) });
+  }
+  return { boxes };
+}
+const makeBoxCode = (boxes) => codeText('PMBX', packBoxes(boxes));
+async function copyBoxCode(boxes, what, quiet) {
+  if (!boxes.some((b) => b.slots.some(Boolean))) return boxSay(`${what === 'this box' ? 'This box is' : 'Your box is'} empty, so there is nothing to copy yet.`);
+  const { copied, long } = await giveCode(await makeBoxCode(boxes), $('box-code-out'), quiet);
+  boxSay((copied ? `Copied the code for ${what}. Send it in Discord, or paste it under "Import a box code" on another device or site.` : `Here's the code for ${what}. Select it and copy it.`)
+    + (long && boxes.length > 1 ? `${long} Or copy a code for one box at a time.` : long));
+}
+$('box-code-copy').addEventListener('click', () => copyBoxCode(box.boxes, box.boxes.length > 1 ? `all ${box.boxes.length} boxes` : 'your box'));
+$('box-code-this').addEventListener('click', () => copyBoxCode([box.boxes[box.cur]], 'this box'));
+$('box-code-foot').addEventListener('click', () => copyBoxCode([box.boxes[box.cur]], 'this box', true));
 $('box-code-import').addEventListener('click', async () => {
-  const m = /^PMBX1(z?)\.([A-Za-z0-9_-]+)$/.exec($('box-code-in').value.replace(/\s+/g, ''));
-  if (!m) return boxSay("That isn't a box code. Box codes start with PMBX1.");
-  let o = null;
-  try {
-    let bytes = fromB64(m[2]);
-    if (m[1]) bytes = await pipe(bytes, new DecompressionStream('deflate-raw'));
-    o = JSON.parse(new TextDecoder().decode(bytes));
-  } catch (e) {}
+  let found, o = null;
+  try { found = await codeBytes($('box-code-in').value, 'X'); } catch (e) { return boxSay(e.message); }
+  try { o = found.v === 2 ? unpackBoxes(found.bytes) : JSON.parse(new TextDecoder().decode(found.bytes)); } catch (e) {}
   const mons = o && Array.isArray(o.boxes) ? o.boxes.flatMap((b) => (b && Array.isArray(b.slots) ? b.slots : [])).map(cleanBoxMon).filter(Boolean) : [];
   if (!mons.length) return boxSay('That code is incomplete or damaged, or its box is empty. Copy the whole code and try again.');
   // they go into the empty spots, adding boxes as needed
@@ -2674,11 +2873,11 @@ function readPanel(lines, gender) {
   const at = lines.findIndex((l) => /\bL\s*[vV][.,:]?\s*[\d?]/.test(l));
   if (at < 0) return null;
   if (/L\s*[vV][.,:]?\s*\d*\?|\beg+\W*$/i.test(lines[at])) return { egg: true };
-  const problems = [], head = /L\s*[vV][.,:]?\s*\d+\s*(.*)$/.exec(lines[at])[1];
+  const [, lv, head] = /L\s*[vV][.,:]?\s*(\d+)\s*(.*)$/.exec(lines[at]), problems = [];
   const c = closestIn(head.replace(/[^A-Za-z0-9.'’\- ]/g, ' '), SPECIES_NAMES);
   let species = c.score >= 0.7 ? c.name : '';
   if (/^Nidoran/.test(species) && (gender === 'F' || gender === 'M')) species = 'Nidoran-' + gender;
-  const mon = { species, nick: '', gender: '', ivs: ivList(null), nature: '', ability: '', moves: [], alpha: false };
+  const mon = { species, nick: '', gender: '', ivs: ivList(null), nature: '', ability: '', moves: [], alpha: false, level: okLevel(lv) };
   if (!species) problems.push(`Couldn't make out the species ("${head.trim().slice(0, 24)}").`);
   // The nickname is at the top of the panel. The sprite and type badges under and beside it get read as stray
   // marks too, so it's the first of the top lines that has real words in it, leaving out words that look like a type.
@@ -2715,6 +2914,7 @@ function readPanel(lines, gender) {
 //   IVs: 31 HP / 31 Atk / 20 Def / 31 SpA / 31 SpD / 31 Spe
 //   - Roost
 // Stats missing from the IVs line stay blank (unknown) rather than 31 as in Showdown. "Alpha: Yes" marks an alpha.
+// With no "Level:" line the level stays blank rather than 100.
 const IV_STAT = { hp: 0, atk: 1, attack: 1, def: 2, defense: 2, spa: 3, spatk: 3, spattack: 3, spd: 4, spdef: 4, spdefense: 4, spe: 5, speed: 5 };
 function parseSets(text) {
   return String(text).replace(/\r/g, '').split(/\n\s*\n/).map((b) => b.split('\n').map((l) => l.trim()).filter(Boolean))
@@ -2730,12 +2930,13 @@ function parseSet(lines) {
   const c = sp(head) ? { name: sp(head).n, score: 1 } : closest(head.replace(/♀/g, '-F').replace(/♂/g, '-M'), SPECIES_NAMES);
   const species = c.score >= 0.8 ? c.name : '';
   if (!species) problems.push(`Unknown species "${head.slice(0, 24)}".`);
-  const mon = { species, nick: squash(nick) === squash(species) ? '' : nick.slice(0, 20), gender: '', ivs: ivList(null), nature: '', ability: '', moves: [], alpha: false };
+  const mon = { species, nick: squash(nick) === squash(species) ? '' : nick.slice(0, 20), gender: '', ivs: ivList(null), nature: '', ability: '', moves: [], alpha: false, level: null };
   importGender(mon, gender, problems);
   const moves = [];
   for (const l of lines.slice(1)) {
     let m;
     if ((m = /^ability:\s*(.+)$/i.exec(l))) importAbility(mon, m[1].trim(), problems);
+    else if ((m = /^level:\s*(\d+)$/i.exec(l))) mon.level = okLevel(m[1]);
     else if ((m = /^ivs:\s*(.+)$/i.exec(l))) {
       for (const part of m[1].split('/')) {
         const x = /^\s*(\d{1,2})\s*(.+)$/.exec(part), i = x ? IV_STAT[squash(x[2])] : undefined;
@@ -2754,6 +2955,7 @@ function monText(m) {
   const lines = [`${m.nick ? `${m.nick} (${m.species})` : m.species}${m.gender === 'M' || m.gender === 'F' ? ` (${m.gender})` : ''}`];
   if (m.alpha) lines.push('Alpha: Yes');
   if (m.ability) lines.push(`Ability: ${m.ability}`);
+  if (m.level) lines.push(`Level: ${m.level}`);
   if (m.nature) lines.push(`${m.nature} Nature`);
   const ivs = m.ivs.map((v, i) => (v == null ? '' : `${v} ${STAT_LABEL[i]}`)).filter(Boolean);
   if (ivs.length) lines.push('IVs: ' + ivs.join(' / '));
@@ -3117,6 +3319,7 @@ function fillGaps(a, b) {
   if (!m.nature && b.mon.nature) { m.nature = b.mon.nature; fixed.push(/nature/); }
   if (!m.ability && b.mon.ability) { m.ability = b.mon.ability; fixed.push(/bility/); }
   if (!m.moves.length) m.moves = b.mon.moves;
+  if (!m.level) m.level = b.mon.level;
   return { mon: m, problems: a.problems.filter((p) => !fixed.some((re) => re.test(p))) };
 }
 // Read one copy of the side panel. got is null for an empty spot or one that couldn't be read.
@@ -3233,7 +3436,7 @@ function impRow(it, i) {
   const m = it.mon, ivs = m.ivs.map((v) => (v == null ? '–' : v)).join('/');
   const bits = [m.nature || 'no nature', m.ability || 'no ability', ...(m.moves.length ? [m.moves.join(', ')] : [])].map(esc).join(' · ');
   return `<li class="imp-row${it.problems.length ? ' warn' : ''}"><input type="checkbox" data-imp="${i}" ${it.on ? 'checked' : ''} ${m.species ? '' : 'disabled'} aria-label="Import ${esc(m.nick || m.species || 'this one')}">`
-    + `${sprite(m.species, 1)}<span class="imp-what"><b>${gSym(m.gender)} ${esc(m.nick || m.species || 'Unknown')}</b>${m.nick ? ` <span class="muted small">${esc(m.species)}</span>` : ''}${m.alpha ? ' <span class="tip-alpha">Alpha</span>' : ''}`
+    + `${sprite(m.species, 1)}<span class="imp-what"><b>${gSym(m.gender)} ${esc(m.nick || m.species || 'Unknown')}</b>${m.nick ? ` <span class="muted small">${esc(m.species)}</span>` : ''}${m.alpha ? ' <span class="tip-alpha">Alpha</span>' : ''}${m.level ? ` <span class="muted small">Lv. ${m.level}</span>` : ''}`
     + `${it.slot != null ? ` <span class="muted small">spot ${it.slot + 1}</span>` : ''}<br><span class="imp-ivs">${ivs}</span> <span class="meta">${bits}</span>`
     + `${it.problems.length ? `<br><span class="mon-warn small">${esc(it.problems.join(' '))}</span>` : ''}</span></li>`;
 }
@@ -3328,7 +3531,8 @@ document.getElementById('imp').addEventListener('change', (e) => {
   if (i != null && imp.review) { imp.review[+i].on = e.target.checked; const n = imp.review.filter((x) => x.on).length, b = $('imp-put'); b.disabled = !n; b.textContent = b.textContent.replace(/\d+/, n); }
   if (e.target.id === 'imp-name') imp.name = e.target.value;
 });
-$('box-text-copy').addEventListener('click', async () => {
+// The button is commented out for now; uncomment it in the HTML to bring it back.
+$('box-text-copy')?.addEventListener('click', async () => {
   const mons = box.boxes[box.cur].slots.filter(Boolean);
   if (!mons.length) return boxSay('This box is empty, so there is nothing to copy.');
   const text = mons.map(monText).join('\n\n'), out = $('box-code-out');
@@ -3384,7 +3588,7 @@ $('box-sync-on').addEventListener('change', (e) => { state.boxSync = e.target.ch
 function hatchedMon(r) {
   const n = r.node, t = state.target, species = n.baby || dex.hatchName(n.line, n.gender);
   return { species, gender: n.gender === 'F' || n.gender === 'M' ? n.gender : genderChoices(species)[0], ivs: r.iv.map((v, i) => (t.ivs[i] != null && v >= t.ivs[i] ? v : null)),
-    nature: n.nat ? t.nature : '', ability: n.abil ? t.ability : '', moves: n.mv ? bredMoves() : [], from: r.sig };
+    nature: n.nat ? t.nature : '', ability: n.abil ? t.ability : '', moves: n.mv ? bredMoves() : [], from: r.sig, level: 1 };
 }
 const monLabel = (m) => `${m.gender === 'F' ? '♀ ' : m.gender === 'M' ? '♂ ' : ''}${m.nick || m.species}`;
 // Ticking breeds takes their parents out of the box (kept aside so unticking puts them back), and the
@@ -3599,44 +3803,210 @@ async function deleteBuild(id) {
   say(`Deleted “${b.name}”.`, () => putBuild(b).then((ok) => ok && say(`Restored “${b.name}”.`)));
 }
 
-// Build codes: the builds as JSON, deflated where the browser can, then base64url.
+// ---------- build and box codes ----------
+// Version 2 codes (PMB2 for builds, PMBX2 for boxes) pack each Pokémon into a few bytes instead of writing it out
+// as JSON: species as its dex number, ability as which of the species' abilities it is, each IV as one bit when
+// it's 31 and six otherwise, each move as its number, and any other text (names) once in a word list at the start. A full box comes
+// out about a quarter as long as a version 1 code, short enough for one Discord message. The letters are plain
+// base64 with no _ in them, since Discord's markdown turns __text__ into underlined text and drops the
+// underscores. Version 1 codes (deflated JSON in base64url) still import.
+const DISCORD_LIMIT = 2000;
 function toB64(bytes) {
   let s = '';
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return btoa(s).replace(/=+$/, '');
 }
 const fromB64 = (t) => Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
 async function pipe(bytes, stream) { return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer()); }
-async function makeCode(builds) {
-  const bytes = new TextEncoder().encode(JSON.stringify({ v: 1, builds: builds.map((b) => ({ name: b.name, data: b.data })) }));
-  if (window.CompressionStream) { try { return 'PMB1z.' + toB64(await pipe(bytes, new CompressionStream('deflate-raw'))); } catch (e) {} }
-  return 'PMB1.' + toB64(bytes);
+
+// Writes a code's bits. body(w) runs twice: once to gather the words, then to write the bits after the word list.
+const bitsFor = (k) => (k < 2 ? 0 : 32 - Math.clz32(k - 1));
+function packBits(body) {
+  const list = [], index = new Map();
+  body({ bit() {}, put() {}, num() {}, word(s) { if (!index.has(s)) { index.set(s, list.length); list.push(s); } } });
+  const bytes = [], wide = bitsFor(list.length);
+  let n = 0;
+  const w = {
+    bit(v) { if (!(n & 7)) bytes.push(0); if (v) bytes[n >> 3] |= 0x80 >> (n & 7); n++; },
+    put(v, width) { for (let i = width - 1; i >= 0; i--) w.bit(Math.floor(v / 2 ** i) % 2); },
+    // Small numbers take few bits: 0 takes one, 1-2 three, 3-6 five, and so on (exp-Golomb).
+    num(v) { let len = 0; while (2 ** (len + 1) <= v + 1) len++; w.put(0, len); w.put(v + 1, len + 1); },
+    word(s) { w.put(index.get(s), wide); },
+  };
+  w.num(list.length);
+  for (const s of list) { const b = new TextEncoder().encode(s); w.num(b.length); b.forEach((x) => w.put(x, 8)); }
+  body(w);
+  return Uint8Array.from(bytes);
 }
-async function readCode(text) {
-  const m = /^PMB1(z?)\.([A-Za-z0-9_-]+)$/.exec(String(text).replace(/\s+/g, ''));
-  if (!m) throw new Error("That isn't a build code. Codes start with PMB1.");
-  if (m[1] && !window.DecompressionStream) throw new Error("This browser is too old to read that code. Try it in an up-to-date browser.");
+// Reads them back. Anything out of range throws, so a damaged code is turned down rather than half read.
+function bitReader(bytes) {
+  let n = 0, list = [], wide = 0;
+  const r = {
+    bit() { if (n >= bytes.length * 8) throw new Error('short'); const v = (bytes[n >> 3] >> (7 - (n & 7))) & 1; n++; return v; },
+    get(width) { let v = 0; for (let i = 0; i < width; i++) v = v * 2 + r.bit(); return v; },
+    num(max = 1e9) { let len = 0; while (!r.bit()) if (++len > 53) throw new Error('bad'); const v = 2 ** len + r.get(len) - 1; if (v > max) throw new Error('bad'); return v; },
+    word() { const k = r.get(wide); if (k >= list.length) throw new Error('bad'); return list[k]; },
+  };
+  const count = r.num(5000);
+  for (let i = 0; i < count; i++) list.push(new TextDecoder().decode(Uint8Array.from({ length: r.num(400) }, () => r.get(8))));
+  wide = bitsFor(list.length);
+  return r;
+}
+
+// The parts of a Pokémon that builds and boxes share. Natures are stored as their place in NATURES, so that list
+// must never be reordered or added to in the middle.
+const BY_DEX = new Map(SPECIES.map((s) => [s.i, s]));
+// Every move up to Gen 5 in the games' own move number order (from Pokémon Showdown's data), so a move takes
+// 10 bits instead of its name. Moves the screen reader keeps can number 3 or 4 a Pokémon, and a box of them
+// spelled out took over half the code. The order is fixed by the games; never change it.
+const MOVE_LIST = 'Pound|Karate Chop|Double Slap|Comet Punch|Mega Punch|Pay Day|Fire Punch|Ice Punch|Thunder Punch|Scratch|Vise Grip|Guillotine|Razor Wind|Swords Dance|Cut|Gust|Wing Attack|Whirlwind|Fly|Bind|Slam|Vine Whip|Stomp|Double Kick|Mega Kick|Jump Kick|Rolling Kick|Sand Attack|Headbutt|Horn Attack|Fury Attack|Horn Drill|Tackle|Body Slam|Wrap|Take Down|Thrash|Double-Edge|Tail Whip|Poison Sting|Twineedle|Pin Missile|Leer|Bite|Growl|Roar|Sing|Supersonic|Sonic Boom|Disable|Acid|Ember|Flamethrower|Mist|Water Gun|Hydro Pump|Surf|Ice Beam|Blizzard|Psybeam|Bubble Beam|Aurora Beam|Hyper Beam|Peck|Drill Peck|Submission|Low Kick|Counter|Seismic Toss|Strength|Absorb|Mega Drain|Leech Seed|Growth|Razor Leaf|Solar Beam|Poison Powder|Stun Spore|Sleep Powder|Petal Dance|String Shot|Dragon Rage|Fire Spin|Thunder Shock|Thunderbolt|Thunder Wave|Thunder|Rock Throw|Earthquake|Fissure|Dig|Toxic|Confusion|Psychic|Hypnosis|Meditate|Agility|Quick Attack|Rage|Teleport|Night Shade|Mimic|Screech|Double Team|Recover|Harden|Minimize|Smokescreen|Confuse Ray|Withdraw|Defense Curl|Barrier|Light Screen|Haze|Reflect|Focus Energy|Bide|Metronome|Mirror Move|Self-Destruct|Egg Bomb|Lick|Smog|Sludge|Bone Club|Fire Blast|Waterfall|Clamp|Swift|Skull Bash|Spike Cannon|Constrict|Amnesia|Kinesis|Soft-Boiled|High Jump Kick|Glare|Dream Eater|Poison Gas|Barrage|Leech Life|Lovely Kiss|Sky Attack|Transform|Bubble|Dizzy Punch|Spore|Flash|Psywave|Splash|Acid Armor|Crabhammer|Explosion|Fury Swipes|Bonemerang|Rest|Rock Slide|Hyper Fang|Sharpen|Conversion|Tri Attack|Super Fang|Slash|Substitute|Struggle|Sketch|Triple Kick|Thief|Spider Web|Mind Reader|Nightmare|Flame Wheel|Snore|Curse|Flail|Conversion 2|Aeroblast|Cotton Spore|Reversal|Spite|Powder Snow|Protect|Mach Punch|Scary Face|Feint Attack|Sweet Kiss|Belly Drum|Sludge Bomb|Mud-Slap|Octazooka|Spikes|Zap Cannon|Foresight|Destiny Bond|Perish Song|Icy Wind|Detect|Bone Rush|Lock-On|Outrage|Sandstorm|Giga Drain|Endure|Charm|Rollout|False Swipe|Swagger|Milk Drink|Spark|Fury Cutter|Steel Wing|Mean Look|Attract|Sleep Talk|Heal Bell|Return|Present|Frustration|Safeguard|Pain Split|Sacred Fire|Magnitude|Dynamic Punch|Megahorn|Dragon Breath|Baton Pass|Encore|Pursuit|Rapid Spin|Sweet Scent|Iron Tail|Metal Claw|Vital Throw|Morning Sun|Synthesis|Moonlight|Hidden Power|Cross Chop|Twister|Rain Dance|Sunny Day|Crunch|Mirror Coat|Psych Up|Extreme Speed|Ancient Power|Shadow Ball|Future Sight|Rock Smash|Whirlpool|Beat Up|Fake Out|Uproar|Stockpile|Spit Up|Swallow|Heat Wave|Hail|Torment|Flatter|Will-O-Wisp|Memento|Facade|Focus Punch|Smelling Salts|Follow Me|Nature Power|Charge|Taunt|Helping Hand|Trick|Role Play|Wish|Assist|Ingrain|Superpower|Magic Coat|Recycle|Revenge|Brick Break|Yawn|Knock Off|Endeavor|Eruption|Skill Swap|Imprison|Refresh|Grudge|Snatch|Secret Power|Dive|Arm Thrust|Camouflage|Tail Glow|Luster Purge|Mist Ball|Feather Dance|Teeter Dance|Blaze Kick|Mud Sport|Ice Ball|Needle Arm|Slack Off|Hyper Voice|Poison Fang|Crush Claw|Blast Burn|Hydro Cannon|Meteor Mash|Astonish|Weather Ball|Aromatherapy|Fake Tears|Air Cutter|Overheat|Odor Sleuth|Rock Tomb|Silver Wind|Metal Sound|Grass Whistle|Tickle|Cosmic Power|Water Spout|Signal Beam|Shadow Punch|Extrasensory|Sky Uppercut|Sand Tomb|Sheer Cold|Muddy Water|Bullet Seed|Aerial Ace|Icicle Spear|Iron Defense|Block|Howl|Dragon Claw|Frenzy Plant|Bulk Up|Bounce|Mud Shot|Poison Tail|Covet|Volt Tackle|Magical Leaf|Water Sport|Calm Mind|Leaf Blade|Dragon Dance|Rock Blast|Shock Wave|Water Pulse|Doom Desire|Psycho Boost|Roost|Gravity|Miracle Eye|Wake-Up Slap|Hammer Arm|Gyro Ball|Healing Wish|Brine|Natural Gift|Feint|Pluck|Tailwind|Acupressure|Metal Burst|U-turn|Close Combat|Payback|Assurance|Embargo|Fling|Psycho Shift|Trump Card|Heal Block|Wring Out|Power Trick|Gastro Acid|Lucky Chant|Me First|Copycat|Power Swap|Guard Swap|Punishment|Last Resort|Worry Seed|Sucker Punch|Toxic Spikes|Heart Swap|Aqua Ring|Magnet Rise|Flare Blitz|Force Palm|Aura Sphere|Rock Polish|Poison Jab|Dark Pulse|Night Slash|Aqua Tail|Seed Bomb|Air Slash|X-Scissor|Bug Buzz|Dragon Pulse|Dragon Rush|Power Gem|Drain Punch|Vacuum Wave|Focus Blast|Energy Ball|Brave Bird|Earth Power|Switcheroo|Giga Impact|Nasty Plot|Bullet Punch|Avalanche|Ice Shard|Shadow Claw|Thunder Fang|Ice Fang|Fire Fang|Shadow Sneak|Mud Bomb|Psycho Cut|Zen Headbutt|Mirror Shot|Flash Cannon|Rock Climb|Defog|Trick Room|Draco Meteor|Discharge|Lava Plume|Leaf Storm|Power Whip|Rock Wrecker|Cross Poison|Gunk Shot|Iron Head|Magnet Bomb|Stone Edge|Captivate|Stealth Rock|Grass Knot|Chatter|Judgment|Bug Bite|Charge Beam|Wood Hammer|Aqua Jet|Attack Order|Defend Order|Heal Order|Head Smash|Double Hit|Roar of Time|Spacial Rend|Lunar Dance|Crush Grip|Magma Storm|Dark Void|Seed Flare|Ominous Wind|Shadow Force|Hone Claws|Wide Guard|Guard Split|Power Split|Wonder Room|Psyshock|Venoshock|Autotomize|Rage Powder|Telekinesis|Magic Room|Smack Down|Storm Throw|Flame Burst|Sludge Wave|Quiver Dance|Heavy Slam|Synchronoise|Electro Ball|Soak|Flame Charge|Coil|Low Sweep|Acid Spray|Foul Play|Simple Beam|Entrainment|After You|Round|Echoed Voice|Chip Away|Clear Smog|Stored Power|Quick Guard|Ally Switch|Scald|Shell Smash|Heal Pulse|Hex|Sky Drop|Shift Gear|Circle Throw|Incinerate|Quash|Acrobatics|Reflect Type|Retaliate|Final Gambit|Bestow|Inferno|Water Pledge|Fire Pledge|Grass Pledge|Volt Switch|Struggle Bug|Bulldoze|Frost Breath|Dragon Tail|Work Up|Electroweb|Wild Charge|Drill Run|Dual Chop|Heart Stamp|Horn Leech|Sacred Sword|Razor Shell|Heat Crash|Leaf Tornado|Steamroller|Cotton Guard|Night Daze|Psystrike|Tail Slap|Hurricane|Head Charge|Gear Grind|Searing Shot|Techno Blast|Relic Song|Secret Sword|Glaciate|Bolt Strike|Blue Flare|Fiery Dance|Freeze Shock|Ice Burn|Snarl|Icicle Crash|V-create|Fusion Flare|Fusion Bolt'.split('|');
+const MOVE_NO = new Map(MOVE_LIST.map((m, i) => [m, i + 1]));
+const putMove = (w, x) => { const k = MOVE_NO.get(x); w.bit(!!k); if (k) w.put(k, 10); else w.word(x); };
+function getMove(r) {
+  if (!r.bit()) return r.word();
+  const x = MOVE_LIST[r.get(10) - 1];
+  if (!x) throw new Error('bad');
+  return x;
+}
+const CODE_GENDERS = ['F', 'M', 'N', 'A'];
+const abilitySlots = (name) => { const s = sp(name); return s ? [s.a[0], s.a[1], s.h] : []; };
+function putMon(w, m) {
+  const s = sp(m.species);
+  w.put(s ? s.i : 0, 10);
+  if (!s) w.word(m.species);
+  w.put(Math.max(0, CODE_GENDERS.indexOf(m.gender)), 2);
+  const all = m.ivs.every((v) => v != null);
+  w.bit(all);
+  for (const v of m.ivs) {
+    if (!all) w.bit(v != null);
+    if (v != null) { w.bit(v === 31); if (v !== 31) w.put(v, 5); }
+  }
+  w.put(NATURES.indexOf(m.nature) + 1, 5);
+  const k = m.ability ? abilitySlots(m.species).indexOf(m.ability) : -1;
+  w.put(k + 1, 2);
+  if (k < 0) { w.bit(!!m.ability); if (m.ability) w.word(m.ability); }
+  w.num(m.moves.length);
+  m.moves.forEach((x) => putMove(w, x));
+}
+function getMon(r) {
+  const i = r.get(10), s = i && BY_DEX.get(i);
+  if (i && !s) throw new Error('bad');
+  const species = s ? s.n : r.word(), gender = CODE_GENDERS[r.get(2)];
+  const all = r.bit(), ivs = [];
+  for (let j = 0; j < 6; j++) ivs.push(all || r.bit() ? (r.bit() ? 31 : r.get(5)) : null);
+  const nat = r.get(5);
+  if (nat > NATURES.length) throw new Error('bad');
+  const k = r.get(2), ability = k ? abilitySlots(species)[k - 1] || '' : r.bit() ? r.word() : '';
+  const moves = Array.from({ length: r.num(30) }, () => getMove(r));
+  return { species, gender, ivs, nature: nat ? NATURES[nat - 1] : '', ability, moves };
+}
+
+// Finds a code in pasted text (a whole Discord message is fine, backticks and all) and returns its version and bytes.
+async function codeBytes(text, kind) {
+  const raw = String(text), flat = raw.replace(/[\s`]+/g, '');
+  const find = (k) => new RegExp(`PMB${k}([12])(z?)\\.([A-Za-z0-9+/_-]+)`);
+  const re = find(kind), whole = new RegExp(`^${re.source}$`);
+  const m = whole.exec(flat) || re.exec(raw);
+  if (!m) {
+    if (find(kind ? '' : 'X').test(raw)) throw new Error(kind ? 'That\'s a build code. Import it under "Saved builds" in the planner.' : 'That\'s a box code. Import it under "Fill or move your box" in My box.');
+    throw new Error(kind ? "That isn't a box code. Box codes start with PMBX." : "That isn't a build code. Codes start with PMB.");
+  }
+  if (m[2] && !window.DecompressionStream) throw new Error("This browser is too old to read that code. Try it in an up-to-date browser.");
   try {
-    let bytes = fromB64(m[2]);
-    if (m[1]) bytes = await pipe(bytes, new DecompressionStream('deflate-raw'));
-    const o = JSON.parse(new TextDecoder().decode(bytes));
-    const builds = (o && Array.isArray(o.builds) ? o.builds : []).slice(0, 200)
+    let bytes = fromB64(m[3]);
+    if (m[2]) bytes = await pipe(bytes, new DecompressionStream('deflate-raw'));
+    return { v: +m[1], bytes };
+  } catch (e) { return { v: 0 }; }
+}
+// The shorter of the code as it is and deflated.
+async function codeText(head, bytes) {
+  let code = `${head}2.${toB64(bytes)}`;
+  if (window.CompressionStream) {
+    try { const z = `${head}2z.${toB64(await pipe(bytes, new CompressionStream('deflate-raw')))}`; if (z.length < code.length) code = z; } catch (e) {}
+  }
+  return code;
+}
+// Puts a code on the clipboard and in its box, and says whether it's too long for one Discord message.
+// quiet leaves the box alone when the clipboard works (the Copy code button under the box).
+async function giveCode(code, out, quiet) {
+  out.value = code;
+  let copied = false;
+  try { await navigator.clipboard.writeText(code); copied = true; } catch (e) {}
+  if (!copied || !quiet) {
+    const fold = out.closest('details');
+    if (fold) fold.open = true;
+    out.hidden = false; out.focus(); out.select();
+    if (!copied) try { copied = document.execCommand('copy'); } catch (e2) {}
+  }
+  const long = code.length > DISCORD_LIMIT
+    ? ` It's ${code.length.toLocaleString('en-US')} characters, more than fits in a Discord message (${DISCORD_LIMIT.toLocaleString('en-US')}), so Discord will send it as a file. They can open the file, copy the code and paste it in.`
+    : '';
+  return { copied, long };
+}
+
+// Build codes.
+function packBuilds(builds) {
+  const defaults = defaultPrices();
+  return packBits((w) => {
+    w.num(builds.length);
+    for (const { name, data: d } of builds) {
+      w.word(name);
+      const t = d.target;
+      putMon(w, t);
+      w.bit(t.wantMoves);
+      w.num(d.mons.length);
+      for (const m of d.mons) { putMon(w, m); w.num(m.qty - 1); }
+      // only the prices that were changed; the rest come back as the defaults
+      const changed = Object.keys(d.prices).filter((k) => d.prices[k] !== defaults[k]);
+      w.num(changed.length);
+      for (const k of changed) {
+        const v = d.prices[k], whole = Number.isSafeInteger(v) && v >= 0;
+        w.word(k); w.bit(whole);
+        if (whole) w.num(v); else w.word(String(v));
+      }
+      w.num(d.extras.length);
+      d.extras.forEach(w.word);
+      w.bit(d.mode === 'cost'); w.bit(d.buy); w.bit(d.exact);
+      // ticked breeds: a 32-bit hash in base 36 and a count, like "1x2f9k.1"
+      w.num(d.done.length);
+      for (const x of d.done) {
+        const m = /^([0-9a-z]{1,7})\.([1-9][0-9]{0,3})$/.exec(x), h = m ? parseInt(m[1], 36) : -1;
+        const hashed = h >= 0 && h < 2 ** 32 && h.toString(36) === m[1];
+        w.bit(hashed);
+        if (hashed) { w.put(h, 32); w.num(m[2] - 1); } else w.word(x);
+      }
+    }
+  });
+}
+function unpackBuilds(bytes) {
+  const r = bitReader(bytes), builds = [];
+  for (let n = r.num(5000); n > 0; n--) {
+    const name = r.word();
+    const target = { ...getMon(r), wantMoves: !!r.bit() };
+    const mons = Array.from({ length: r.num(63) }, () => ({ ...getMon(r), qty: r.num(19) + 1 }));
+    const prices = {};
+    for (let k = r.num(100); k > 0; k--) { const key = r.word(); prices[key] = r.bit() ? r.num(2 ** 53) : Number(r.word()); }
+    const extras = Array.from({ length: r.num(100) }, () => r.word());
+    const mode = r.bit() ? 'cost' : 'breeds', buy = !!r.bit(), exact = !!r.bit();
+    const done = Array.from({ length: r.num(300) }, () => (r.bit() ? `${r.get(32).toString(36)}.${r.num(9998) + 1}` : r.word()));
+    builds.push({ name, data: { target, mons, prices, extras, mode, buy, exact, done } });
+  }
+  return builds;
+}
+const makeCode = (builds) => codeText('PMB', packBuilds(builds.map((b) => ({ name: b.name, data: b.data }))));
+async function readCode(text) {
+  const { v, bytes } = await codeBytes(text, '');
+  try {
+    const list = v === 2 ? unpackBuilds(bytes) : (JSON.parse(new TextDecoder().decode(bytes)) || {}).builds;
+    const builds = (Array.isArray(list) ? list : []).slice(0, 200)
       .map((b) => ({ name: str(b && b.name), data: normalizeData(b && b.data) })).filter((b) => b.data);
     if (builds.length) return builds;
   } catch (e) {}
   throw new Error('That code is incomplete or damaged. Copy the whole code and try again.');
 }
 async function showCode(builds, what) {
-  const code = await makeCode(builds);
-  const out = $('code-out');
-  out.value = code; out.hidden = false;
-  let copied = false;
-  try { await navigator.clipboard.writeText(code); copied = true; } catch (e) {
-    out.focus(); out.select();
-    try { copied = document.execCommand('copy'); } catch (e2) {}
-  }
-  out.focus(); out.select();
-  say(copied ? `Copied the code for ${what}. Paste it under "Import a code" on the other device or site.` : `Here's the code for ${what}. Select it and copy it.`);
+  const { copied, long } = await giveCode(await makeCode(builds), $('code-out'));
+  say((copied ? `Copied the code for ${what}. Paste it under "Import a code" on the other device or site.` : `Here's the code for ${what}. Select it and copy it.`) + long);
 }
 async function importCode() {
   let builds;
