@@ -62,7 +62,8 @@ page = (page.replace('/*PLANNER*/', read('src/planner.js'))
             .replace('/*LEARNERS*/{}', read('data/learners.json'))
             .replace('/*SHEET*/', sheet)
             .replace('<!--ITEM-ICONS-->', items.symbols())
-            .replace('/*LOGO*/', png('data/logo.png')))
+            .replace('/*LOGO*/', png('data/logo.png'))
+            .replace('/*UNKNOWN*/', png('data/unknown-icon.png')))
 
 # The Artifact host wraps the page in its own <html>/<head>, so it gets the fragment as-is.
 write('build/artifact.html', page)
