@@ -205,6 +205,8 @@
         if (within(avail, e.avail) && (!e.best || within(e.best.used, avail))) return e.best;
       }
       const remember = (best) => { seen.exact.set(avail, best); seen.recent.push({ avail, best }); return best; };
+      // Out of time: every search still running gives up, the unlimited pass included.
+      if (calls > LIMIT) { truncated = true; return null; }
       const bound = relaxed ? null : solve(req, full, true);
       if (!relaxed && !bound) return remember(null);
       if (!relaxed && (++calls > LIMIT || ((calls & 1023) === 0 && Date.now() > deadline))) calls = LIMIT + 1;
@@ -274,6 +276,7 @@
         for (const pairing of pairings) {
           const combos = braceCombos(R, req.nat, !!req.incense);
           for (const [bA, bB, holder, inc, fewer] of combos) {
+            if (calls > LIMIT) break search;
             const needA = req.need & ~(bB >= 0 ? 1 << bB : 0);
             const needB = req.need & ~(bA >= 0 ? 1 << bA : 0);
             const reqA = { kind: 'L', line: m, gender: pairing === 'mf' ? 'F' : (req.mv ? 'M' : 'A'),

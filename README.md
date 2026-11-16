@@ -26,8 +26,6 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
 - **Egg moves and TMs.** It plans who has to know each egg move, or lets you teach it with a TM instead.
 - **Common builds.** Catching Breloom, Smeargle, gym re-run Typhlosion and Thief Dusknoir fill in the goal
   in one click, from their own dropdown above the goal.
-- **Event builds.** A second dropdown holds builds for the current seasonal event (Halloween for now). It can
-  be shown or hidden, see [Event builds](#event-builds).
 - **Saved builds.** Keep several setups, and move them to another device with a code.
 - **My box.** A second tab holds the Pokémon from your game in a PC box like PokeMMO's: box icons in a
   10×6 grid of 60 spots like PokeMMO's, several named boxes (Delete this box asks first, then offers Undo), alphas drawn bigger with a red outline and a blue diamond on hidden-ability Pokémon, drag to move. Hover over one to see its IVs, nature, ability and egg moves.
@@ -35,19 +33,30 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
   Primary type, Catch Date and Name (the first picked decides the order, the next breaks ties, each can be flipped),
   then Sort this box or all of them, with Undo. Catch date is when a Pokémon went into the box on the site; level is
   optional (set in the editor, read off the game's panel or a "Level:" line, 1 for hatched Pokémon).
+  Under the box, IV stats show the average IV total and how many Pokémon have 0×31 up to 6×31, for this box or all
+  of them; Copy stats puts that on the clipboard as a few lines of text to paste in Discord.
   Tick "Use the Pokémon in my box" and the planner breeds with them; ticking off breeds can take the parents
   out of the box and put the finished Pokémon in (unticking puts them back). The box is kept apart from saved
   builds and moves to another device with its own code. Box size is `BOX_COLS`/`BOX_ROWS` in `src/page.html`.
+- **Build center.** A third tab suggests builds you can breed from the Pokémon in your boxes, best first: for each
+  species, the hardest goal on a ladder (Atk/SpA and Spe → HP too → 25+ Def and SpD → 4×31 → 5×31 without the unused
+  attacking stat → 6×31) that the planner finds a plan for, using only your Pokémon plus braces and Everstones (or
+  GTL 1×31s too, if ticked). Physical, special or defensive comes from the fully evolved Pokémon's Gen 5 base stats.
+  Each card has a nature dropdown (natures that suit the build first, the ones in your boxes marked); it starts
+  on a fitting nature you own when the Everstone version works, and picking another re-checks the card, buying a 1×31
+  with that nature if your boxes can't do it. Each card also says what the next goal up is missing. View by species or by egg group, filter, and Open in planner fills in the goal and turns on
+  "Use the Pokémon in my box". Each species gets a short planner run (in up to four workers at once), so the breed
+  counts are approximate; answers are kept until the Pokémon that could breed with that species change. Logic in `src/builds.js`.
 - **Short codes.** Build and box codes (PMB2 / PMBX2) pack each Pokémon into a few bytes rather than JSON, so a
   code for one box (about 800 characters) fits in a Discord message, which tops out at 2,000. The copy message
   says when a code is too long and Discord will send it as a file. Older PMB1 / PMBX1 codes still import, and a
   code can be pasted with the rest of the Discord message around it. Natures are stored as their place in
   `NATURES` and species as dex numbers, so that list must not be reordered.
 - **Import from PokeMMO.** Fill the box without typing: share the PokeMMO window with the page, open your PC
-  and tap ← from the box's last spot to its first. Each Pokémon is read off the box's side panel as the cursor
-  reaches it (species, level, gender, IVs, nature, ability, egg moves) and lands in the same spot of a new box, after a
-  check-over list. Pokémon can also be pasted as text in the Showdown / PokePaste format, and any box copied out
-  as text. See [Importing from PokeMMO](#importing-from-pokemmo).
+  and go through the box a row at a time from its top-left spot. Each Pokémon is read off the box's side panel as
+  the cursor reaches it (species, level, gender, IVs, nature, ability, egg moves) and lands in the same spot of
+  the box on show if that box is empty (keeping any name you gave it), or else of a new box, after a check-over
+  list. Pokémon can also be pasted as text in the Showdown / PokePaste format, and any box copied out as text. See [Importing from PokeMMO](#importing-from-pokemmo).
 - **Works anywhere.** Phone-friendly, light and dark themes, and it can be added to your home screen like
   an app. Nothing to sign up for, and what you enter stays in your browser.
 
@@ -92,8 +101,10 @@ Every push to `main` builds the site and publishes it to GitHub Pages
 | --- | --- |
 | `src/page.html` | The page: layout, styles and UI code. |
 | `src/planner.js` | The breeding search. Also runs in Node: `require('./src/planner.js')`. |
+| `src/builds.js` | The Build center's goal ladders and suggestions, which call the planner. Also runs in Node. |
 | `test/planner.test.js` | Checks for the breeding search (`node test/planner.test.js`). |
-| `data/species.json` | Every species' types (Gen 5, so no Fairy), egg groups, gender ratio, abilities and egg moves. |
+| `test/builds.test.js`, `test/builds-bench.js` | Checks for the Build center, and a timing run on a made-up box (`node test/builds-bench.js 300`). |
+| `data/species.json` | Every species' types (Gen 5, so no Fairy), egg groups, gender ratio, abilities, egg moves and Gen 5 base stats. |
 | `data/tms.json` | Which species can learn each TM the page offers. |
 | `data/learners.json` | Which species learn each egg move by level-up, TM or tutor, for the egg move finder. |
 | `data/box-icons.png` | Box icons for all 649 species, 25 per row in dex order. |
@@ -104,19 +115,9 @@ Every push to `main` builds the site and publishes it to GitHub Pages
 | `build.py` | Puts it all into `dist/`, along with `404.html`, `robots.txt` and `sitemap.xml`. Also writes `build/artifact.html`, a version for claude.ai. |
 | `site-url.txt` | The site's address, used for link previews and the sitemap. |
 | `goatcounter.txt` | Optional GoatCounter site code for visitor counts; off while it's empty. |
-| `src/extract-species.js`, `src/extract-tms.js`, `src/extract-learners.js`, `src/build-sprites.py` | Regenerate the data from Pokémon Showdown and PokeAPI. |
+| `src/extract-species.js`, `src/extract-stats.js`, `src/extract-tms.js`, `src/extract-learners.js`, `src/build-sprites.py` | Regenerate the data from Pokémon Showdown and PokeAPI (run `extract-stats.js` after `extract-species.js`, which leaves the base stats out). |
 
 The scripts that redraw images need Pillow; everything else needs only Python 3's standard library.
-
-## Event builds
-
-The event dropdown is set by `EVENT` in `src/page.html`, just after the common builds (`PRESETS`).
-
-- **Hide or show it:** set `on: false` to hide the dropdown once the event is over, `on: true` to show it.
-- **Next event:** change `label` (the dropdown's name), `banner` (the line above an event build's notes) and replace `presets`. Each build is written the same
-  way as a common build. Give event builds keys of their own (the Halloween ones start with `hw-`).
-
-Then run `python3 build.py` as usual.
 
 ## Importing from PokeMMO
 
@@ -128,11 +129,14 @@ jsDelivr the first time and run in the browser), and the text is matched against
 abilities and egg moves. The spot comes from where the cursor was, so the direction you go doesn't matter and a
 spot visited twice is just read again. The party column is left out.
 
-The most reliable way is to tap ← and wait for each Pokémon to show up on the page's map before moving on.
-Holding ← works too (in Chrome and Edge every frame of the shared window is looked at as it arrives; other
-browsers check about 40 times a second), but the game's key repeat can outrun the screen share. The page tells
-filled spots from empty ones by their sprites and level numbers, and outlines in red any it missed, so you can
-move the cursor back onto them.
+The page asks you to start on the box's top-left spot and go a row at a time: → along the top row, ↓ at its
+end, ← back along the next row, and so on down the box, waiting for each Pokémon to show up on the page's map
+before moving on. That works whether or not the cursor wraps round at the end of a row, and never takes it into
+the party column. Holding a key down isn't recommended: the game's key repeat outruns the screen share and
+Pokémon get skipped (in Chrome and Edge every frame of the shared window is looked at as it arrives; other
+browsers check about 40 times a second). The page tells filled spots from empty ones by their sprites and level
+numbers, marks the cursor's spot on its map, and outlines in red any Pokémon the cursor went past without a
+read: in each row, any between the spots the cursor was seen on. Move the cursor back onto those to read them.
 
 Nothing is saved or uploaded. Copies of the side panel stay in the browser's memory and are dropped when the
 player reads again or closes the page; "Save what was read" downloads them as a file for a bug report, and only
