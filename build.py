@@ -57,6 +57,7 @@ def png(path):
 
 sheet = png('data/box-icons.png')
 page = (page.replace('/*PLANNER*/', read('src/planner.js'))
+            .replace('/*BUILDS*/', read('src/builds.js'))
             .replace('/*SPECIES*/[]', read('data/species.json'))
             .replace('/*TMS*/{}', read('data/tms.json'))
             .replace('/*LEARNERS*/{}', read('data/learners.json'))

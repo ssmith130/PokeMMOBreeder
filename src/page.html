@@ -66,6 +66,9 @@ input:focus-visible, select:focus-visible, button:focus-visible, .chip:has(input
 .btn.ghost:hover { color: var(--warn); }
 .btn.danger { background: var(--warn); color: var(--on-accent); border-color: var(--warn); font-weight: 600; }
 .btn.danger:hover { border-color: var(--ink); }
+/* a red-outlined button for removing things (Delete this box) */
+.btn.danger-line { border-color: var(--warn); color: var(--warn); background: var(--surface); }
+.btn.danger-line:hover { background: var(--warn-soft); border-color: var(--warn); }
 .stats { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { --c: var(--line-strong); position: relative; display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line);
   border-radius: 999px; padding: 3px 10px 3px 8px; font-family: var(--f-mono); font-size: 12.5px; cursor: pointer; user-select: none; background: var(--surface); }
@@ -172,8 +175,6 @@ ol.steps li { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10
 .pick-list .opt { color: var(--ink); }
 .pick-list .opt:hover { background: var(--sunk); }
 .pick-list .opt[aria-selected="true"] { background: var(--accent-soft); }
-.preset.event { border-color: #e8792b; box-shadow: inset 3px 0 0 #e8792b; }
-.preset .event-banner { margin: 0; font-weight: 600; color: var(--ink); }
 .preset dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; margin: 0; align-items: baseline; }
 .preset dt { color: var(--muted); font-size: 12.5px; }
 .preset dd { margin: 0; min-width: 0; }
@@ -297,6 +298,11 @@ textarea.code:focus-visible { outline: 2px solid var(--accent); outline-offset: 
 .step-state[data-status="done"] { color: var(--accent); }
 ol.steps li.is-done .pair { display: none; } /* a finished step shrinks to one line */
 ol.steps li.is-done .outcome { opacity: 0.6; }
+/* ...with its text beside the checkmark and the Done box on the right */
+ol.steps li.is-done { align-items: center; }
+ol.steps li.is-done .stepbody { grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; }
+ol.steps li.is-done .outcome { grid-row: 1; grid-column: 1; }
+ol.steps li.is-done .done-row { grid-row: 1; grid-column: 2; }
 ol.steps li.is-done .stepno { background: var(--accent-soft); color: transparent; position: relative; }
 ol.steps li.is-done .stepno::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--accent); }
 ol.steps li.is-next .stepno { box-shadow: 0 0 0 4px var(--accent-soft); }
@@ -324,6 +330,40 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 @keyframes s { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
 /* Planner / My box switcher */
+/* Build center */
+.bc-intro { max-width: 80ch; font-size: 14px; }
+.bc-bar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.bc-bar input[type="text"] { width: 240px; max-width: 100%; flex: 0 1 240px; }
+.bc-bar .btn { margin-left: auto; }
+.bc-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13px; color: var(--muted); min-height: 20px; }
+.bc-prog { flex: 1 1 160px; max-width: 260px; height: 6px; border-radius: 3px; background: var(--sunk); border: 1px solid var(--line); overflow: hidden; }
+.bc-prog i { display: block; height: 100%; background: var(--accent); transition: width 0.2s; }
+.bc-out { display: grid; gap: 18px; min-width: 0; }
+.bc-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.bc-group { display: grid; gap: 10px; }
+.bc-group > h3 { display: flex; align-items: baseline; gap: 10px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.bc-group > h3 .small { font-family: var(--f-body); font-weight: 400; }
+.bc-card { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: var(--sunk); display: grid; gap: 8px; align-content: start; min-width: 0; }
+.bc-top { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: center; }
+.bc-top .spr { grid-row: span 2; }
+.bc-name { font-family: var(--f-display); font-weight: 600; font-size: 16px; line-height: 1.2; }
+.bc-name .for { font-family: var(--f-body); font-weight: 400; font-size: 13px; color: var(--muted); }
+.bc-sub { font-size: 12.5px; color: var(--muted); }
+.bc-goal { font-family: var(--f-display); font-weight: 600; font-size: 15px; }
+.bc-goal .nat { color: var(--accent); }
+.bc-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; }
+.bc-meta b { font-variant-numeric: tabular-nums; }
+.bc-meta .money { color: var(--cost); font-family: var(--f-mono); }
+.bc-uses { display: grid; gap: 2px; font-size: 12.5px; color: var(--muted); }
+.bc-uses .icons { display: flex; flex-wrap: wrap; align-items: center; gap: 0 2px; }
+.bc-uses .u { display: inline-flex; align-items: center; margin-right: 4px; font-family: var(--f-mono); font-size: 11.5px; }
+.bc-next { font-size: 12.5px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 6px; }
+.bc-card .row { align-items: end; justify-content: space-between; }
+.bc-nat { display: grid; gap: 3px; font-size: 12.5px; color: var(--muted); flex: 1 1 170px; min-width: 0; }
+.bc-nat select { font-size: 13px; padding: 6px 8px; }
+.bc-none { font-size: 13.5px; }
+.bc-none ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 3px; }
+@media (max-width: 560px) { .bc-bar .btn { margin-left: 0; } .bc-bar input[type="text"] { flex-basis: 100%; } }
 /* Folder tabs that sit on the top edge of the first cards: the open tab joins the card below it */
 .topbar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 12px; margin-bottom: -21px; position: relative; z-index: 1; }
 .views { display: flex; flex-wrap: wrap; gap: 2px; align-items: flex-end; }
@@ -341,6 +381,9 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 #view-planner .cols > div:first-child > :first-child { border-top-left-radius: 0; }
 /* phones: the theme switch goes above the tabs so the tabs keep sitting on the rule */
 @media (max-width: 600px) { .topbar .seg { order: -1; margin: 0 0 4px auto; } .view-tab { padding: 8px 12px 9px 10px; font-size: 15px; } }
+.vt-short { display: none; }
+/* small phones: three tabs only fit on one row without their icons, and with "Planner" for "Breeding planner" */
+@media (max-width: 520px) { .view-tab { padding: 8px 10px 9px; gap: 6px; } .view-tab svg { display: none; } .vt-long { display: none; } .vt-short { display: inline; } }
 .view-pane { display: grid; gap: 20px; min-width: 0; }
 /* My box: a PC box like the game's, a grid of box icons with the box name and arrows above it */
 .box-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
@@ -396,6 +439,22 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .sort-menu .row { gap: 6px; }
 .sort-menu .note { font-size: 12px; color: var(--muted); }
 .box-msg { font-size: 13px; width: 0; min-width: 100%; } /* the box column is as wide as the box, so a long message wraps instead of widening it */
+/* IV stats under the box: the average IV total and how many have 0 to 6 31s, which can be copied as text */
+.box-stats { width: 0; min-width: 100%; display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.bs-head { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+.bs-head h3 { margin-right: auto; }
+.bs-head .seg button { padding: 3px 9px; font-size: 12.5px; }
+.bs-avg { font-size: 14px; }
+.bs-avg b { font-family: var(--f-mono); font-size: 17px; font-weight: 500; }
+.bs-bars { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+/* a small bar chart: the count, a bar as tall as the count is against the biggest one, and the label */
+.bs-cell { display: grid; text-align: center; gap: 2px; }
+.bs-cell b { order: 1; font-family: var(--f-mono); font-size: 15px; font-weight: 500; line-height: 1.2; }
+.bs-cell i { order: 2; height: 30px; margin: 0 4px; border-bottom: 2px solid var(--line-strong); border-radius: 4px 4px 0 0;
+  background: linear-gradient(to top, color-mix(in srgb, var(--accent) 65%, var(--surface)) var(--f), transparent var(--f)); }
+.bs-cell span { order: 3; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.bs-cell.zero b { color: var(--muted); font-weight: 400; }
+.bs-note { font-size: 12px; color: var(--muted); }
 /* Asking before something that deletes Pokémon */
 .ask { width: min(420px, calc(100vw - 32px)); border: 1px solid var(--line-strong); border-radius: 10px; padding: 18px; background: var(--surface); color: var(--ink);
   box-shadow: 0 16px 40px rgb(0 0 0 / 0.3); }
@@ -442,6 +501,7 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .imp-map > span.got { background: var(--accent-soft); border-color: var(--accent); }
 .imp-map > span.bad { background: var(--warn-soft); border-color: var(--warn); }
 .imp-map > span.miss { border: 2px solid var(--warn); }
+.imp-map > span.here { outline: 2px solid var(--ink); outline-offset: -2px; }
 .imp-map > span.egg::after { content: ''; width: 34%; aspect-ratio: 3 / 4; border-radius: 50%; background: var(--line); }
 .imp-map .spr { --s: 0.7 !important; }
 .imp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 440px; overflow-y: auto; }
@@ -470,8 +530,9 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
 
   <nav class="topbar" aria-label="Page">
     <div class="views" role="tablist" aria-label="Page">
-      <button class="view-tab" type="button" role="tab" id="vt-planner" aria-controls="view-planner" data-view="planner"><svg viewBox="0 0 18 18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2" width="5" height="4" rx="1"/><rect x="1.5" y="12" width="5" height="4" rx="1"/><rect x="11.5" y="7" width="5" height="4" rx="1"/><path d="M6.5 4h2.5v10H6.5M9 9h2.5"/></g></svg>Breeding planner</button>
+      <button class="view-tab" type="button" role="tab" id="vt-planner" aria-controls="view-planner" data-view="planner"><svg viewBox="0 0 18 18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2" width="5" height="4" rx="1"/><rect x="1.5" y="12" width="5" height="4" rx="1"/><rect x="11.5" y="7" width="5" height="4" rx="1"/><path d="M6.5 4h2.5v10H6.5M9 9h2.5"/></g></svg><span class="vt-long">Breeding planner</span><span class="vt-short">Planner</span></button>
       <button class="view-tab" type="button" role="tab" id="vt-box" aria-controls="view-box" data-view="box"><svg viewBox="0 0 18 18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="1.5" y="2.5" width="15" height="13" rx="2"/><path d="M1.5 9h15M6.5 2.5v13M11.5 2.5v13"/></g></svg>My box <span class="count" id="box-count">0</span></button>
+      <button class="view-tab" type="button" role="tab" id="vt-builds" aria-controls="view-builds" data-view="builds"><svg viewBox="0 0 18 18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 1.8v2M3.9 3.9l1.4 1.4M14.1 3.9l-1.4 1.4M1.8 9h2M14.2 9h2"/><path d="M6.4 13.2a4.2 4.2 0 1 1 5.2 0c-.5.4-.8 1-.8 1.6v.4H7.2v-.4c0-.6-.3-1.2-.8-1.6z"/><path d="M7.4 17h3.2"/></g></svg>Build center</button>
     </div>
     <div class="seg" role="group" aria-label="Theme"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
   </nav>
@@ -503,7 +564,6 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
         <summary class="panel-head"><h2>Start from a build</h2><span class="eyebrow">Optional</span></summary>
         <div class="preset-pick">
           <div class="f"><span id="t-preset-l">Common builds</span><div class="pick" id="t-preset"><button type="button" class="pick-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="t-preset-list" aria-labelledby="t-preset-l t-preset-btn-v" id="t-preset-btn"><span class="pick-val" id="t-preset-btn-v"></span><svg class="pick-chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="pick-list" id="t-preset-list" role="listbox" aria-labelledby="t-preset-l" hidden></div></div></div>
-          <div id="t-event-wrap" hidden><div class="f"><span id="t-event-l"><span id="t-event-label"></span></span><div class="pick" id="t-event"><button type="button" class="pick-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="t-event-list" aria-labelledby="t-event-l t-event-btn-v" id="t-event-btn"><span class="pick-val" id="t-event-btn-v"></span><svg class="pick-chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="pick-list" id="t-event-list" role="listbox" aria-labelledby="t-event-l" hidden></div></div></div></div>
         </div>
         <div class="preset" id="t-preset-info" hidden></div>
       </details>
@@ -606,8 +666,15 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
                 <div class="sort-scope"><label class="check"><input type="radio" name="box-sort-scope" value="box" checked> This box</label><label class="check"><input type="radio" name="box-sort-scope" value="all"> All my boxes</label></div>
                 <div class="row"><button class="btn primary" type="button" id="box-sort-go">Sort</button><button class="btn ghost" type="button" id="box-sort-clear">Clear</button></div>
                 <p class="note" id="box-sort-note"></p>
-              </div></span><button class="btn mini" type="button" id="box-code-foot" title="Copy a code for this box to paste in Discord or on another device"><svg class="btn-ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5v-.5a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 3v5A1.5 1.5 0 0 0 4 9.5h.5"/></svg>Copy code</button><button class="btn mini" type="button" id="box-new">+ New box</button><button class="btn ghost mini" type="button" id="box-del" hidden>Delete this box</button></div>
+              </div></span><button class="btn mini" type="button" id="box-code-foot" title="Copy a code for this box to paste in Discord or on another device"><svg class="btn-ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5v-.5a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 3v5A1.5 1.5 0 0 0 4 9.5h.5"/></svg>Copy code</button><button class="btn mini" type="button" id="box-new">+ New box</button><button class="btn danger-line mini" type="button" id="box-del" hidden>Delete this box</button></div>
           </div>
+        </div>
+        <div class="box-stats" id="box-stats">
+          <div class="bs-head"><h3>IV stats</h3>
+            <div class="seg" id="box-stats-for" role="group" aria-label="IV stats for"><button type="button" data-bs="box">This box</button><button type="button" data-bs="all">All boxes</button></div>
+            <button class="btn mini" type="button" id="box-stats-copy" title="Copy these stats as text to paste in Discord or anywhere"><svg class="btn-ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5v-.5a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 3v5A1.5 1.5 0 0 0 4 9.5h.5"/></svg>Copy stats</button></div>
+          <div id="box-stats-body"></div>
+          <textarea class="code" id="box-stats-out" readonly hidden aria-label="IV stats as text"></textarea>
         </div>
         <p class="box-msg" id="box-msg" role="status" hidden></p>
       </section>
@@ -643,6 +710,20 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
         </details>
       </div>
     </div>
+  </div>
+  <div class="view-pane" id="view-builds" role="tabpanel" aria-labelledby="vt-builds" hidden>
+    <section class="panel bc" aria-labelledby="h-bc">
+      <div class="panel-head"><h2 id="h-bc">Build center</h2><span class="eyebrow">New</span></div>
+      <p class="muted bc-intro">Builds you can breed from the Pokémon in your boxes, best first. Each one is checked with the planner, using only your Pokémon plus braces and Everstones. Open one in the planner to see which Pokémon go where. Builds that share an egg group often use the same Pokémon, so each card is one option rather than one of a set.</p>
+      <div class="bc-bar">
+        <div class="seg" role="group" aria-label="Show builds"><button type="button" data-bc-by="species">By species</button><button type="button" data-bc-by="group">By egg group</button></div>
+        <input type="text" id="bc-filter" placeholder="Filter: species, egg group, 5×31…" autocomplete="off" aria-label="Filter builds">
+        <label class="check"><input type="checkbox" id="bc-buy"> Allow buying 1×31 Pokémon off the GTL</label>
+        <button class="btn" type="button" id="bc-rescan">Check again</button>
+      </div>
+      <div class="bc-status" id="bc-status" role="status"></div>
+      <div id="bc-out" class="bc-out"></div>
+    </section>
   </div>
   <p class="site-foot">PokeMMO Breeding Planner · Alpha · updated /*BUILT*/ · <a href="https://github.com/ssmith130/PokeMMOBreeder/issues/new" target="_blank" rel="noopener">Report a problem</a></p>
 </div>
@@ -680,6 +761,7 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
 
 <script id="planner-src">
 /*PLANNER*/
+/*BUILDS*/
 </script>
 <script>
 const SPECIES = /*SPECIES*/[];
@@ -1020,30 +1102,6 @@ const PRESETS = [
       'None of the four moves are egg moves for Duskull, so teach them after hatching.',
       'Max the PP on Thief and Trick with PP Ups so it lasts longer. Absorb too if you can, but it\'s optional.'] },
 ];
-// Seasonal event builds get their own dropdown. Set `on` to false to hide it when the event is over, and
-// change `label`, `banner` (shown above an event build's notes) and `presets` for the next event. They work exactly like the common builds.
-const EVENT = { on: true, label: '🎃 Halloween event builds 🎃', banner: '🎃 👻 Halloween event build 🦇 🕸️', presets: [
-  { key: 'hw-tyranitar', label: '🎃 Pumpking hard mode: Tyranitar', species: 'Tyranitar', nature: 'Adamant', ability: 'Sand Stream', eggMoves: ['Assurance'], items: ['tm-toxic'],
-    sets: [{ label: 'HP + Atk', ivs: [31, 31, null, null, null, null] }],
-    facts: [['Moves', 'Assurance, Crunch, Toxic, Helping Hand'], ['Team', 'Tyranitar, Krookodile, Aerodactyl, Gothitelle']],
-    notes: ['The main attacker. Its sand plus Toxic wears Pumpking down in the last phase.',
-      'Assurance is an egg move, so the plan needs a male that knows it. Toxic is a TM and Helping Hand a move tutor.'] },
-  { key: 'hw-krookodile', label: '🎃 Pumpking hard mode: Krookodile', species: 'Krookodile', nature: 'Adamant', ability: 'Intimidate', eggMoves: [],
-    sets: [{ label: 'HP + Atk', ivs: [31, 31, null, null, null, null] }],
-    facts: [['Moves', 'Earthquake'], ['Team', 'Tyranitar, Krookodile, Aerodactyl, Gothitelle']],
-    notes: ['Uses Earthquake every turn, so keep it healthy going into the last phase.',
-      'Earthquake is a TM, not an egg move.'] },
-  { key: 'hw-aerodactyl', label: '🎃 Pumpking hard mode: Aerodactyl', species: 'Aerodactyl', nature: 'Jolly', ability: '', eggMoves: ['Tailwind'],
-    sets: [{ label: 'HP + Spe', ivs: [31, null, null, null, null, 31] }],
-    facts: [['Moves', 'Wide Guard, Tailwind, Taunt']],
-    notes: ['The fast support: Wide Guard blocks the spread moves, Tailwind speeds the team up.',
-      'Tailwind is an egg move. Wide Guard and Taunt are learned after hatching.'] },
-  { key: 'hw-gothitelle', label: '🎃 Pumpking hard mode: Gothitelle', species: 'Gothitelle', nature: 'Calm', ability: '', eggMoves: [],
-    sets: [{ label: 'HP + SpD', ivs: [31, null, null, null, 31, null] }],
-    facts: [['Moves', 'Taunt, Heal Block']],
-    notes: ['Early support that gets knocked out on purpose and revived later.',
-      'Neither move is an egg move, so teach them after hatching.'] },
-] };
 // The build dropdowns work like a <select>, but each option shows the build's Pokémon icon,
 // which a native <select> can't. Picking the build that is already chosen does nothing, like a <select>.
 function makePick(id, builds, onPick) {
@@ -1087,31 +1145,24 @@ function makePick(id, builds, onPick) {
     },
   };
 }
-const EVENT_PRESETS = EVENT.on ? EVENT.presets : [];
-$('t-event-wrap').hidden = !EVENT.on;
-$('t-event-label').textContent = EVENT.label;
-const ALL_PRESETS = PRESETS.concat(EVENT_PRESETS);
-const pickPreset = (key) => { const p = ALL_PRESETS.find((x) => x.key === key); if (p) applyPreset(p); else clearGoal(); };
-const presetPick = makePick('t-preset', PRESETS, pickPreset), eventPick = makePick('t-event', EVENT_PRESETS, pickPreset);
+const pickPreset = (key) => { const p = PRESETS.find((x) => x.key === key); if (p) applyPreset(p); else clearGoal(); };
+const presetPick = makePick('t-preset', PRESETS, pickPreset);
 // The build the goal currently matches; the IVs can be any of its versions.
-const presetOf = (t) => ALL_PRESETS.find((p) => p.species === t.species && p.nature === t.nature && p.ability === t.ability) || null;
+const presetOf = (t) => PRESETS.find((p) => p.species === t.species && p.nature === t.nature && p.ability === t.ability) || null;
 function renderPreset() {
   const t = state.target, p = presetOf(t);
   const set = p && p.sets.find((x) => JSON.stringify(x.ivs) === JSON.stringify(t.ivs));
-  presetPick.set(p && PRESETS.includes(p) ? p.key : '');
-  eventPick.set(p && EVENT_PRESETS.includes(p) ? p.key : '');
+  presetPick.set(p ? p.key : '');
   const box = $('t-preset-info'), sig = p ? p.key + '|' + (set ? set.label : '') : '';
   if (box.dataset.sig === sig) return;
   box.dataset.sig = sig;
   box.hidden = !p;
-  const isEvent = !!p && EVENT_PRESETS.includes(p);
-  box.classList.toggle('event', isEvent);
   if (!p) { box.innerHTML = ''; return; }
   const ivs = p.sets.length > 1
     ? `<div class="seg" role="group" aria-label="IV version">${p.sets.map((x, i) => `<button type="button" data-preset-set="${i}" aria-pressed="${x === set}">${esc(x.label)}</button>`).join('')}</div>`
     : esc(p.sets[0].label);
   const notes = [set && set.note, ...p.notes].filter(Boolean);
-  box.innerHTML = (isEvent ? `<p class="event-banner">${esc(EVENT.banner)}</p>` : '') + `<dl><dt>IVs</dt><dd>${ivs}</dd>${p.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`
+  box.innerHTML = `<dl><dt>IVs</dt><dd>${ivs}</dd>${p.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`
     + `<ul>${notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>`;
 }
 // A new start: the goal and the Pokémon list are replaced, and the loaded saved build is let go so Save
@@ -1582,7 +1633,7 @@ let planInView = false;
 function syncToPlan() {
   const breeds = $('results').querySelector('.summary b');
   toPlan.textContent = breeds ? `See the plan · ${breeds.textContent} breed${breeds.textContent === '1' ? '' : 's'}` : 'See the plan';
-  toPlan.hidden = planInView || pageView === 'box';
+  toPlan.hidden = planInView || pageView !== 'planner';
 }
 toPlan.addEventListener('click', () => $('results-panel').scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }));
 new MutationObserver(syncToPlan).observe($('results'), { childList: true });
@@ -2242,11 +2293,16 @@ function boxSay(msg, undo) {
   if (!undo) boxMsgTimer = setTimeout(() => { el.hidden = true; }, 8000);
 }
 function afterBoxChange() {
+  try { bcBoxChanged(); } catch (e) {} // the Build center is set up further down the page
   renderBox();
   if (state.useBox) schedule();
   renderUseBox();
 }
 const n31 = (m) => m.ivs.filter((v) => v === 31).length;
+// IV stats for this box or all of them (shown under the box, see renderBoxStats)
+const STATS_KEY = 'pokemmo-breeding-box-stats';
+let statsAll = false;
+try { statsAll = localStorage.getItem(STATS_KEY) === 'all'; } catch (e) {}
 // The egg groups of a species' breeding line (a baby's are its line's), or its own for one with no line, like Ditto.
 const monGroups = (s) => lineGroups(dex.lineOf(s.n)) || s.e.join(' / ');
 const hasHA = (m) => { const s = sp(m.species); return !!(s && s.h && m.ability === s.h); };
@@ -2271,6 +2327,7 @@ function renderBox() {
       + `${sprite(m.species, 2).replace(' role="img"', ' aria-hidden="true"')}${k ? `<span class="n31">${k}×31</span>` : ''}${m.level ? `<span class="lv">Lv${m.level}</span>` : ''}${hasHA(m) ? HA_ICON : ''}${m.gender === 'F' || m.gender === 'M' ? `<span class="g">${gSym(m.gender)}</span>` : ''}</button>`;
   }).join('');
   try { localStorage.setItem(BOX_KEY + '-at', String(box.cur)); } catch (e) {}
+  renderBoxStats();
 }
 // What hovering a Pokémon shows: the same things the game's summary does for breeding.
 function monSummary(m) {
@@ -2519,12 +2576,14 @@ $('box-grid').addEventListener('drop', (e) => {
 });
 $('box-grid').addEventListener('dragend', () => { dragFrom = null; renderBox(); });
 
-function showBox(i) { box.cur = Math.max(0, Math.min(box.boxes.length - 1, i)); hideTip(); renderBox(); }
+// a screen import waiting to be put in goes to the box on show when it's empty, so its review follows the box
+function showBox(i) { box.cur = Math.max(0, Math.min(box.boxes.length - 1, i)); hideTip(); renderBox(); if (imp.step === 'review') renderImp(); }
 $('box-prev').addEventListener('click', () => showBox(box.cur - 1));
 $('box-next').addEventListener('click', () => showBox(box.cur + 1));
 $('box-name').addEventListener('change', (e) => {
   box.boxes[box.cur].name = e.target.value.trim().slice(0, 20) || `Box ${box.cur + 1}`;
   saveBox([box.cur]);
+  if (imp.step === 'review' && imp.name == null) renderImp();
 });
 $('box-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') e.target.blur(); });
 $('box-new').addEventListener('click', () => {
@@ -3128,7 +3187,7 @@ function placeReads(reads, first) {
 }
 
 const imp = { step: 'idle', status: '', stream: null, video: null, geo: null, first: null, reads: new Map(), queue: [], busy: false,
-  last: null, lost: 0, finding: false, review: null, from: '', frames: null, frameAt: 0, filled: null, filledAt: 0 };
+  last: null, lost: 0, finding: false, review: null, from: '', frames: null, frameAt: 0, filled: null, filledAt: 0, visited: new Set() };
 const canShare = () => !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
 async function startReading() {
   if (!canShare()) return;
@@ -3141,7 +3200,7 @@ async function startReading() {
   video.muted = true; video.playsInline = true; video.srcObject = stream;
   await video.play().catch(() => {});
   Object.assign(imp, { step: 'find', stream, video, geo: null, reads: new Map(), queue: [], last: null, lost: 0,
-    filled: null, filledAt: 0, missed: null, here: null, status: 'Loading the text reader (a few MB, only the first time)…' });
+    filled: null, filledAt: 0, missed: null, here: null, visited: new Set(), status: 'Loading the text reader (a few MB, only the first time)…' });
   stream.getVideoTracks()[0].addEventListener('ended', () => stopReading(true));
   renderImp();
   loadOcr().then(() => { if (imp.step === 'find') { imp.status = 'Looking for your PC box. Open it in the game so its side panel shows a Pokémon.'; renderImp(); } },
@@ -3151,7 +3210,7 @@ async function startReading() {
   followFrames(stream.getVideoTracks()[0]);
 }
 // Where the browser can hand over each frame of the shared screen as it arrives (Chrome and Edge), look at every
-// one: a held ← moves the cursor faster than a timer can keep up with, and a page behind the game window only
+// one: a quick run of taps moves the cursor faster than a timer can keep up with, and a page behind the game window only
 // gets its timers run about once a second.
 async function followFrames(track) {
   if (typeof MediaStreamTrackProcessor !== 'function') return;
@@ -3185,7 +3244,7 @@ async function findPanel() {
         still.width = fw; still.height = fh; still.getContext('2d').drawImage(v, 0, 0);
         imp.debug = { found: { geo, words, frame: still }, reads: [] };
         Object.assign(imp, { geo, first: geo.first, lost: 0, step: imp.step === 'find' ? 'read' : imp.step });
-        imp.status = 'Found your PC box. Select its last spot, then tap ← and wait for each Pokémon to show up below before moving on.';
+        imp.status = 'Found your PC box. Select its top-left spot, then tap → along the row and wait for each Pokémon to show up below. At the end of a row, tap ↓ and come back along the next one with ←.';
         renderImp();
       }
     }
@@ -3243,13 +3302,22 @@ function look(src, fw, fh) {
   const at = { x: g.grid.x + cur.x / f, y: g.grid.y + cur.y / f, w: cur.w / f, h: cur.h / f };
   // which spot it is, by the layout's spacing: the cursor's measured size wobbles a pixel or two with the video,
   // too much to tell neighbouring spots apart by on the right of a wide screen
-  const key = spotCell(at, g.first).join(), print = panelPrint(frame, g);
+  const [col, row] = spotCell(at, g.first), key = col + ',' + row, inBox = col >= 0 && row >= 0 && col < BOX_COLS && row < BOX_ROWS;
+  const now = performance.now();
+  if (!imp.here || imp.here.key !== key) {
+    // a new spot: note it as gone past, and redraw the map so it shows where the cursor is and what it went past
+    imp.here = { key, t: now, took: false, again: false, slot: inBox ? row * BOX_COLS + col : -1 };
+    if (inBox) imp.visited.add(imp.here.slot);
+    renderImp();
+  }
+  // the party column (or anything else off the box) isn't imported, so there's nothing to read there
+  if (!inBox) return;
+  const print = panelPrint(frame, g);
   // Read the panel whenever it shows something new, for the spot the cursor is on. When the cursor moves but the
   // panel still matches the last one read, the panel may not have caught up yet, so wait until the cursor has
   // rested there a moment (an empty spot after an empty one, or two exact copies). Once rested, a spot without a
   // clean read is read once more: the first copy can be of a frame the game was still drawing.
-  const now = performance.now(), fresh = !imp.last || printDiff(imp.last.print, print) > 8;
-  if (!imp.here || imp.here.key !== key) imp.here = { key, t: now, took: false, again: false };
+  const fresh = !imp.last || printDiff(imp.last.print, print) > 8;
   const rested = now - imp.here.t > 250, done = imp.reads.get(key), clean = done && (done.egg || done.read && !done.read.problems.length);
   const kind = fresh ? 'new' : !rested ? '' : !imp.here.took ? 'rest' : !imp.here.again && !clean ? 'again' : '';
   if (kind) {
@@ -3398,10 +3466,10 @@ function finishReading() {
   placed.forEach((r) => seen.set(r.slot, r));
   imp.review = [...seen.values()].map((r) => ({ ...r.read, slot: r.slot, on: !!r.read.mon.species }));
   imp.eggs = new Set(all.filter((r) => r.egg && !seen.has(r.slot)).map((r) => r.slot)).size;
-  imp.missed = missedSpots(all, imp.filled, -1);
-  Object.assign(imp, { step: imp.review.length ? 'review' : 'idle', from: 'screen', reads: new Map(), geo: null,
+  imp.missed = missedSpots(all, imp.filled);
+  Object.assign(imp, { step: imp.review.length ? 'review' : 'idle', from: 'screen', reads: new Map(), geo: null, name: null,
     status: imp.review.length ? '' : imp.eggs ? 'Only eggs were read. Eggs are left out: their IVs and nature only show once they hatch.'
-      : "No Pokémon were read. Make sure the PC box is open in the window you share, then tap ← through it." });
+      : "No Pokémon were read. Make sure the PC box is open in the window you share, then go through it a row at a time from the top-left spot." });
   renderImp();
 }
 
@@ -3419,17 +3487,31 @@ function saveDebug() {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
-// Spots after `from` that hold a Pokémon but weren't read: passed too fast, or the read failed.
-function missedSpots(placed, filled, from) {
+// Spots that hold a Pokémon but weren't read: gone past too fast, or the read failed. Only spots in `passed` count,
+// or every spot when it's left out (the review, once reading is done).
+function missedSpots(placed, filled, passed) {
   if (!filled) return [];
   const done = new Set(placed.filter((r) => r.read || r.egg || r.pending).map((r) => r.slot));
-  return [...filled].filter((s) => s > from && !done.has(s)).sort((a, b) => a - b);
+  return [...filled].filter((s) => (!passed || passed.has(s)) && !done.has(s)).sort((a, b) => a - b);
+}
+// The spots the cursor has gone past on its way through the box a row at a time, whichever way along each row it
+// went: in each row, the stretch between the spots it was seen on. That covers a spot it skipped over between two
+// frames without counting the rest of a row it hasn't got to yet. The spot it's on now is still being read.
+function passedSpots(visited, here) {
+  const out = new Set(), rows = new Map();
+  for (const s of visited) {
+    const r = Math.floor(s / BOX_COLS), c = s % BOX_COLS, o = rows.get(r);
+    rows.set(r, o ? [Math.min(o[0], c), Math.max(o[1], c)] : [c, c]);
+  }
+  for (const [r, [a, b]] of rows) for (let c = a; c <= b; c++) out.add(r * BOX_COLS + c);
+  out.delete(here);
+  return out;
 }
 const spotList = (list) => (list.length === 1 ? `spot ${list[0] + 1}` : `spots ${list.slice(0, -1).map((s) => s + 1).join(', ')} and ${list[list.length - 1] + 1}`);
-function impMap(cells, missed) {
+function impMap(cells, missed, here) {
   return `<div class="imp-map" aria-hidden="true">${Array.from({ length: BOX_SIZE }, (_, s) => {
-    const r = cells.get(s);
-    return missed.includes(s) ? '<span class="miss"></span>' : !r ? '<span></span>' : !r.read ? `<span class="${r.egg ? 'egg' : 'seen'}"></span>` : `<span class="got${r.read.problems.length ? ' bad' : ''}">${sprite(r.read.mon.species, 0.7)}</span>`;
+    const r = cells.get(s), at = s === here ? ' here' : '';
+    return missed.includes(s) ? `<span class="miss${at}"></span>` : !r ? `<span class="${at.trim()}"></span>` : !r.read ? `<span class="${r.egg ? 'egg' : 'seen'}${at}"></span>` : `<span class="got${r.read.problems.length ? ' bad' : ''}${at}">${sprite(r.read.mon.species, 0.7)}</span>`;
   }).join('')}</div>`;
 }
 function impRow(it, i) {
@@ -3440,24 +3522,32 @@ function impRow(it, i) {
     + `${it.slot != null ? ` <span class="muted small">spot ${it.slot + 1}</span>` : ''}<br><span class="imp-ivs">${ivs}</span> <span class="meta">${bits}</span>`
     + `${it.problems.length ? `<br><span class="mon-warn small">${esc(it.problems.join(' '))}</span>` : ''}</span></li>`;
 }
+// Where a screen import goes: the box on show when it's empty, so a box made and named for it beforehand keeps its
+// name, or else a new box. Null when every box is taken.
+function impTarget() {
+  const b = box.boxes[box.cur];
+  if (b && !b.slots.some(Boolean)) return { reuse: true, b: box.cur, name: b.name === `Box ${box.cur + 1}` ? 'From PokeMMO' : b.name };
+  return box.boxes.length < BOX_MAX ? { reuse: false, name: 'From PokeMMO' } : null;
+}
 function renderImp() {
   const scr = $('imp-screen'), rev = $('imp-review');
   rev.hidden = imp.step !== 'review';
   scr.hidden = imp.step === 'review';
   if (imp.step === 'review') {
     const on = imp.review.filter((x) => x.on).length, bad = imp.review.filter((x) => x.problems.length).length, screen = imp.from === 'screen';
-    const room = box.boxes.length < BOX_MAX;
+    const to = screen && impTarget();
     const missed = screen && imp.missed && imp.missed.length ? ` ${spotList(imp.missed)[0].toUpperCase() + spotList(imp.missed).slice(1)} ${imp.missed.length === 1 ? 'wasn\'t' : 'weren\'t'} read; add ${imp.missed.length === 1 ? 'that one' : 'those'} by hand, or throw these away and read the box again.` : '';
     const eggs = screen && imp.eggs ? ` ${imp.eggs === 1 ? 'An egg was' : `${imp.eggs} eggs were`} left out, as eggs don't show their IVs or nature until they hatch.` : '';
-    rev.innerHTML = `<p>${screen ? 'Read' : 'Found'} ${imp.review.length} Pokémon${bad ? `; ${bad} need a look (their notes are in red)` : ''}.${missed}${eggs} Untick any you don't want${screen ? ', then put them in a new box in the same spots as in the game' : ''}. You can fix anything later by clicking it in the box.</p>`
+    rev.innerHTML = `<p>${screen ? 'Read' : 'Found'} ${imp.review.length} Pokémon${bad ? `; ${bad} need a look (their notes are in red)` : ''}.${missed}${eggs} Untick any you don't want${to ? `, then put them in ${to.reuse ? 'this box, which is empty,' : 'a new box'} in the same spots as in the game` : ''}. You can fix anything later by clicking it in the box.</p>`
       + `<ul class="imp-list">${imp.review.map(impRow).join('')}</ul>`
-      + (screen && room ? `<label class="f" style="max-width:240px">Name of the new box<input type="text" id="imp-name" maxlength="20" autocomplete="off" value="${esc(imp.name || 'From PokeMMO')}"></label>` : '')
-      + `<div class="row"><button class="btn primary" type="button" id="imp-put" ${on ? '' : 'disabled'}>Put ${on} in ${screen && room ? 'a new box' : 'my box'}</button>`
+      + (to ? `<label class="f" style="max-width:240px">${to.reuse ? 'Box name' : 'Name of the new box'}<input type="text" id="imp-name" maxlength="20" autocomplete="off" value="${esc(imp.name != null ? imp.name : to.name)}"></label>` : '')
+      + `<div class="row"><button class="btn primary" type="button" id="imp-put" ${on ? '' : 'disabled'}>Put ${on} in ${!to ? 'my box' : to.reuse ? 'this box' : 'a new box'}</button>`
       + `<button class="btn" type="button" id="imp-drop">Throw these away</button></div>` + debugLink();
     return;
   }
   if (imp.step === 'idle') {
-    scr.innerHTML = `<p>Read your PC box straight off the screen. Share the PokeMMO window, open your PC and select the box's last spot. Then tap ← to go through your Pokémon one at a time, and wait for each one to show up on the little map here before moving on. You can always go back to a spot to read it again, or fix anything by hand afterwards.</p>`
+    scr.innerHTML = `<p>Read your PC box straight off the screen. Share the PokeMMO window, open your PC and select the box's top-left spot. Then go through it a row at a time: tap → along the top row, waiting for each Pokémon to show up on the little map here before moving on. At the end of a row, tap ↓ and come back along the next one with ←, and so on down the box.</p>`
+      + `<p class="muted small">Tap rather than hold the keys: holding one goes too fast to read every Pokémon. Any Pokémon the cursor goes past without a read is outlined in red on the map, so you can go back to it. You can also fix anything by hand afterwards.</p>`
       + `<p class="muted small"><b>Nothing is saved or uploaded.</b> The page only looks at the window you share while it's reading. Each copy of the side panel stays in your browser's memory and is gone when you read again or close the page; no screenshots are stored or sent anywhere. The one exception is "Save what was read", which downloads them as a file, and only when you press it.</p>`
       + `<p class="muted small"><b>It isn't perfect.</b> Reading text off the screen can get things wrong, so check the list before adding them. It's built for the game's default look; interface mods, themes and texture packs can make it less reliable.</p>`
       + `<p class="muted small">You press the keys yourself: the page never touches the game. Don't use macros or auto-clickers with PokeMMO; the game bans them.</p>`
@@ -3471,22 +3561,22 @@ function renderImp() {
   const cells = new Map(), placed = placeReads([...imp.reads.values(), ...pending], imp.first).filter((r) => r.slot >= 0);
   placed.forEach((r) => { if (!r.pending || !cells.has(r.slot)) cells.set(r.slot, r); });
   const got = [...imp.reads.values()].filter((r) => r.read).length, waiting = imp.queue.length + (imp.busy ? 1 : 0);
-  // the cursor goes from the last spot to the first, so a Pokémon after the lowest spot seen has been passed
-  const missed = missedSpots(placed, imp.filled, Math.min(BOX_SIZE, ...placed.map((r) => r.slot)));
+  const here = imp.here ? imp.here.slot : -1, missed = missedSpots(placed, imp.filled, passedSpots(imp.visited, here));
   scr.innerHTML = `<p class="imp-status" role="status">${imp.step === 'stopping' ? `Finishing the last ${waiting} reads…` : esc(imp.status)}</p>`
     + (imp.step === 'read' || imp.step === 'stopping' ? `<p class="small">Read ${got} Pokémon${waiting ? `, ${waiting} still reading` : ''}.`
-      + `${missed.length ? ` <span class="mon-warn">Missed ${missed.length} (outlined in red): move the cursor back onto ${missed.length === 1 ? 'it' : 'them'}.</span>` : ' Missed one? Move the cursor back onto it.'}</p>${impMap(cells, missed)}` : '')
+      + `${missed.length ? ` <span class="mon-warn">Missed ${missed.length} (outlined in red): move the cursor back onto ${missed.length === 1 ? 'it' : 'them'}.</span>` : ' Missed one? Move the cursor back onto it.'}</p>${impMap(cells, missed, here)}` : '')
     + `<div class="row">${imp.step === 'stopping' ? '' : `<button class="btn primary" type="button" id="imp-done" ${got || waiting ? '' : 'disabled'}>Done</button>`}<button class="btn" type="button" id="imp-cancel">Cancel</button></div>`;
 }
 function putImported() {
   const list = imp.review.filter((x) => x.on && sp(x.mon.species));
   if (!list.length) return;
   const added = [];
-  let made = -1;
-  if (imp.from === 'screen' && box.boxes.length < BOX_MAX) {
-    const name = ($('imp-name') ? $('imp-name').value.trim() : '') || 'From PokeMMO';
-    box.boxes.push(cleanBox({ name, slots: [] }, box.boxes.length));
-    made = box.boxes.length - 1;
+  let made = -1, oldName = null;
+  const to = imp.from === 'screen' && impTarget();
+  if (to) {
+    const name = ($('imp-name') ? $('imp-name').value.trim().slice(0, 20) : '') || to.name;
+    if (to.reuse) { made = to.b; oldName = box.boxes[made].name; box.boxes[made].name = name; }
+    else { box.boxes.push(cleanBox({ name, slots: [] }, box.boxes.length)); made = box.boxes.length - 1; }
   }
   for (const it of list) {
     let at = made >= 0 && it.slot != null && !box.boxes[made].slots[it.slot] ? { b: made, s: it.slot } : emptySlot(made >= 0 ? made : box.cur);
@@ -3504,7 +3594,8 @@ function putImported() {
   renderImp();
   boxSay(added.length < list.length ? `Put ${added.length} of ${list.length} in; your boxes are full.` : `Put ${added.length} Pokémon in ${made >= 0 ? box.boxes[made].name : 'your box'}.`, () => {
     added.forEach((id) => { const at = findMon(id); if (at) box.boxes[at.b].slots[at.s] = null; });
-    if (made >= 0 && made === box.boxes.length - 1 && !box.boxes[made].slots.some(Boolean) && box.boxes.length > 1) { box.boxes.pop(); box.cur = Math.min(box.cur, box.boxes.length - 1); }
+    if (oldName != null) { if (box.boxes[made]) box.boxes[made].name = oldName; }
+    else if (made >= 0 && made === box.boxes.length - 1 && !box.boxes[made].slots.some(Boolean) && box.boxes.length > 1) { box.boxes.pop(); box.cur = Math.min(box.cur, box.boxes.length - 1); }
     saveBox('all', true); if (!boxDraft) renderDraft(); boxSay('Taken back out.');
   });
 }
@@ -3541,6 +3632,60 @@ $('box-text-copy')?.addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(text); copied = true; } catch (e) { out.focus(); out.select(); try { copied = document.execCommand('copy'); } catch (e2) {} }
   out.focus(); out.select();
   boxSay(copied ? `Copied ${mons.length} Pokémon from ${box.boxes[box.cur].name} as text.` : 'Here is the box as text. Select it and copy it.');
+});
+
+// ---------- IV stats for the box ----------
+// The average IV total and how many Pokémon have 0 to 6 31s, for this box or all of them, and the same as a few
+// lines of text to paste in Discord. A Pokémon with a blank (unknown) IV is left out of the average, and a blank isn't a 31.
+function ivStats(mons) {
+  const by = [0, 0, 0, 0, 0, 0, 0];
+  let sum = 0, full = 0;
+  for (const m of mons) {
+    by[n31(m)]++;
+    if (m.ivs.every((v) => v != null)) { sum += m.ivs.reduce((a, v) => a + v, 0); full++; }
+  }
+  return { n: mons.length, by, avg: full ? sum / full : null, blank: mons.length - full };
+}
+function statsScope() {
+  const all = statsAll && box.boxes.length > 1, b = box.boxes[box.cur];
+  return { all, mons: (all ? box.boxes.flatMap((x) => x.slots) : b.slots).filter(Boolean), name: b.name.trim() || `Box ${box.cur + 1}` };
+}
+const pkmn = (n) => `${n.toLocaleString('en-US')} Pokémon`;
+function renderBoxStats() {
+  const { all, mons } = statsScope(), st = ivStats(mons), seg = $('box-stats-for');
+  seg.hidden = box.boxes.length < 2;
+  seg.querySelectorAll('[data-bs]').forEach((x) => x.setAttribute('aria-pressed', String((x.dataset.bs === 'all') === all)));
+  $('box-stats-copy').disabled = !st.n;
+  if (!st.n) { $('box-stats-body').innerHTML = `<p class="bs-note">${all ? 'Your boxes are empty' : 'This box is empty'}. Add Pokémon to see their IVs here.</p>`; return; }
+  const top = Math.max(...st.by);
+  $('box-stats-body').innerHTML = `<p class="bs-avg">Average IV total <b>${st.avg == null ? '?' : st.avg.toFixed(1)}</b> <span class="muted">/ 186 · ${pkmn(st.n)}${all ? ` in ${box.boxes.length} boxes` : ''}</span></p>`
+    + `<div class="bs-bars">${st.by.map((c, k) => `<div class="bs-cell${c ? '' : ' zero'}" style="--f:${Math.round(c / top * 100)}%"><span>${k}×31</span><b>${c}</b><i aria-hidden="true"></i></div>`).join('')}</div>`
+    + (st.blank ? `<p class="bs-note">${st.avg == null ? 'None of these have all six IVs filled in, so there is no average yet.' : `${pkmn(st.blank)} with blank IVs ${st.blank === 1 ? 'is' : 'are'} left out of the average.`} A blank IV doesn't count as a 31.</p>` : '');
+}
+function statsText() {
+  const { all, mons, name } = statsScope(), st = ivStats(mons);
+  const lines = [all ? `All my boxes: ${pkmn(st.n)} in ${box.boxes.length} boxes` : `${name}: ${pkmn(st.n)}`,
+    `Average IV total: ${st.avg == null ? 'unknown' : st.avg.toFixed(1)} / 186`];
+  if (st.blank && st.avg != null) lines.push(`(${st.blank} with unknown IVs left out of the average)`);
+  st.by.forEach((c, k) => lines.push(`${k}×31: ${c}`));
+  lines.push('Made with smearguru.org');
+  return lines.join('\n');
+}
+$('box-stats-for').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-bs]');
+  if (!b) return;
+  statsAll = b.dataset.bs === 'all';
+  try { localStorage.setItem(STATS_KEY, statsAll ? 'all' : 'box'); } catch (e2) {}
+  $('box-stats-out').hidden = true;
+  renderBoxStats();
+});
+$('box-stats-copy').addEventListener('click', async () => {
+  const text = statsText(), out = $('box-stats-out'), { all, name } = statsScope();
+  let copied = false;
+  out.hidden = true;
+  try { await navigator.clipboard.writeText(text); copied = true; } catch (e) {}
+  if (!copied) { out.value = text; out.hidden = false; out.focus(); out.select(); try { copied = document.execCommand('copy'); } catch (e2) {} }
+  boxSay(copied ? `Copied the IV stats for ${all ? 'all your boxes' : name}. Paste them in Discord or anywhere.` : 'Here are the stats as text. Select them and copy them.');
 });
 
 // ---------- the box in the planner ----------
@@ -3637,15 +3782,18 @@ function boxFollowDone(before, after) {
 // ---------- Planner / My box switcher ----------
 const VIEW_KEY = 'pokemmo-breeding-view';
 let pageView = 'planner';
-try { if (localStorage.getItem(VIEW_KEY) === 'box') pageView = 'box'; } catch (e) {}
+const VIEWS = ['planner', 'box', 'builds'];
+try { const v = localStorage.getItem(VIEW_KEY); if (VIEWS.includes(v)) pageView = v; } catch (e) {}
 function setView(v, focus) {
-  pageView = v === 'box' ? 'box' : 'planner';
+  pageView = VIEWS.includes(v) ? v : 'planner';
   try { localStorage.setItem(VIEW_KEY, pageView); } catch (e) {}
   $('view-planner').hidden = pageView !== 'planner';
   $('view-box').hidden = pageView !== 'box';
-  ['planner', 'box'].forEach((k) => { const t = $('vt-' + k); t.setAttribute('aria-selected', String(k === pageView)); t.tabIndex = k === pageView ? 0 : -1; });
+  $('view-builds').hidden = pageView !== 'builds';
+  VIEWS.forEach((k) => { const t = $('vt-' + k); t.setAttribute('aria-selected', String(k === pageView)); t.tabIndex = k === pageView ? 0 : -1; });
   closeCombo(); hideTip();
   if (pageView === 'box') { renderBox(); renderDraft(); }
+  if (pageView === 'builds') bcShow();
   syncToPlan();
   if (focus) $('vt-' + pageView).focus();
 }
@@ -3656,8 +3804,272 @@ document.addEventListener('click', (e) => {
   if (!b.classList.contains('view-tab')) window.scrollTo({ top: 0 });
 });
 document.querySelector('.views').addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); setView(pageView === 'box' ? 'planner' : 'box', true); }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); setView(VIEWS[(VIEWS.indexOf(pageView) + (e.key === 'ArrowRight' ? 1 : VIEWS.length - 1)) % VIEWS.length], true); }
 });
+
+// ---------- Build center ----------
+// Builds the boxes can make (src/builds.js): per breeding line, the hardest goal on a ladder of IV goals
+// that a short planner run can find a plan for. The lines are checked a few at a time in workers, and each
+// line's answer is kept until the Pokémon that could breed with it (or the prices) change.
+const BC_KEY = 'pokemmo-breeding-build-center';
+const bc = { by: 'species', buy: false, filter: '', res: new Map(), want: new Map(), queue: [], busy: new Map(), workers: [], url: null,
+  total: 0, started: 0, took: 0, list: [], frame: 0,
+  nat: new Map(), // card -> the nature picked in its dropdown
+  checks: new Map() }; // card + nature + its Pokémon -> what the planner found (or {pending})
+try { const o = JSON.parse(localStorage.getItem(BC_KEY)); if (o) { bc.by = o.by === 'group' ? 'group' : 'species'; bc.buy = o.buy === true; } } catch (e) {}
+const bcSave = () => { try { localStorage.setItem(BC_KEY, JSON.stringify({ by: bc.by, buy: bc.buy })); } catch (e) {} };
+// The Pokémon in the boxes right now (not the ones ticked breeds took out).
+function bcMons() {
+  const out = [];
+  for (const b of box.boxes) for (const m of b.slots) if (m && sp(m.species)) out.push({ species: sp(m.species).n, gender: m.gender, ivs: m.ivs.slice(), nature: m.nature, ability: m.ability, boxId: m.id });
+  return out;
+}
+const bcPrices = () => { const P = state.prices; return { ...P, haChance: (P.haChance || 0) / 100, abilityChance: (P.abilityChance || 0) / 100 }; };
+// The Pokémon that could breed with a line (its own, Ditto, the ones sharing an egg group), as text:
+// when it changes, the line is checked again.
+function bcPoolFor(line, mons) {
+  const L = dex.lines.get(line);
+  return mons.filter((m) => {
+    if (m.species === 'Ditto') return true;
+    const s = sp(m.species), ml = dex.lineOf(s.n), M = dex.lines.get(ml);
+    return M && !s.e.includes('Undiscovered') && (ml === line || [...M.groups].some((g) => L.groups.has(g)));
+  });
+}
+const bcSig = (pool) => JSON.stringify([bc.buy, ['brace', 'everstone', 'gender11', 'gender31', 'gender71', 'buy', 'buyNatured', 'buyDitto'].map((k) => state.prices[k]),
+  pool.map((m) => [m.boxId, m.species, m.gender, m.ivs.join(), m.nature])]);
+
+function bcWorkerSrc() {
+  return $('planner-src').textContent + `
+    const dex = Planner.buildDex(${JSON.stringify(SPECIES)});
+    onmessage = (e) => {
+      const d = e.data;
+      if (d.kind === 'check') postMessage({ kind: 'check', ckey: d.ckey, res: Builds.checkGoal(dex, d.line, d.goal, d.nature, d.mons, d.prices, d.opts) });
+      else postMessage({ line: d.line, sig: d.sig, list: Builds.scanLine(dex, d.line, d.mons, d.prices, d.opts) });
+    };`;
+}
+function bcStartWorkers() {
+  bcStopWorkers();
+  if (!bc.url) try { bc.url = URL.createObjectURL(new Blob([bcWorkerSrc()], { type: 'text/javascript' })); } catch (e) { bc.url = ''; }
+  if (!bc.url) return;
+  const n = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) - 1));
+  for (let i = 0; i < n; i++) {
+    try {
+      const w = new Worker(bc.url);
+      w.onmessage = (e) => { bc.busy.delete(w); if (e.data.kind === 'check') bcChecked(e.data.ckey, e.data.res); else bcDone(e.data.line, e.data.sig, e.data.list); bcPump(); };
+      w.onerror = () => {
+        const job = bc.busy.get(w); bc.busy.delete(w); bc.workers = bc.workers.filter((x) => x !== w);
+        if (job) { if (job.kind === 'check') bcChecked(job.ckey, { ok: false }); else bcDone(job.line, job.sig, []); }
+        bcPump();
+      };
+      bc.workers.push(w);
+    } catch (e) { break; }
+  }
+}
+function bcStopWorkers() { bc.workers.forEach((w) => w.terminate()); bc.workers = []; bc.busy.clear(); }
+// Scan jobs still waiting or running (nature checks on a card don't count).
+const bcScanning = () => bc.queue.filter((j) => j.kind !== 'check').length + [...bc.busy.values()].filter((j) => j.kind !== 'check').length;
+function bcChecked(ckey, res) { bc.checks.set(ckey, res); bcRenderSoon(); }
+function bcDone(line, sig, list) {
+  if (bc.want.get(line) !== sig) return; // the box changed while this line was being checked
+  bc.res.set(line, { sig, list });
+  bcRenderSoon();
+}
+function bcPump() {
+  const opts = { buy: bc.buy, mode: 'breeds' }, prices = bcPrices();
+  if (!bc.workers.length) {
+    // No workers (an old browser): one line at a time on the page, with a break between lines.
+    if (bc.queue.length && !bc.busy.size) {
+      const job = bc.queue.shift();
+      bc.busy.set('page', job);
+      setTimeout(() => {
+        bc.busy.delete('page');
+        if (job.kind === 'check') bcChecked(job.ckey, Builds.checkGoal(dex, job.line, job.goal, job.nature, job.mons, prices, opts));
+        else if (bc.want.get(job.line) === job.sig) bcDone(job.line, job.sig, Builds.scanLine(dex, job.line, job.mons, prices, opts));
+        bcPump();
+      }, 0);
+    }
+  } else {
+    for (const w of bc.workers) {
+      if (bc.busy.has(w) || !bc.queue.length) continue;
+      const job = bc.queue.shift();
+      bc.busy.set(w, job);
+      w.postMessage({ ...job, prices, opts });
+    }
+  }
+  if (!bcScanning() && bc.started) { bc.took = Date.now() - bc.started; bc.started = 0; }
+  bcRenderSoon();
+}
+// Check the lines whose Pokémon changed (or every line, when asked to check again).
+function bcScan(all) {
+  const mons = bcMons(), lines = Builds.linesIn(dex, mons);
+  bc.want = new Map();
+  const jobs = [];
+  for (const line of lines) {
+    const pool = bcPoolFor(line, mons), sig = bcSig(pool);
+    bc.want.set(line, sig);
+    const have = bc.res.get(line);
+    if (all || !have || have.sig !== sig) jobs.push({ line, sig, mons: pool });
+  }
+  for (const line of [...bc.res.keys()]) if (!bc.want.has(line)) bc.res.delete(line);
+  if (all) bc.res.clear();
+  const running = bc.queue.length || bc.busy.size;
+  if (!jobs.length && !running) return bcRender();
+  if (running || !bc.workers.length) bcStartWorkers();
+  bc.checks.forEach((v, k) => { if (v.pending) bc.checks.delete(k); }); // their workers were just stopped
+  bc.queue = jobs;
+  bc.total = jobs.length;
+  bc.started = Date.now();
+  bcPump();
+}
+let bcTimer = null;
+function bcBoxChanged() { clearTimeout(bcTimer); bcTimer = setTimeout(() => { if (pageView === 'builds') bcScan(false); }, 400); }
+function bcShow() { bcSyncControls(); bcScan(false); bcRender(); }
+function bcRenderSoon() { if (!bc.frame) bc.frame = requestAnimationFrame(() => { bc.frame = 0; bcRender(); }); }
+
+function bcSyncControls() {
+  document.querySelectorAll('[data-bc-by]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.bcBy === bc.by)));
+  $('bc-buy').checked = bc.buy;
+}
+const bcGroups = (line) => [...dex.lines.get(line).groups];
+function bcChips(ivs) {
+  return `<div class="ivs">${ivs.map((v, i) => (v == null ? '' : `<span class="iv s-${STAT_KEYS[i]}">${STAT_LABEL[i]} ${v === 31 ? 31 : v + '+'}</span>`)).join('')}</div>`;
+}
+function bcNextText(n) {
+  if (n.gaps.length) return `needs ${andList(n.gaps.map((g) => { const i = STAT_LABEL.indexOf(g); return `a Pokémon with ${n.ivs[i] === 31 ? '31' : n.ivs[i] + '+'} ${g}`; }))} that can breed with it.`;
+  if (n.slow) return 'too big to check here, so it might be possible.';
+  return `needs more Pokémon with the right IVs${bc.buy ? '' : ', or tick "Allow buying" to fill the gaps from the GTL'}.`;
+}
+const bcFor = (s) => { const f = s.forSpecies.filter((n) => n !== s.line); return f.length ? ` <span class="for">→ ${esc(f.join(', '))}</span>` : ''; };
+// The nature a card is set to: the one picked in its dropdown, else the fitting one found in the boxes.
+const bcNatOf = (s) => (bc.nat.has(s.key) ? bc.nat.get(s.key) : s.natDefault || '');
+const bcCkey = (s, nat) => `${s.key}|${nat}|${bc.want.get(s.line) || ''}`;
+// What the card shows for its nature: the scan's own answer, or a check run for the picked nature.
+function bcView(s) {
+  const nat = bcNatOf(s);
+  if (!nat) return { ...s, nature: '' };
+  if (s.natRes && s.natRes[nat]) return { ...s, ...s.natRes[nat], nature: nat };
+  const ck = bcCkey(s, nat);
+  if (!bc.checks.has(ck)) {
+    bc.checks.set(ck, { pending: true });
+    const pool = bcPoolFor(s.line, bcMons());
+    bc.queue.unshift({ kind: 'check', ckey: ck, line: s.line, goal: s.ivs.slice(), nature: nat, mons: pool });
+    setTimeout(bcPump, 0);
+  }
+  return { ...s, ...bc.checks.get(ck), nature: nat, checked: true };
+}
+function bcNatSelect(s, nat) {
+  const pool = bcPoolFor(s.line, bcMons()), owned = new Set(pool.map((m) => m.nature).filter(Boolean));
+  const fits = Builds.ROLE_NATURES[s.role] || [];
+  const opt = (n) => `<option value="${n}"${n === nat ? ' selected' : ''}>${n} (${NATURE_FX[n] ? `+${STAT_LABEL[NATURE_FX[n][0]]} −${STAT_LABEL[NATURE_FX[n][1]]}` : 'neutral'})${owned.has(n) ? ' ✓' : ''}</option>`;
+  const others = NATURES.filter((n) => !fits.includes(n)).sort((a, b) => (owned.has(b) - owned.has(a)) || a.localeCompare(b));
+  return `<label class="bc-nat">Nature <select data-bc-nat="${esc(s.key)}">
+    <option value=""${nat ? '' : ' selected'}>Any nature (random)</option>
+    <optgroup label="Suits a ${esc(s.role === 'wall' ? 'defensive Pokémon' : s.role === 'spec' ? 'special attacker' : 'physical attacker')} (✓ = in your box)">${fits.map(opt).join('')}</optgroup>
+    <optgroup label="Others">${others.map(opt).join('')}</optgroup></select></label>`;
+}
+function bcCard(s0) {
+  const s = bcView(s0);
+  let meta;
+  if (s.pending) meta = `<div class="bc-meta"><span><span class="spin"></span>Checking with ${esc(s.nature)}…</span></div>`;
+  else if (s.checked && !s.ok) meta = `<div class="bc-meta warn-text">${s.slow ? `Too big to check here with ${esc(s.nature)}. Open it in the planner to try.` : `No plan with ${esc(s.nature)} from your box, even buying a 1×31 with that nature.`}</div>`;
+  else {
+    const buys = s.buys.length ? ` <span>buys ${s.buys.length} 1×31${s.buys.length > 1 ? 's' : ''}${s.bought ? ' off the GTL' : ''}</span>` : '';
+    meta = `<div class="bc-meta"><span>${s.rough ? 'about ' : ''}<b>${s.breeds}</b> breed${s.breeds === 1 ? '' : 's'}</span><span><span class="money">${money(s.cost)}</span> in items and fees</span>${buys}</div>`
+      + (s.bought ? `<div class="bc-sub">No plan turned up with only your own ${esc(s.nature)} Pokémon, so this one buys a 1×31 ${esc(s.nature)} off the GTL.</div>` : '');
+  }
+  const uses = new Map();
+  for (const id of s.uses || []) { const at = findMon(id); if (at) uses.set(at.mon.species, (uses.get(at.mon.species) || 0) + 1); }
+  const usesHtml = [...uses].map(([n, c]) => `<span class="u" title="${esc(n)}">${sprite(n, 1)}${c > 1 ? `×${c}` : ''}</span>`).join('');
+  const showUses = !s.pending && s.ok !== false && s.uses && s.uses.length;
+  return `<article class="bc-card">
+    <div class="bc-top">${sprite(s.line)}<div class="bc-name">${esc(s.line)}${bcFor(s)}</div><div class="bc-sub">${esc(s.roleLabel)} · ${esc(bcGroups(s.line).join(' / '))}</div></div>
+    <div class="bc-goal">${esc(s.label)}${s.nature ? ` <span class="nat">${esc(s.nature)}</span>` : ''}</div>
+    ${bcChips(s.ivs)}
+    ${meta}
+    ${showUses ? `<div class="bc-uses"><span>Uses ${s.uses.length} of your Pokémon</span><span class="icons">${usesHtml}</span></div>` : ''}
+    <div class="row">${bcNatSelect(s, s.nature)}<button class="btn primary" type="button" data-bc-open="${esc(s.key)}"${s.pending ? ' disabled' : ''}>Open in planner</button></div>
+    ${s0.next ? `<div class="bc-next">Next step up, <b>${esc(s0.next.label)}</b>: ${esc(bcNextText(s0.next))}${s0.next.slow ? ` <button class="linkbtn" type="button" data-bc-open="${esc(s.key)}" data-bc-next="1">Try it in the planner</button>` : ''}</div>` : ''}
+  </article>`;
+}
+function bcMatches(s, q) {
+  if (!q) return true;
+  const text = [s.line, ...s.forSpecies, ...bcGroups(s.line), s.label || '', s.goalText || '', bcNatOf(s), s.roleLabel].join(' ').toLowerCase().replace(/x/g, '×');
+  return q.toLowerCase().replace(/x/g, '×').split(/\s+/).filter(Boolean).every((w) => text.includes(w));
+}
+function bcRender() {
+  if (pageView !== 'builds') return;
+  const total = boxMons(), running = bcScanning();
+  const st = $('bc-status');
+  if (!total) {
+    st.innerHTML = '';
+    $('bc-out').innerHTML = '<div class="empty">Your box is empty. Add the Pokémon you have under <button class="linkbtn" type="button" data-view="box">My box</button>, or import them from PokeMMO, and the builds they can make show up here.</div>';
+    return;
+  }
+  const list = [];
+  for (const { list: l } of bc.res.values()) {
+    // The Everstone version of a build becomes its card's starting nature rather than a card of its own.
+    for (const s of l) if (!s.nature) { s.key = `${s.line}|${s.role}`; list.push(s); }
+    for (const v of l) {
+      if (!v.nature) continue;
+      const base = list.find((b) => b.line === v.line && b.role === v.role && b.rung === v.rung && !b.nature);
+      if (base) { base.natDefault = base.natDefault || v.nature; (base.natRes = base.natRes || {})[v.nature] = { breeds: v.breeds, cost: v.cost, uses: v.uses, buys: v.buys, rough: v.rough, ok: true }; }
+    }
+  }
+  bc.list = list;
+  const shown = list.filter((s) => bcMatches(s, bc.filter));
+  const ok = shown.filter((s) => s.rung >= 0).sort(Builds.rank), not = shown.filter((s) => s.rung < 0);
+  const lines = bc.want.size;
+  st.innerHTML = running
+    ? `<span class="spin"></span><span>Checking ${bc.total} species… ${bc.total - running} done</span><span class="bc-prog"><i style="width:${Math.round(100 * (bc.total - running) / Math.max(1, bc.total))}%"></i></span>`
+    : `<span>${ok.length} build${ok.length === 1 ? '' : 's'} from ${lines} species in your box${bc.took ? `, checked in ${(bc.took / 1000).toFixed(1)}s` : ''}.${bc.filter ? ` Showing the ones that match "${esc(bc.filter)}".` : ''}</span>`;
+  let h = '';
+  if (!ok.length && !running) h += `<div class="empty">${bc.filter ? 'No builds match that filter.' : 'Nothing your box can make yet. The list below says what each species is missing.'}</div>`;
+  if (bc.by === 'group') {
+    const groups = new Map();
+    for (const s of ok) for (const g of bcGroups(s.line)) { if (!groups.has(g)) groups.set(g, []); groups.get(g).push(s); }
+    for (const [g, l] of groups) {
+      const species = new Set(l.map((s) => s.line)).size;
+      h += `<section class="bc-group"><h3>${esc(g)} <span class="small muted">${l.length} build${l.length === 1 ? '' : 's'}, ${species} species</span></h3><div class="bc-grid">${l.map(bcCard).join('')}</div></section>`;
+    }
+  } else if (ok.length) h += `<div class="bc-grid">${ok.map(bcCard).join('')}</div>`;
+  if (not.length) {
+    h += `<details class="bc-none"><summary>${not.length} species can't make a build yet</summary><ul>${not.sort((a, b) => a.line.localeCompare(b.line)).map((s) =>
+      `<li><b>${esc(s.line)}</b>: ${esc(s.next.label)} ${esc(bcNextText(s.next))}</li>`).join('')}</ul></details>`;
+  }
+  const out = $('bc-out'), open = out.querySelector('details.bc-none[open]');
+  out.innerHTML = h;
+  if (open && out.querySelector('details.bc-none')) out.querySelector('details.bc-none').open = true;
+}
+// Opening a build: its goal in the planner, a fresh Pokémon list, and "Use the Pokémon in my box" on.
+function bcOpen(key, next) {
+  const s0 = bc.list.find((x) => x.key === key);
+  if (!s0) return;
+  const s = bcView(s0);
+  const ivs = (next ? s.next.ivs : s.ivs).slice(), label = next ? s.next.label : s.label;
+  const wasUseBox = state.useBox, wasBuy = state.buy;
+  state.useBox = true;
+  if (bc.buy || (!next && s.bought)) state.buy = true;
+  startGoal({ species: s.line, ivs, gender: 'A', nature: next ? '' : s.nature, ability: '', wantMoves: false, moves: [] }, [], [],
+    `Loaded ${[next ? '' : s.nature, s.line, label].filter(Boolean).join(' ')} from the Build center. The plan uses the Pokémon in your box.`);
+  const undo = undoFn;
+  undoFn = undo && (() => { state.useBox = wasUseBox; state.buy = wasBuy; undo(); renderUseBox(); renderMons(); });
+  renderUseBox(); renderMons(); renderPrices(); changed();
+  setView('planner');
+  window.scrollTo({ top: 0 });
+}
+document.querySelectorAll('[data-bc-by]').forEach((b) => b.addEventListener('click', () => { bc.by = b.dataset.bcBy; bcSave(); bcSyncControls(); bcRender(); }));
+$('bc-buy').addEventListener('change', (e) => { bc.buy = e.target.checked; bcSave(); bcScan(false); });
+$('bc-filter').addEventListener('input', (e) => { bc.filter = e.target.value.trim(); bcRender(); });
+$('bc-rescan').addEventListener('click', () => bcScan(true));
+$('bc-out').addEventListener('change', (e) => {
+  const sel = e.target.closest('[data-bc-nat]');
+  if (!sel) return;
+  bc.nat.set(sel.dataset.bcNat, sel.value);
+  bcRender();
+  const again = document.querySelector(`[data-bc-nat="${CSS.escape(sel.dataset.bcNat)}"]`);
+  if (again) again.focus();
+});
+$('bc-out').addEventListener('click', (e) => { const b = e.target.closest('[data-bc-open]'); if (b) bcOpen(b.dataset.bcOpen, !!b.dataset.bcNext); });
 
 // ---------- saved builds ----------
 // On claude.ai builds are kept in your Claude account (private to you, on every device).
