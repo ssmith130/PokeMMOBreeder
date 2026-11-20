@@ -17,6 +17,26 @@ test('roles come from the fully evolved base stats', () => {
   assert.ok(Builds.rolesOf(dex, 'Eevee').size >= 2, 'Eevee evolves both ways');
 });
 
+test('Huge Power and Pure Power make a line physical', () => {
+  const marill = Builds.rolesOf(dex, 'Marill'), meditite = Builds.rolesOf(dex, 'Meditite');
+  assert.deepStrictEqual([...marill.keys()], ['phys']);
+  assert.strictEqual(marill.get('phys').ability, 'Huge Power');
+  assert.deepStrictEqual([...meditite.keys()], ['phys']);
+  assert.strictEqual(meditite.get('phys').ability, 'Pure Power');
+});
+
+test('the same box gives the same answer every time, however busy the computer is', () => {
+  // a box big enough that some checks run out of work
+  let seed = 3; const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+  const box = [];
+  for (let i = 0; i < 40; i++) box.push(mon(i % 8 ? (i % 2 ? 'Machop' : 'Pawniard') : 'Ditto', i % 8 ? (rnd() < 0.5 ? 'M' : 'F') : 'N',
+    Array.from({ length: 6 }, () => (rnd() < 0.3 ? 31 : Math.floor(rnd() * 31))), ['Adamant', 'Jolly', 'Hardy'][i % 3]));
+  const answer = () => JSON.stringify(Builds.scanLine(dex, 'Pawniard', box, prices, {}), (k, v) => (k === 'ms' || k === 'scan' ? undefined : v));
+  const once = answer();
+  const t = Date.now(); while (Date.now() - t < 50); // a different moment, a different pace
+  assert.strictEqual(answer(), once);
+});
+
 test('each rung asks for everything the one below it does', () => {
   for (const [line, role] of [['Pawniard', 'phys'], ['Abra', 'spec'], ['Chansey', 'wall']]) {
     const rungs = Builds.ladder(dex, line, role);
@@ -49,10 +69,27 @@ test('a fitting nature in the box adds the Everstone version', () => {
   assert.ok(list.some((s) => s.nature === 'Jolly' && s.label === 'Atk and Spe'));
 });
 
-test('without a Pokémon of the line nothing is suggested, and babies and Ditto are not lines', () => {
-  const box = [mon('Machop', 'F', [31, 31, 31, 31, 31, 31]), mon('Ditto', 'N', [31, 31, 31, 31, 31, 31]), mon('Pichu', 'M', [31, 31, 31, 31, 31, 31])];
-  assert.deepStrictEqual(Builds.linesIn(dex, box), ['Machop']);
+test('without a Pokémon of the line nothing is suggested; Ditto and Nidorina are not lines, a baby counts for its line', () => {
+  const box = [mon('Machop', 'F', [31, 31, 31, 31, 31, 31]), mon('Ditto', 'N', [31, 31, 31, 31, 31, 31]), mon('Nidorina', 'F', [31, 31, 31, 31, 31, 31]),
+    mon('Pichu', 'M', [31, 31, 31, 31, 31, 31])];
+  assert.deepStrictEqual(Builds.linesIn(dex, box), ['Machop', 'Pichu']);
   assert.deepStrictEqual(Builds.scanLine(dex, 'Pawniard', box, prices, {}), []);
+});
+
+test('a hidden ability or egg move in the box adds that version of the build', () => {
+  const m = (species, gender, ivs, extra) => ({ ...mon(species, gender, ivs), ...extra });
+  const box = [m('Shroomish', 'F', [31, 31, 0, 0, 0, 31], { ability: 'Quick Feet' }), m('Shroomish', 'M', [0, 31, 0, 0, 0, 31], { ability: 'Effect Spore' }),
+    m('Breloom', 'M', [31, 0, 0, 0, 0, 31], { moves: ['False Swipe', 'Spore'] })];
+  assert.deepStrictEqual(Builds.extrasFor(dex, 'Shroomish', box), { ha: 'Quick Feet', moves: ['False Swipe'] }); // Spore isn't an egg move in Gen 5
+  const out = Builds.scanLine(dex, 'Shroomish', box, prices, {});
+  const ha = out.find((s) => s.abil === 'Quick Feet' && !s.move), mv = out.find((s) => s.move === 'False Swipe' && !s.abil);
+  assert.ok(ha, 'hidden ability version');
+  assert.ok(mv, 'egg move version');
+  // both together is where the card starts; the ability has to pass on in that breed, so it's a chance
+  const best = out.find((s) => s.best);
+  assert.ok(best && best.abil === 'Quick Feet' && best.move === 'False Swipe' && best.chance < 1);
+  // without the hidden ability in the box there's no such version
+  assert.ok(!Builds.scanLine(dex, 'Shroomish', box.slice(1), prices, {}).some((s) => s.abil));
 });
 
 let failed = 0;
