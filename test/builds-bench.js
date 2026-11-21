@@ -30,7 +30,7 @@ const ls = Builds.linesIn(dex, mons);
 let worst = 0, worstLine = '';
 for (const line of ls) {
   const t = Date.now();
-  all.push(...Builds.scanLine(dex, line, mons, prices, { buy: process.argv.includes('--buy'), cap: +process.env.CAP || 24, timeLimit: +process.env.TL || 250 }));
+  all.push(...Builds.scanLine(dex, line, mons, prices, { buy: process.argv.includes('--buy'), cap: +process.env.CAP || 24, work: +process.env.WORK || undefined, timeLimit: +process.env.TL || undefined }));
   if (Date.now() - t > worst) { worst = Date.now() - t; worstLine = line; }
 }
 all.sort(Builds.rank);

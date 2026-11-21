@@ -1,6 +1,6 @@
 {
-  "name": "PokeMMO Breeding Planner",
-  "short_name": "Breeding Planner",
+  "name": "Smearguru · PokeMMO Breeding Planner",
+  "short_name": "Smearguru",
   "description": "Plan PokeMMO breeding: the fewest-breed tree from the Pokémon you own, with braces, Everstones and costs.",
   "start_url": "./",
   "scope": "./",

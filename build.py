@@ -49,6 +49,19 @@ def write(path, text):
         f.write(text)
 
 
+def site_address():
+    """Where the site lives: SITE_URL if set, else the first line of site-url.txt that isn't a # comment."""
+    url = os.environ.get('SITE_URL', '').strip()
+    if not url and os.path.exists(os.path.join(here, 'site-url.txt')):
+        url = next((line.strip() for line in read('site-url.txt').splitlines()
+                    if line.strip() and not line.strip().startswith('#')), '')
+    if url and '://' not in url:
+        url = 'https://' + url
+    if url and not url.endswith('/'):
+        url += '/'
+    return url
+
+
 today = datetime.date.today()
 page = read('src/page.html').replace('/*BUILT*/', f"{today.day} {today.strftime('%b %Y')}")
 def png(path):
@@ -64,7 +77,10 @@ page = (page.replace('/*PLANNER*/', read('src/planner.js'))
             .replace('/*SHEET*/', sheet)
             .replace('<!--ITEM-ICONS-->', items.symbols())
             .replace('/*LOGO*/', png('data/logo.png'))
-            .replace('/*UNKNOWN*/', png('data/unknown-icon.png')))
+            .replace('/*UNKNOWN*/', png('data/unknown-icon.png'))
+            .replace('/*COSTUME_ICONS*/', png('data/costume-icons.png'))
+            .replace('/*COSTUME_READER*/', png('data/costume-reader.png'))
+            .replace('/*SITE_URL*/', site_address()))  # share links made away from the site (claude.ai) point here
 
 # The Artifact host wraps the page in its own <html>/<head>, so it gets the fragment as-is.
 write('build/artifact.html', page)
@@ -89,19 +105,6 @@ head = head.replace(google_fonts, own_fonts)
 DESCRIPTION = ('Plan PokeMMO breeding: enter the Pokémon you have and the one you want, '
                'and get the fewest-breed tree with braces, Everstones, gender picks and a rough cost.')
 FAVICON = png('data/logo-square.png')  # Smearguru, made by src/build-logo.py; the 404 page keeps it built in
-
-
-def site_address():
-    """Where the site lives: SITE_URL if set, else the first line of site-url.txt that isn't a # comment."""
-    url = os.environ.get('SITE_URL', '').strip()
-    if not url and os.path.exists(os.path.join(here, 'site-url.txt')):
-        url = next((line.strip() for line in read('site-url.txt').splitlines()
-                    if line.strip() and not line.strip().startswith('#')), '')
-    if url and '://' not in url:
-        url = 'https://' + url
-    if url and not url.endswith('/'):
-        url += '/'
-    return url
 
 
 site_url = site_address()
@@ -132,7 +135,7 @@ site = f"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="{DESCRIPTION}">
-<meta property="og:title" content="PokeMMO Breeding Planner (Alpha)">
+<meta property="og:title" content="Smearguru · PokeMMO Breeding Planner (Alpha)">
 <meta property="og:description" content="{DESCRIPTION}">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#eef1f4" media="(prefers-color-scheme: light)">
@@ -161,7 +164,7 @@ write('dist/404.html', f"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Page not found · PokeMMO Breeding Planner</title>
+<title>Page not found · Smearguru</title>
 <link rel="icon" type="image/png" href="{FAVICON}">
 <script>try {{ const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; }} catch (e) {{}}</script>
 <style>
