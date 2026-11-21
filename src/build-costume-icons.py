@@ -3,7 +3,10 @@
 # PokeMMO draws a costumed icon as the species' DS icon (32x32, placed at 2,2 in a 36x36 square) with a costume
 # layer on top. The layers are in the game's data/resources.zip (sprites/monstericons/composite-<dex>-<id>-0.png);
 # the DS icons come from a Pokémon Black/White ROM (a/0/0/7: palettes, then an icon per species).
-# Usage: python3 build-costume-icons.py <PokeMMO folder> <Black or White .nds> <out.png>
+# It can also make data/costume-reader.png, which the screen import matches box spots against to see a costume:
+# per icon a row of six 36x36 squares, the plain icon's two frames, the costumed two, and the costumed two with the
+# layer the game uses on shinies (composite-*-s.png).
+# Usage: python3 build-costume-icons.py <PokeMMO folder> <Black or White .nds> <out.png> [<reader.png>]
 import struct, sys, zipfile, io
 from PIL import Image
 
@@ -51,7 +54,7 @@ def narc(d):
     return [d[base + s:base + e] for s, e in ents]
 
 
-def main(pokemmo, rom, out_path):
+def main(pokemmo, rom, out_path, reader_path=None):
     icons = narc(nds_file(rom, 'a/0/0/7'))
     pal = icons[0]
     o = pal.find(b'TTLP')
@@ -62,14 +65,15 @@ def main(pokemmo, rom, out_path):
         c = struct.unpack('<H', raw[i:i + 2])[0]
         colours.append(((c & 31) * 255 // 31, ((c >> 5) & 31) * 255 // 31, ((c >> 10) & 31) * 255 // 31, 255))
 
-    def ds_icon(dex, p):
-        g = icons[7 + 2 * dex]  # 4bpp, 8x8 tiles, 4 across; the first 32x32 frame
+    def ds_icon(dex, p, frame=0):
+        g = icons[7 + 2 * dex]  # 4bpp, 8x8 tiles, 4 across; two 32x32 frames, one after the other
         o = g.find(b'RAHC')
         size = struct.unpack('<I', g[o + 24:o + 28])[0]
         data = g[o + 0x20:o + 0x20 + size]
         im = Image.new('RGBA', (32, 32))
         for i in range(32 * 32):
-            v = (data[i // 2] >> (4 * (i % 2))) & 15
+            j = i + 1024 * frame
+            v = (data[j // 2] >> (4 * (j % 2))) & 15
             if v:
                 t, r, c = i // 64, (i % 64) // 8, i % 8
                 im.putpixel(((t % 4) * 8 + c, (t // 4) * 8 + r), colours[p * 16 + v])
@@ -84,7 +88,20 @@ def main(pokemmo, rom, out_path):
         sq.alpha_composite(layer)
         sheet.alpha_composite(sq.crop((0, TOP, 36, TOP + 30)), (40 * k + 2, 0))
     sheet.save(out_path, optimize=True)
+    if reader_path:
+        reader = Image.new('RGBA', (36 * 6, 36 * len(ICONS)))
+        for k, (_, _, dex, cid, p) in enumerate(ICONS):
+            for fr in (0, 1):
+                sq = Image.new('RGBA', (36, 36))
+                sq.alpha_composite(ds_icon(dex, p, fr), (2, 2))
+                reader.alpha_composite(sq, (36 * fr, 36 * k))
+                for col, suffix in ((2, ''), (4, '-s')):
+                    layer = Image.open(io.BytesIO(res.read(f'sprites/monstericons/composite-{dex}-{cid}-{fr}{suffix}.png'))).convert('RGBA')
+                    c = sq.copy()
+                    c.alpha_composite(layer)
+                    reader.alpha_composite(c, (36 * (col + fr), 36 * k))
+        reader.save(reader_path, optimize=True)
 
 
 if __name__ == '__main__':
-    main(*sys.argv[1:4])
+    main(*sys.argv[1:5])

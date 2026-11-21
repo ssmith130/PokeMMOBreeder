@@ -16,7 +16,7 @@
 //  - picking the egg's gender costs the 1:1 price for the common gender, more for the rare one
 //  - a costume (Royal Charizard, Pirate Gible, ...) passes to the egg when the egg is the costumed parent's
 //    own line (so from the mother, the non-Ditto parent, or a father of the same line); two different
-//    costumes can't breed together. No source gives odds, so it is taken to always pass.
+//    costumes can't breed together. It passes on every breed (Sean, from players in game, 2026-11-20).
 (function (root) {
   const STATS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
   const BRACES = ['Power Weight', 'Power Bracer', 'Power Belt', 'Power Lens', 'Power Band', 'Power Anklet'];
@@ -144,6 +144,9 @@
       if (!c) { c = { ...p, members: [], shift: BigInt(kinds.length * 7) }; c.bit = 1n << c.shift; bySig.set(sig, c); kinds.push(c); }
       c.members.push(p);
     }
+    // cheapest first: the ones worth least (opts.protect), then the fewest 31s, so those get used up first
+    const cheap = (m) => (opts.protect ? Number(m.src.worth) || 0 : 0) * 100 + m.iv.filter((v) => v >= 31).length;
+    for (const c of kinds) c.members.sort((a, b) => cheap(a) - cheap(b) || a.i - b.i);
     const has = (avail, c) => ((avail >> c.shift) & 63n) > 0n;
     // within(x, y): every count in x is at most the one in y. The spare bit in each field stops
     // one count's subtraction from borrowing from the next.
@@ -177,8 +180,15 @@
     const abilityIsHidden = target.abilityHidden;
     const abilityChance = abilityIsHidden ? prices.haChance : prices.abilityChance;
 
-    const better = opts.mode === 'cost'
-      ? (a, b) => (a.cost - b.cost) || (a.breeds - b.breeds) || (a.value - b.value)
+    // Ties go to the plan that uses up less of your Pokémon (value: their 31s and natures). With opts.protect
+    // each Pokémon you own also has a price (pool item's worth: half its rough GTL worth, about what selling it
+    // brings, so buying one is never cheaper than using your own), and the plan with the lowest cost plus worth
+    // used wins. A Pokémon you own that fits a step is still used as is (breeding a stand-in instead made big
+    // boxes run out of search work).
+    const protect = !!opts.protect, costFirst = opts.mode === 'cost' || protect;
+    const total = (r) => r.cost + (protect ? r.worth || 0 : 0);
+    const better = costFirst
+      ? (a, b) => (total(a) - total(b)) || (a.breeds - b.breeds) || (a.value - b.value)
       : (a, b) => (a.breeds - b.breeds) || (a.cost - b.cost) || (a.value - b.value);
     function pick(a, b) { if (!a) return b; if (!b) return a; return better(b, a) < 0 ? b : a; }
 
@@ -204,8 +214,14 @@
     const memo = new Map(); // request -> [{avail, best}]
     const dittoMemo = new Map();
 
-    function leafOwned(p) {
-      return { breeds: 0, cost: 0, value: popcount(p.mask) + (p.natured ? 1 : 0), used: p.bit, chance: 1,
+    // Pokémon of one kind are handed out cheapest first (members are sorted), so the next one used is the
+    // cheapest still left. value: every 31 it has (not only the goal's) and a goal nature, which using it
+    // up spends; worth: its price with opts.protect.
+    const ownValue = (m) => m.iv.filter((v) => v >= 31).length + (m.natured ? 1 : 0);
+    const ownWorth = (m) => (protect ? Number(m.src.worth) || 0 : 0);
+    function leafOwned(p, avail) {
+      const m = p.members[Math.max(0, p.members.length - Number((avail >> p.shift) & 63n))] || p;
+      return { breeds: 0, cost: 0, worth: ownWorth(m), value: ownValue(m), used: p.bit, chance: 1,
         iv: p.iv, node: { t: 'own', p } };
     }
 
@@ -253,7 +269,7 @@
       for (const p of kinds) {
         if (!p.isDitto || !has(avail, p)) continue;
         if ((p.mask & need) !== need || (nat && !p.natured)) continue;
-        best = pick(best, leafOwned(p));
+        best = pick(best, leafOwned(p, avail));
       }
       if (!nat && popcount(need) <= maxPlain) best = pick(best, buyLeaf('Ditto', 'N', need, false, true, 'L'));
       dittoMemo.set(k, best);
@@ -305,7 +321,7 @@
         if (req.cos && !p.cos) continue;
         if (p.baby && !req.top) continue;
         if (req.incense && p.name !== tSpecies.n) continue;
-        best = pick(best, leafOwned(p));
+        best = pick(best, leafOwned(p, avail));
       }
       if (best) return best;
 
@@ -329,7 +345,7 @@
       }
       const R = bitsOf(req.need);
       const mySize = size(req);
-      const beats = (lb) => !best || (opts.mode === 'cost' ? lb.cost <= best.cost : lb.breeds <= best.breeds);
+      const beats = (lb) => !best || (costFirst ? total(lb) <= total(best) : lb.breeds <= best.breeds);
       search: for (const m of lines) {
         const L = lineInfo(m);
         if (!L || L.groups.size === 0) continue;
@@ -366,9 +382,12 @@
               need: needA, nat: holder === 'A', abil: req.abil, mv: req.mv && mvSide === 'A', cos: req.cos && cosSide === 'A' };
             // A parent that must be as good as this request can't be bred for it (the search would never
             // end). With fewer braces it can still be one you own or buy: two 6x31 parents need no brace.
+            // With opts.swap (a second run, when the first finds no plan) a one-stat parent can also come from
+            // one you own of the other gender (or another line): bred with anyone, braced, a 31 Atk male gives a
+            // 31 Atk female. Every run allowing it made big searches run out of work sooner.
             const asLeaf = (r) => size(r) >= mySize || (fewer && r.need === req.need);
             const leafA = asLeaf(reqA);
-            if (leafA && !fewer) continue;
+            if (leafA && !fewer && (!opts.swap || R.length > 1 || !leaf(reqA, avail))) continue;
             let reqB = null, leafB = false;
             if (pairing !== 'ditto') {
               // a father wearing the costume has to be of this line to pass it on
@@ -376,7 +395,7 @@
               reqB = { kind: pairing === 'mf' && !cosB ? 'C' : 'L', line: m, gender: pairing === 'mf' ? 'M' : 'A',
                 need: needB, nat: holder === 'B', abil: false, mv: req.mv && mvSide === 'B', cos: cosB };
               leafB = asLeaf(reqB);
-              if (leafB && !fewer) continue;
+              if (leafB && !fewer && (!opts.swap || R.length > 1 || !leaf(reqB, avail))) continue;
             }
             const items = (bA >= 0 ? 1 : 0) + (bB >= 0 ? 1 : 0);
             const stepCost = items * prices.brace + (req.nat ? prices.everstone : 0) + (inc ? prices.incense || 0 : 0) + gCost;
@@ -403,7 +422,7 @@
               const iv = [];
               for (let s = 0; s < 6; s++) iv.push(s === bA ? a.iv[s] : s === bB ? b.iv[s] : Math.min(a.iv[s], b.iv[s]));
               const res = {
-                breeds: a.breeds + b.breeds + 1, cost: a.cost + b.cost + stepCost, value: a.value + b.value,
+                breeds: a.breeds + b.breeds + 1, cost: a.cost + b.cost + stepCost, worth: (a.worth || 0) + (b.worth || 0), value: a.value + b.value,
                 used: a.used + b.used, chance: a.chance * (req.abil ? abilityChance : 1), iv,
                 node: { t: 'breed', line: m, gender: req.gender, pairing, a, b, bA, bB, holder,
                   stepCost, gCost, nat: req.nat, abil: req.abil, mv: req.mv, cos: !!req.cos,
@@ -420,7 +439,7 @@
       }
       return best;
     }
-    const sum = (a, b, step) => ({ breeds: a.breeds + b.breeds + 1, cost: a.cost + b.cost + step });
+    const sum = (a, b, step) => ({ breeds: a.breeds + b.breeds + 1, cost: a.cost + b.cost + step, worth: (a.worth || 0) + (b.worth || 0) });
 
     // Which parent holds which item. Returns [braceA, braceB, everstoneHolder, incenseHolder].
     function braceCombos(R, nat, incense) {
@@ -470,6 +489,12 @@
         if (n.t === 'breed') return { ...r, node: { ...n, a: assign(n.a), b: assign(n.b) } };
         return { ...r };
       })(result);
+    }
+    // No plan, and not for lack of search: a box whose 31s are all on the wrong gender (every 31 Atk and every
+    // 31 Spe Pawniard male) needs a breed that only changes a parent's gender, so try again allowing those.
+    if (!result && !truncated && !opts.swap) {
+      const again = plan({ ...input, opts: { ...opts, swap: true, work: opts.work ? Math.max(1, opts.work - work) : opts.work } });
+      if (!again.error) return { ...again, calls: calls + again.calls, work: work + again.work };
     }
     return { result, truncated, timedOut, calls, work, tLine, pool };
   }
@@ -539,7 +564,28 @@
     return { stats, chance };
   }
 
-  const api = { STATS, BRACES, INCENSE, COSTUMES, buildDex, plan, popcount, bitsOf, eggOdds };
+  // Picks at most cap of the scored Pokémon (best first) for the planner, so a box with more than fit still
+  // gives it some of every kind it needs. keysOf says what each one brings (say "F1" for a female with the
+  // goal's Atk, "Mn" for a male with its nature). Rounds: up to two per key, then four, and so on, best first
+  // in each round; after the last round (rounds) the best of the rest. Without this a box of 60 Pawniard could
+  // hand it 24 males, or no one with the goal's Speed, and the box looked unable to breed. Returns the chosen
+  // ones in the order given.
+  function pickDiverse(list, cap, keysOf, rounds = Infinity) {
+    if (list.length <= cap) return list.slice();
+    const keys = list.map(keysOf), seen = new Map(), chosen = new Set();
+    for (let per = 2, r = 0; chosen.size < cap && chosen.size < list.length; per += 2, r++) {
+      if (r >= rounds) per = list.length + 1;
+      for (let i = 0; i < list.length && chosen.size < cap; i++) {
+        if (chosen.has(i) || !keys[i].some((k) => (seen.get(k) || 0) < per)) continue;
+        chosen.add(i);
+        for (const k of keys[i]) seen.set(k, (seen.get(k) || 0) + 1);
+      }
+      if (per > list.length) for (let i = 0; i < list.length && chosen.size < cap; i++) chosen.add(i);
+    }
+    return list.filter((_, i) => chosen.has(i));
+  }
+
+  const api = { STATS, BRACES, INCENSE, COSTUMES, buildDex, plan, popcount, bitsOf, eggOdds, pickDiverse };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Planner = api;
 })(typeof window !== 'undefined' ? window : globalThis);

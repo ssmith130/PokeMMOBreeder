@@ -12,11 +12,16 @@
   const ROLE_LABEL = { phys: 'Physical attacker', spec: 'Special attacker', wall: 'Defensive' };
   // Bump when the suggestions change for the same box (rules, ladders, the work cap), so answers the
   // page remembered from an older version are checked again.
-  const VERSION = 5;
+  const VERSION = 10;
   // How much searching each check gets: a fixed amount of work rather than a time limit, so the same box
-  // gives the same answer on every computer and every run. About a quarter to half a second on a laptop,
-  // one to two seconds on a phone. The clock is only there to stop a runaway check.
-  const WORK = 1500000, CHECK_WORK = 6000000;
+  // gives the same answer on every computer and every run. The clock is only there to stop a runaway check.
+  // Two depths. The quick one (the default) keeps a scan of 4 full boxes around half a minute: QUICK_WORK per
+  // rung of the ladder (a tenth to a quarter of a second on a laptop) and QUICK_CHECK for a card's own picks, its
+  // starting nature included. "Check deeper" on a card runs its line again with DEEP_WORK per rung (twice what
+  // every scan got before), and its picks with CHECK_WORK and, when that finds nothing, BIG_WORK (a few seconds).
+  // FULL_POOL: the most Pokémon the planner takes at once (a retry when the usual 24 can't make a goal).
+  const FULL_POOL = 63;
+  const QUICK_WORK = 750000, DEEP_WORK = 3000000, QUICK_CHECK = 3000000, CHECK_WORK = 6000000, BIG_WORK = 24000000;
   // Abilities that change which attacking stat counts: Huge Power and Pure Power double Attack, which is
   // why Azumarill and Medicham are physical attackers whatever their base stats say.
   const ABILITY_BOOST = { 'Huge Power': [ATK, 2], 'Pure Power': [ATK, 2] };
@@ -80,7 +85,7 @@
 
   // The box Pokémon that can take part in breeding this line, best for the goal first, at most 63.
   // mons: [{species, gender, ivs, nature, ability, moves, boxId}]; ability and moves are the goal's, if any.
-  function poolFor(dex, line, goal, nature, mons, cap, ability, moves) {
+  function poolFor(dex, line, goal, nature, mons, cap, ability, moves, diverse) {
     const L = dex.lines.get(line);
     const want = moves && moves.length ? moves : null;
     const scored = [];
@@ -102,8 +107,18 @@
       scored.push([score, m]);
     }
     scored.sort((x, y) => y[0] - x[0]);
-    return scored.slice(0, cap || 63).map((x) => ({ species: x[1].species, isDitto: x[1].species === 'Ditto', gender: x[1].species === 'Ditto' ? 'N' : x[1].gender,
+    // What each one brings, so a full box still gives the planner mothers, fathers and every stat the goal needs.
+    const keysOf = ([, m]) => {
+      const ditto = m.species === 'Ditto', who = ditto ? 'D' : (dex.lineOf(m.species) === line ? '' : 'x') + m.gender, out = [who];
+      m.ivs.forEach((v, i) => { if (goal[i] != null && v != null && v >= goal[i]) out.push(who + i); });
+      if (nature && m.nature === nature) out.push(who + 'n');
+      return out;
+    };
+    // diverse: a mix (see pickDiverse) rather than the top scores, the best pool for a box of mostly one species
+    const picked = (diverse ? Planner.pickDiverse(scored, cap || 63, keysOf) : scored.slice(0, cap || 63)).map((x) => ({ species: x[1].species, isDitto: x[1].species === 'Ditto', gender: x[1].species === 'Ditto' ? 'N' : x[1].gender,
       ivs: x[1].ivs.slice(), nature: x[1].nature || '', ability: x[1].ability || '', moves: want ? want.filter((mv) => knows(x[1], mv)) : [], boxId: x[1].boxId }));
+    picked.left = scored.length - picked.length; // how many more could have helped
+    return picked;
   }
   const knows = (m, mv) => (m.moves || []).some((x) => String(x).toLowerCase() === mv.toLowerCase());
 
@@ -121,7 +136,14 @@
       const ml = dex.lineOf(s.n), M = dex.lines.get(ml);
       if (ml === line && ha && m.ability === ha) hasHa = true;
       if (!M || (ml !== line && ![...M.groups].some((g) => L.groups.has(g)))) continue;
-      for (const mv of new Set((m.moves || []).map((x) => String(x).toLowerCase()))) if (egg.has(mv)) count.set(egg.get(mv), (count.get(egg.get(mv)) || 0) + 1);
+      // A Pokémon of another line only passes a move on as the father (a mother's egg is her own species), or
+      // through a chain of its own line when the move is an egg move there too (a female Croagunk can't give
+      // Zubat Nasty Plot, but a male can). Moves no one can pass aren't offered.
+      const ownEgg = ml === line || M.ratio === 'N' ? null : new Set([...(M.moves || []), ...(M.movesM || [])].map((x) => x.toLowerCase()));
+      for (const mv of new Set((m.moves || []).map((x) => String(x).toLowerCase()))) {
+        if (!egg.has(mv) || (ownEgg && m.gender !== 'M' && !ownEgg.has(mv)) || (ml !== line && M.ratio === 'N')) continue;
+        count.set(egg.get(mv), (count.get(egg.get(mv)) || 0) + 1);
+      }
     }
     return { ha: hasHa ? ha : '', moves: [...count].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map((x) => x[0]) };
   }
@@ -142,23 +164,43 @@
   // One short planner run. A plan found before the time runs out means yes (maybe not the fewest
   // breeds: the planner tab looks longer); no plan and time to spare means no; no plan in time, maybe.
   function tryGoal(dex, line, goal, nature, mons, prices, opts, ability = '', moves = []) {
-    const pool = poolFor(dex, line, goal, nature, mons, opts.cap || 24, ability, moves);
-    const miss = missing(dex, line, goal, nature, pool, opts.buy, ability, moves);
+    const cap = opts.cap || 24;
+    let pool = poolFor(dex, line, goal, nature, mons, cap, ability, moves);
+    // A box with more Pokémon than the pool takes (a box of 60 Pawniard) can still have what a goal needs
+    // when the best-scoring 24 don't (all males, or no one with the goal's Speed): then a mix of them.
+    let miss = missing(dex, line, goal, nature, pool, opts.buy, ability, moves), mixed = false;
+    if (miss.blocked && pool.left) {
+      const mix = poolFor(dex, line, goal, nature, mons, cap, ability, moves, true);
+      const m2 = missing(dex, line, goal, nature, mix, opts.buy, ability, moves);
+      if (!m2.blocked) { pool = mix; miss = m2; mixed = true; }
+      else miss = missing(dex, line, goal, nature, poolFor(dex, line, goal, nature, mons, FULL_POOL, ability, moves, true), opts.buy, ability, moves);
+    }
     if (miss.blocked) return { ok: false, miss, ms: 0 };
     const t0 = Date.now();
-    const out = Planner.plan({ dex, prices, pool,
+    const run = (p) => Planner.plan({ dex, prices, pool: p,
       target: { species: line, ivs: goal.slice(), gender: 'A', nature: nature || '', ability, abilityHidden: !!ability && ability === hiddenOf(dex, line), moves: moves.slice() },
-      opts: { mode: opts.mode || 'breeds', buy: !!opts.buy, work: opts.work || WORK, timeLimit: opts.timeLimit || 10000 } });
+      opts: { mode: opts.mode || 'breeds', buy: !!opts.buy, buyIV: opts.buyIV, buyNat: opts.buyNat, work: opts.work || (opts.deep ? DEEP_WORK : QUICK_WORK), timeLimit: opts.timeLimit || 10000 } });
+    let out = run(pool);
+    // No plan from the 24 picked, but more could help: try a mix of 24, then up to 63 (a 5×31 with a nature
+    // from 1×31s takes about 30 breeds, so it needs more parents than 24).
+    if (!out.result && !out.truncated && pool.left) {
+      if (!mixed) out = run(poolFor(dex, line, goal, nature, mons, cap, ability, moves, true));
+      // the wide run only counts when it finds a plan: running out of work there isn't worth a "cut short"
+      if (!out.result && !out.truncated) { const wide = run(poolFor(dex, line, goal, nature, mons, FULL_POOL, ability, moves, true)); if (wide.result) out = wide; }
+    }
     const ms = Date.now() - t0;
     if (!out.result) return { ok: false, miss, ms, slow: !!out.truncated };
-    const r = out.result, uses = [], buys = [];
+    const r = out.result, uses = [], buys = [], buyList = [];
     (function walk(x) {
       const n = x.node;
       if (n.t === 'own') uses.push(n.p.src.boxId);
-      else if (n.t === 'buy') buys.push(n.ditto ? 'Ditto' : n.line);
-      else if (n.t === 'breed') { walk(n.a); walk(n.b); }
+      else if (n.t === 'buy') {
+        buys.push(n.ditto ? 'Ditto' : n.line);
+        // what to look for on the GTL: species, how many 31s, with your nature or not, and the gender
+        buyList.push({ species: n.ditto ? 'Ditto' : n.line, count: n.count || 1, nat: n.nat ? nature : '', gender: n.ditto ? 'N' : n.gender, any: n.kind === 'C' });
+      } else if (n.t === 'breed') { walk(n.a); walk(n.b); }
     })(r);
-    return { ok: true, ms, breeds: r.breeds, cost: r.cost, chance: r.chance, uses, buys, rough: !!out.truncated };
+    return { ok: true, ms, breeds: r.breeds, cost: r.cost, chance: r.chance, uses, buys, buyList, rough: !!out.truncated };
   }
   // The highest rung the boxes can make, found by halving (the rungs are nested, so the answers go
   // yes, yes, ..., no, no). Returns [rung, result, the first rung that failed and why].
@@ -171,7 +213,14 @@
       const r = test(k);
       if (r.ok) { lo = k; best = r; } else hi = k;
     }
-    return [lo, best, hi < rungs.length ? { at: hi, res: test(hi) } : null];
+    // A rung that ran out of work isn't a no (the 25+ rungs are often harder to search than the 5×31 above
+    // them), so the rungs above it get a try too, until one is a plain no.
+    let fail = hi < rungs.length ? { at: hi, res: test(hi) } : null;
+    for (let k = hi + 1; fail && fail.res.slow && k < rungs.length; k++) {
+      const r = test(k);
+      if (r.ok) { lo = k; best = r; fail = k + 1 < rungs.length ? { at: k + 1, res: test(k + 1) } : null; k++; } else if (!r.slow) break;
+    }
+    return [lo, best, fail];
   }
 
   // Every suggestion for one line: per role, the highest rung the boxes can make, the Everstone
@@ -196,30 +245,21 @@
       const sug = { line, role, roleLabel: ROLE_LABEL[role], forSpecies, ability: forSpecies.ability || '', rung: k, of: rungs.length, label: rungs[k].label,
         ivs: rungs[k].ivs, nature: '', abil: '', move: '', ...res, next };
       out.push(sug);
-      // The same build with a nature you have, passed down with an Everstone.
-      const owned = new Set(poolFor(dex, line, rungs[k].ivs, '', mons, 63).map((p) => p.nature));
-      for (const nat of NATURES[role].filter((n) => owned.has(n))) {
-        const r = attempt(rungs[k].ivs, nat);
-        if (r.ok) { out.push({ ...sug, ...r, nature: nat, next: null }); break; }
-      }
+      // No nature versions here: each card starts on its recommended nature, which the page checks on its own.
       // The hidden-ability version when a Pokémon of the line has it, and egg-move versions for the egg moves
       // the boxes can pass on (the two most known; any other can be picked on the card).
-      const natOk = out.find((x) => x !== sug && x.role === role && x.nature), goal = rungs[k].ivs;
+      const goal = rungs[k].ivs;
       let haOk = '', mvOk = '';
       if (extra.ha) { const r = attempt(goal, '', extra.ha); if (r.ok) { haOk = extra.ha; out.push({ ...sug, ...r, abil: haOk, next: null }); } }
       for (const mv of extra.moves.slice(0, 2)) { const r = attempt(goal, '', '', [mv]); if (r.ok) { mvOk = mvOk || mv; out.push({ ...sug, ...r, move: mv, next: null }); } }
       // The card starts on everything that worked on its own, together, if that works too (else without the
       // nature, else the egg move or hidden ability alone). That one is marked best.
-      const nat = natOk ? natOk.nature : '', tries = [[nat, haOk, mvOk], ['', haOk, mvOk]];
-      if ([nat, haOk, mvOk].filter(Boolean).length > 1) {
-        for (const [n, a, m] of tries) {
-          if ([n, a, m].filter(Boolean).length < 2) continue;
-          const r = attempt(goal, n, a, m ? [m] : []);
-          if (r.ok) { out.push({ ...sug, ...r, nature: n, abil: a, move: m, next: null, best: true }); break; }
-        }
+      if (haOk && mvOk) {
+        const r = attempt(goal, '', haOk, [mvOk]);
+        if (r.ok) out.push({ ...sug, ...r, abil: haOk, move: mvOk, next: null, best: true });
       }
       if (!out.some((x) => x.role === role && x.best)) {
-        const one = out.find((x) => x.role === role && x !== sug && x.move) || out.find((x) => x.role === role && x !== sug && x.abil) || natOk;
+        const one = out.find((x) => x.role === role && x !== sug && x.move) || out.find((x) => x.role === role && x !== sug && x.abil);
         if (one) one.best = true;
       }
     }
@@ -231,18 +271,57 @@
       if (s.rung < 0 && kept.some((k) => k.rung < 0)) continue;
       kept.push(s);
     }
-    kept.forEach((s) => { s.scan = stats; s.goalText = s.ivs ? goalText(s.ivs) : ''; s.ha = hiddenOf(dex, line); s.eggMoves = extra.moves; s.hasHa = !!extra.ha; });
+    kept.forEach((s) => { s.deep = !!opts.deep; s.scan = stats; s.goalText = s.ivs ? goalText(s.ivs) : ''; s.ha = hiddenOf(dex, line); s.eggMoves = extra.moves; s.hasHa = !!extra.ha; });
     return kept;
   }
 
-  // One goal with the nature the player picked. If the boxes can't make it, try again with GTL 1×31s
-  // allowed, so the card can say what it would take (a 1×31 with that nature, usually).
+  // One goal with the picks the player made (nature, ability, egg move). If the boxes can't make it, try again with
+  // GTL buys allowed, so the card can say what it would take.
+  const GTL_FALLBACK = { buy: true, buyIV: [1, 2, 3], buyNat: [1, 2, 3], mode: 'cost' };
+  // opts.deep: a goal that ran out of work before any plan turned up gets a second, longer run (BIG_WORK) first.
+  // cut: the box-only search was cut short, so a deeper check might do better.
   function checkGoal(dex, line, goal, nature, mons, prices, opts = {}, ability = '', moves = []) {
-    opts = { ...opts, work: opts.work || CHECK_WORK, timeLimit: opts.timeLimit || 20000 }; // one goal the player asked about, so it gets longer
-    const r = tryGoal(dex, line, goal, nature, mons, prices, opts, ability, moves);
-    if (r.ok || opts.buy || !nature) return { ...r, miss: undefined };
-    const b = tryGoal(dex, line, goal, nature, mons, prices, { ...opts, buy: true }, ability, moves);
-    return b.ok ? { ...b, bought: true } : { ok: false, slow: !!(r.slow || b.slow) };
+    opts = { ...opts, work: opts.work || (opts.deep ? CHECK_WORK : QUICK_CHECK), timeLimit: opts.timeLimit || 20000 };
+    let r = tryGoal(dex, line, goal, nature, mons, prices, opts, ability, moves);
+    if (opts.deep && !r.ok && r.slow && opts.work < BIG_WORK) r = tryGoal(dex, line, goal, nature, mons, prices, { ...opts, work: BIG_WORK, timeLimit: 40000 }, ability, moves);
+    const cut = !!(r.slow || r.rough);
+    // opts.noFallback: your own Pokémon only (the Build center's "Allow buying from the GTL" is off)
+    if (r.ok || opts.buy || opts.noFallback) return { ...r, miss: undefined, cut };
+    // Then the cheapest plan that may buy 1×31 to 3×31 parents (with the nature or without) off the GTL: buying
+    // fills the gaps and makes the search far smaller, so this finds one in a second or two where the box alone
+    // was too big to check (a 5×31 with a nature, mostly). An ability or egg move can't be bought, so a build
+    // missing one stays without a plan.
+    const b = tryGoal(dex, line, goal, nature, mons, prices, { ...opts, ...GTL_FALLBACK }, ability, moves);
+    // boxSlow: the box-only run was cut short rather than finding nothing, so the card says which
+    return b.ok ? { ...b, bought: true, boxSlow: !!r.slow, cut } : { ok: false, slow: !!(r.slow || b.slow), cut };
+  }
+
+  // The natures worth giving a species, best first: the ones for what its line is built for (rolesOf), with a
+  // +Spe nature first for a fast Pokémon (base Speed 80 or more) and the +attack one first for a slow one. A
+  // defensive line gets the nature that raises its better defence and lowers the attacking stat it doesn't use.
+  // A species that is one of its line's last stages goes by its own role (Gallade, not Gardevoir).
+  // Wall natures come first for a line that has a defensive role.
+  function recommendNatures(dex, species) {
+    const s = dex.byName.get(String(species || '').toLowerCase());
+    const line = s && dex.lineOf(s.n);
+    if (!line || !dex.lines.get(line) || !dex.lines.get(line).groups.size) return [];
+    // a wall's defensive natures come first: Skarmory and Blissey are built to take hits
+    const roles = [...rolesOf(dex, line)].sort((x, y) => (y[0] === 'wall') - (x[0] === 'wall')), own = roles.filter(([, f]) => f.includes(s.n));
+    const out = [];
+    for (const [role, forSpecies] of own.length ? own : roles) {
+      const f = dex.byName.get(String(forSpecies.includes(s.n) ? s.n : forSpecies[0]).toLowerCase());
+      if (!f || !f.s) continue;
+      const [b] = boosted(f), fast = b[SPE] >= 80;
+      let list;
+      if (role === 'phys') list = fast ? ['Jolly', 'Adamant'] : ['Adamant', 'Jolly'];
+      else if (role === 'spec') list = fast ? ['Timid', 'Modest'] : ['Modest', 'Timid'];
+      else {
+        const offPhys = b[ATK] >= b[SPA]; // keeps Attack, so SpA goes down
+        list = b[DEF] >= b[SPD] ? (offPhys ? ['Impish', 'Careful'] : ['Bold', 'Calm']) : (offPhys ? ['Careful', 'Impish'] : ['Calm', 'Bold']);
+      }
+      for (const n of list) if (!out.includes(n)) out.push(n);
+    }
+    return out;
   }
 
   // The lines worth scanning: every breeding line with a Pokémon in the boxes (not counting Ditto; a baby
@@ -265,7 +344,7 @@
     return (fb - fa) || ((a.breeds || 0) - (b.breeds || 0)) || ((a.cost || 0) - (b.cost || 0)) || (a.nature ? 1 : 0) - (b.nature ? 1 : 0);
   }
 
-  const api = { VERSION, rolesOf, ladder, poolFor, scanLine, checkGoal, linesIn, rank, goalText, hiddenOf, extrasFor, ROLE_LABEL, ROLE_NATURES: NATURES };
+  const api = { VERSION, rolesOf, recommendNatures, ladder, poolFor, scanLine, checkGoal, linesIn, rank, goalText, hiddenOf, extrasFor, ROLE_LABEL, ROLE_NATURES: NATURES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Builds = api;
 })(typeof window !== 'undefined' ? window : globalThis);

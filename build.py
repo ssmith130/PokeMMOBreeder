@@ -79,6 +79,7 @@ page = (page.replace('/*PLANNER*/', read('src/planner.js'))
             .replace('/*LOGO*/', png('data/logo.png'))
             .replace('/*UNKNOWN*/', png('data/unknown-icon.png'))
             .replace('/*COSTUME_ICONS*/', png('data/costume-icons.png'))
+            .replace('/*COSTUME_READER*/', png('data/costume-reader.png'))
             .replace('/*SITE_URL*/', site_address()))  # share links made away from the site (claude.ai) point here
 
 # The Artifact host wraps the page in its own <html>/<head>, so it gets the fragment as-is.

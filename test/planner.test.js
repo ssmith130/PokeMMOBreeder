@@ -253,6 +253,21 @@ test('a costumed father of another line can not pass his costume on', () => {
   assert.strictEqual(r.breeds, 1);
   assert.strictEqual(r.node.pairing, 'ditto');
 });
+test('ties use up the parent with fewer 31s, and Protect spares a valuable one', () => {
+  const goal = { species: 'Charmander', ivs: [31, 31, null, null, null, null] };
+  const dam = mon('Charmander', 'F', [31, 0, 0, 0, 0, 0]);
+  const plain = mon('Charmander', 'M', [0, 31, 0, 0, 0, 0]), fancy = mon('Charmander', 'M', [0, 31, 31, 31, 31, 31]);
+  // same breeds and cost either way: the 1x31 father is used, not the 5x31
+  const r = run(goal, [dam, fancy, plain]);
+  assert.ok(owned(r).includes(plain) && !owned(r).includes(fancy));
+  // with Protect, worth decides before the count of 31s: a pricey father (say, hidden ability) is spared
+  const dam2 = mon('Charmander', 'F', [31, 0, 0, 0, 0, 0], { worth: 2500 });
+  const pricey = mon('Charmander', 'M', [0, 31, 0, 0, 0, 0], { worth: 300000 });
+  const other = mon('Charmander', 'M', [0, 31, 31, 31, 0, 0], { worth: 40000 });
+  assert.ok(owned(run(goal, [dam2, pricey, other])).includes(pricey));
+  const p = Planner.plan({ dex, prices, target: { ...goal, moves: [] }, pool: [dam2, pricey, other], opts: { mode: 'breeds', protect: true } });
+  assert.ok(owned(p.result).includes(other) && !owned(p.result).includes(pricey));
+});
 test('a plain goal leaves costumed Pokémon out', () => {
   const out = Planner.plan({ dex, prices, target: { species: 'Charmander', ivs: three, moves: [] },
     pool: [mon('Charizard', 'M', [31, 31, 31, 0, 0, 0], { costume: 'Royal' }), mon('Charmander', 'F', [0, 0, 0, 0, 0, 0])], opts: { mode: 'breeds' } });
@@ -264,6 +279,57 @@ test('costumes belong to their lines', () => {
   assert.deepStrictEqual(dex.costumesOf('Lucario'), ['Pharaoh']);
   assert.deepStrictEqual(dex.costumesOf('Garchomp'), ['Pirate']);
   assert.deepStrictEqual(dex.costumesOf('Pikachu'), []);
+});
+
+// Beta test pass, 2026-11-21.
+test('a 31 that is only on males can still reach the mother: breed one to swap its gender', () => {
+  // every 31 Atk and 31 Spe Pawniard is male; the only female has nothing the goal needs
+  const pool = [mon('Pawniard', 'F', [31, 3, 3, 3, 3, 3]), mon('Pawniard', 'M', [10, 31, 10, 10, 10, 10]), mon('Pawniard', 'M', [13, 13, 13, 13, 13, 31])];
+  const r = run({ species: 'Pawniard', ivs: [null, 31, null, null, null, 31] }, pool);
+  assert.strictEqual(r.breeds, 2);
+  assert.strictEqual(braces(r), 3);
+});
+
+test('a one-gender goal (Vespiquen) hatches female, and a Gallade goal male', () => {
+  const v = run({ species: 'Combee', ivs: [31, null, null, null, null, null] },
+    [mon('Combee', 'F', [31, 0, 0, 0, 0, 0]), mon('Combee', 'M', [0, 0, 0, 0, 0, 0])]);
+  assert.strictEqual(v.breeds, 0, 'an owned female Combee already is the goal');
+  const out = Planner.plan({ dex, prices, target: { species: 'Gallade', ivs: [31, 31, null, null, null, null], moves: [] },
+    pool: [mon('Ralts', 'F', [31, 0, 0, 0, 0, 0]), mon('Ralts', 'M', [0, 31, 0, 0, 0, 0])], opts: { mode: 'breeds', buy: false } });
+  assert.ok(out.result);
+  assert.strictEqual(out.result.node.gender, 'M');
+});
+
+test('an incense baby goal puts the incense in the last breed', () => {
+  const r = run({ species: 'Azurill', ivs: [31, null, null, null, null, null] },
+    [mon('Marill', 'F', [31, 0, 0, 0, 0, 0]), mon('Marill', 'M', [0, 0, 0, 0, 0, 0])]);
+  assert.strictEqual(r.breeds, 1);
+  assert.ok(r.node.inc, 'the last breed holds the Sea Incense');
+  assert.strictEqual(r.cost, prices.incense + prices.brace); // the mother braces HP, the father holds the incense
+});
+
+test('no Pokémon at all, or only a Ditto, gives no plan and no crash', () => {
+  for (const pool of [[], [{ ...mon('Ditto', 'N', all31), isDitto: true }]]) {
+    const out = Planner.plan({ dex, prices, target: { species: 'Pawniard', ivs: all31, moves: [] }, pool, opts: { mode: 'breeds', buy: false } });
+    assert.ok(!out.error && !out.result);
+  }
+  const d = Planner.plan({ dex, prices, target: { species: 'Ditto', ivs: all31, moves: [] }, pool: [], opts: {} });
+  assert.ok(d.error, 'Ditto can not be bred');
+  const u = Planner.plan({ dex, prices, target: { species: 'Mewtwo', ivs: all31, moves: [] }, pool: [], opts: {} });
+  assert.ok(u.error, 'an Undiscovered goal says so');
+});
+
+test('pickDiverse keeps two of every kind before the best of the rest', () => {
+  // 30 males with 31 Atk listed first, then 30 females with 31 Spe: the top 24 would all be male
+  const list = [...Array.from({ length: 30 }, (_, i) => ({ g: 'M', s: 1, i })), ...Array.from({ length: 30 }, (_, i) => ({ g: 'F', s: 5, i: 30 + i }))];
+  const got = Planner.pickDiverse(list, 24, (x) => [x.g, x.g + x.s]);
+  assert.strictEqual(got.length, 24);
+  assert.ok(got.filter((x) => x.g === 'F').length >= 10, 'females get a fair share');
+  assert.deepStrictEqual(got.map((x) => x.i), got.map((x) => x.i).slice().sort((a, b) => a - b), 'kept in the order given');
+  assert.strictEqual(Planner.pickDiverse(list, 100, (x) => [x.g]).length, 60);
+  assert.strictEqual(Planner.pickDiverse(list, 0, (x) => [x.g]).length, 0);
+  const one = Planner.pickDiverse(list, 24, (x) => [x.g], 1);
+  assert.strictEqual(one.filter((x) => x.g === 'F').length, 2, 'one round: two females, then the best of the rest');
 });
 
 let failed = 0;
