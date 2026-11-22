@@ -54,6 +54,18 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
 - **Egg moves and TMs.** It plans who has to know each egg move, or lets you teach it with a TM instead.
 - **Common builds.** Catching Breloom, Smeargle, gym re-run Typhlosion and Thief Dusknoir fill in the goal
   in one click, from their own dropdown above the goal.
+- **Competitive sets.** Under "Start from a build", a searchable list of PokeMMO PvP sets (OU, UU, NU, Doubles), each
+  with its nature, ability (hidden ones marked), the IVs that must be 31 or 0, and the egg moves to breed in. Picking
+  one replaces the goal and keeps your Pokémon; the item goes into the costs when the planner knows it. Build
+  center cards list the sets for their line and open them in the planner with your box. The sets live in
+  `data/presets.json`, taken from the PokeMMO StratDex (mmoshowdown.com) in November 2026: each has a `source`
+  link and a `basis`, `set` for a set written there or `usage` for one put together from its PokeMMO usage stats
+  where no set is written yet (shown as "from usage", left `"verified": false`).
+- **0 IVs.** A goal stat can be 0 as well as 31 (the 0 button under each IV): 0 Spe for Trick Room or Gyro Ball, 0 Atk
+  for special attackers. A 0 is planned like a 31 (a parent with it holds the Power item, or both parents have it),
+  but it's never bought, so it has to come from your own Pokémon. With exact IV numbers, a goal of 0 means exactly 0.
+- **Event builds.** Raid builds for the Christmas event, grouped by raid boss with each raid's plan, see
+  [Event builds](#event-builds).
 - **Saved builds.** Keep several setups, and move them to another device with a code.
 - **My box.** A second tab holds the Pokémon from your game in a PC box like PokeMMO's: box icons in a
   10×6 grid of 60 spots like PokeMMO's (6 across on phones, so the icons stay readable), several named boxes (Delete this box asks first, then offers Undo), alphas drawn bigger with a red outline, the game's gold star on shinies and a blue diamond on hidden-ability Pokémon, drag to move. Hover over one to see its IVs, nature, ability and egg moves.
@@ -202,6 +214,10 @@ Every push to `main` builds the site and publishes it to GitHub Pages
 | `src/planner.js` | The breeding search. Also runs in Node: `require('./src/planner.js')`. |
 | `src/builds.js` | The Build center's goal ladders and suggestions, which call the planner. Also runs in Node. |
 | `test/planner.test.js` | Checks for the breeding search (`node test/planner.test.js`). |
+| `data/presets.json` | The competitive sets, one per line, for editing by hand. Each set has its StratDex `source` and `basis`; `"verified": true` only for written StratDex sets. |
+| `test/presets.test.js` | Checks every competitive set against the species data (`node test/presets.test.js`). |
+| `data/events.json` | Seasonal event raid builds (Christmas), one per line: the event's text, its raid bosses and the builds for them. See [Event builds](#event-builds). |
+| `test/events.test.js` | Checks the event builds against the species data (`node test/events.test.js`). |
 | `test/builds.test.js`, `test/builds-bench.js` | Checks for the Build center, and a timing run on a made-up box (`node test/builds-bench.js 300`). |
 | `data/species.json` | Every species' types (Gen 5, so no Fairy), egg groups, gender ratio, abilities, egg moves and Gen 5 base stats. |
 | `data/tms.json` | Which species can learn each TM the page offers. |
@@ -219,6 +235,18 @@ Every push to `main` builds the site and publishes it to GitHub Pages
 
 The scripts that redraw images need Pillow; everything else needs only Python 3's standard library.
 
+## Event builds
+
+Seasonal raid builds live in `data/events.json` (Christmas for now) and show as their own group under
+"Start from a build": a chip for each raid boss (its phases and the plan people used), and the builds used
+in it. Loading one works like a competitive set: the goal is replaced and your Pokémon stay.
+
+- **Hide it after the event:** set `"on": false` in `event`, then rebuild.
+- **Next event:** replace `event` (label, dates text, rules, sources), `raids` and `sets`. Sets are written
+  like the competitive sets plus `raids` (the raid keys they're used in); give keys the event's prefix (`xmas-`).
+- `node test/events.test.js` checks every build against the species data and every raid key.
+- The Christmas builds come from the 2024 and 2025 raid guides and are unverified until checked in game.
+
 ## Importing from PokeMMO
 
 The import reads the screen, not the game. The page asks the browser to share a window (as for a video call),
@@ -227,12 +255,20 @@ cursor. Each time the cursor settles on a new spot, a copy of the panel is read 
 [Tesseract.js](https://github.com/naptha/tesseract.js) (open-source text recognition, about 4 MB, loaded from
 jsDelivr the first time and run in the browser), and the text is matched against the site's species, natures,
 abilities and egg moves. The spot comes from where the cursor was, so the direction you go doesn't matter and a
-spot visited twice is just read again. The party column is left out.
+spot visited twice is just read again. The party column is left out. While the cursor moves, the game pulses it between a bright blue, rgb(0,190,253),
+and a dimmer rgb(66,168,204), so the reader tells it by its hue rather than its brightness (going by brightness lost
+it in about half the frames of a recorded run, and a spot it only stopped on while dim was never read).
+
+The game's name for the box ("B1", "SHITTOS"), centred above the box tabs, is read too: when the reader starts and
+whenever it changes. A new box made from the import is named after it (the name can still be changed before adding),
+the review says when you already have a box of that name (Rescan updates it instead), and warns when the reads came
+from more than one game box or, on a Rescan, from a game box with another name. Text recognition takes a 1 for an l
+now and then, so in a name that's capitals and digits apart from that, an l or | reads as 1 ("Bl" becomes "B1").
 
 The page asks you to start on the box's top-left spot and go a row at a time: → along the top row, ↓ at its
 end, ← back along the next row, and so on down the box, waiting for each Pokémon to show up on the page's map
-before moving on. That works whether or not the cursor wraps round at the end of a row, and never takes it into
-the party column. Holding a key down isn't recommended: the game's key repeat outruns the screen share and
+before moving on. In PokeMMO, → at the end of a row goes to the party column rather than the next row (Sean
+checked), so the snake never takes it there; a stray trip into the party column is ignored. Holding a key down isn't recommended: the game's key repeat outruns the screen share and
 Pokémon get skipped (in Chrome and Edge every frame of the shared window is looked at as it arrives; other
 browsers check about 40 times a second). The page tells filled spots from empty ones by their sprites and level
 numbers, marks the cursor's spot on its map, and outlines in red any Pokémon the cursor went past without a
@@ -244,6 +280,16 @@ go through the whole box; spots the cursor doesn't go to are left alone. When do
 before touching anything: a different Pokémon in a spot replaces the old one, a Pokémon found in another spot of
 the same box is moved there (keeping its nickname and egg moves from the site), and a spot that's now empty in the
 game, with the cursor gone over it, is emptied. Untick any change that looks wrong, apply, and Undo puts it all back.
+
+Screen capture can catch the game half-way through redrawing the side panel, and a copy that mixes two Pokémon reads
+wrong. So each spot is read as soon as its panel changes, and that read only counts as sure once two looks at least
+50 ms apart see the same panel (if it changed in between, it's read again); a spot the cursor merely passed over keeps
+its first read, marked as glimpsed, and a glimpse never replaces a sure read. On a Rescan, a glimpsed spot that seems to
+hold a different Pokémon is listed unticked, and a Pokémon that matches the box in everything but one IV is taken as the
+same one (most likely a misread) with an unticked line offering the new number, in case the box is the one that's wrong.
+Once the panel has held steady with the cursor on a spot, a panel change while the cursor stays put is ignored: it's
+most likely the mouse pointer resting on another Pokémon. Clicking spots with the mouse didn't work well in Sean's tests
+(2026-11-21), so the steps and tips say to use the arrow keys.
 
 Nothing is saved or uploaded. Copies of the side panel stay in the browser's memory and are dropped when the
 player reads again or closes the page; "Save what was read" downloads them as a file for a bug report, and only

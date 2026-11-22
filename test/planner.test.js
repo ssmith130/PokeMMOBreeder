@@ -332,6 +332,56 @@ test('pickDiverse keeps two of every kind before the best of the rest', () => {
   assert.strictEqual(one.filter((x) => x.g === 'F').length, 2, 'one round: two females, then the best of the rest');
 });
 
+// 0 IVs (Trick Room 0 Spe, a special attacker's 0 Atk): a 0 is planned like a 31, but only an exact 0 counts.
+test('a 0 Spe goal needs parents with exactly 0 Spe', () => {
+  const ivs = [31, 31, null, null, null, 0];
+  const r = run({ species: 'Timburr', ivs, gender: 'F' }, [mon('Timburr', 'F', [31, 5, 20, 20, 20, 0]), mon('Timburr', 'M', [31, 31, 20, 20, 20, 0]), mon('Timburr', 'F', [31, 31, 20, 20, 20, 1])]);
+  assert.strictEqual(r.breeds, 1, 'the 1 Spe female is no good, so it breeds');
+  assert.strictEqual(braces(r), 1, 'only Atk is braced: HP and the 0 Spe are shared');
+  assert.strictEqual(r.iv[5], 0);
+  // a parent with 1 Spe is no good
+  const none = Planner.plan({ dex, prices, target: { species: 'Timburr', ivs, moves: [] }, pool: [mon('Timburr', 'F', [31, 31, 20, 20, 20, 1]), mon('Timburr', 'M', [31, 31, 20, 20, 20, 1])], opts: { mode: 'breeds', buy: false } });
+  assert.strictEqual(none.result, null);
+  // an unknown Spe isn't a 0 either
+  assert.strictEqual(Planner.meets(null, 0), false);
+  assert.strictEqual(Planner.meets(0, 0), true);
+  assert.strictEqual(Planner.meets(3, 0), false);
+  assert.strictEqual(Planner.meets(31, 25), true);
+});
+
+test('two 0 Spe parents share it, so the braces go to the other stats', () => {
+  const r = run({ species: 'Timburr', ivs: [31, 31, null, null, null, 0] }, [mon('Timburr', 'F', [31, 5, 5, 5, 5, 0]), mon('Timburr', 'M', [5, 31, 5, 5, 5, 0])]);
+  assert.strictEqual(r.breeds, 1);
+  assert.strictEqual(braces(r), 2);
+  assert.ok(r.node.bA !== 5 && r.node.bB !== 5, 'Spe needs no brace');
+});
+
+test('a 0 Spe on only one parent is passed on with a Power Anklet', () => {
+  const r = run({ species: 'Timburr', ivs: [null, 31, null, null, null, 0] }, [mon('Timburr', 'F', [5, 5, 5, 5, 5, 0]), mon('Timburr', 'M', [5, 31, 5, 5, 5, 20])]);
+  assert.strictEqual(r.breeds, 1);
+  assert.strictEqual(r.node.bA, 5, 'the mother braces Spe');
+  assert.strictEqual(r.iv[5], 0);
+});
+
+test('a 0 IV is never bought off the GTL', () => {
+  // nobody has 0 Spe: buying can fill the 31 Atk but not the 0 Spe
+  const pool = [mon('Timburr', 'F', [5, 5, 5, 5, 5, 5]), mon('Timburr', 'M', [5, 5, 5, 5, 5, 5])];
+  const out = Planner.plan({ dex, prices, target: { species: 'Timburr', ivs: [null, 31, null, null, null, 0], moves: [] }, pool, opts: { mode: 'breeds', buy: true, buyIV: [1, 2, 3], buyNat: [1] } });
+  assert.strictEqual(out.result, null);
+  // with a 0 Spe male it works, buying the 31 Atk
+  const r = run({ species: 'Timburr', ivs: [null, 31, null, null, null, 0] }, [...pool, mon('Timburr', 'M', [5, 5, 5, 5, 5, 0])], { buy: true, buyIV: [1] });
+  assert.ok(r.breeds >= 1);
+  (function walk(x) { if (x.node.t === 'buy') assert.ok(!x.node.stats.includes(5), 'bought one with 0 Spe'); if (x.node.t === 'breed') { walk(x.node.a); walk(x.node.b); } })(r);
+});
+
+test('egg odds: a want of 0 means exactly 0', () => {
+  const o = Planner.eggOdds([31, 31, 31, 31, 31, 0], [31, 31, 31, 31, 31, 31]);
+  const p = o.chance([null, null, null, null, null, 0]);
+  // Spe: lower parent 25%, average (15) 50%, higher 25%
+  assert.ok(Math.abs(p - 0.25) < 1e-9, String(p));
+  assert.ok(Math.abs(Planner.eggOdds([0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]).chance([0, 0, 0, 0, 0, 0]) - 1) < 1e-9);
+});
+
 let failed = 0;
 for (const [name, fn] of tests) {
   try { fn(); console.log('ok   ' + name); } catch (e) { failed++; console.log('FAIL ' + name + '\n     ' + e.message); }

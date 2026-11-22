@@ -59,7 +59,7 @@ header.top h1 { display: flex; align-items: center; gap: 12px; }
 .eyebrow { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .f { display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); min-width: 0; }
 input, select, button { font: inherit; color: inherit; }
-input[type="text"], input[type="number"], select {
+input[type="text"], input[type="number"], input[type="search"], select {
   background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; min-width: 0; width: 100%; color: var(--ink); }
 input:focus-visible, select:focus-visible, button:focus-visible, .chip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
 .row { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: end; }
@@ -103,6 +103,13 @@ input:focus-visible, select:focus-visible, button:focus-visible, .chip:has(input
 .ivnum { display: inline-grid; gap: 2px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); text-align: center; }
 .ivnum input { width: 48px; text-align: center; padding: 5px 2px; font-family: var(--f-mono); border-bottom: 2px solid var(--c); }
 /* Six IV boxes always make one row: they share the width on a phone instead of wrapping 5 + 1 */
+.goal-iv { display: inline-grid; gap: 4px; }
+.goal-iv .iv0 { font-size: 12px; }
+.chip.zero { border-style: dashed; border-color: var(--c); }
+.chip.zero::before { opacity: 1; background: none; border: 1.5px solid var(--c); width: 5px; height: 5px; }
+.chip.zero .v { color: var(--ink); }
+.stats:has(> .goal-iv) { display: grid; grid-template-columns: repeat(6, max-content); gap: 6px; }
+@media (max-width: 560px) { .stats:has(> .goal-iv) { grid-template-columns: repeat(3, max-content); } }
 .stats:has(> .ivnum), .stats:has(> .iv-cell) { display: grid; grid-template-columns: repeat(6, minmax(0, 52px)); gap: 6px; }
 .stats > .ivnum input, .stats > .iv-cell, .stats > .iv-cell .ivnum, .stats > .iv-cell input { width: 100%; min-width: 0; }
 /* ...and the six 31 ticks make two rows of three */
@@ -251,6 +258,103 @@ span.pull-cell .spr { opacity: 0.3; filter: grayscale(1); }
 .pick-list .opt { color: var(--ink); }
 .pick-list .opt:hover { background: var(--sunk); }
 .pick-list .opt[aria-selected="true"] { background: var(--accent-soft); }
+/* seasonal event builds (data/events.json), in the Events tab: raid chips, the picked raid's plan, build cards */
+.ev { --ev-red: #c8283c; --ev-green: #1f8a55; display: grid; gap: 8px; }
+.ev-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border-radius: 8px;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--ev-red) 14%, transparent), transparent 55%, color-mix(in srgb, var(--ev-green) 14%, transparent)); }
+.ev-head h3 { margin: 0; font-size: 14px; }
+.ev-head .ev-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ev-red); box-shadow: 10px 0 0 var(--ev-green); margin-right: 10px; }
+.ev > p { margin: 0; }
+.ev-raids { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (max-width: 560px) { .ev-raids { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; } .ev-chip { flex: none; } }
+.ev-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px 2px 3px; min-height: 30px; border-radius: 999px; border: 1px solid var(--line-strong);
+  background: var(--surface); color: var(--ink); font-size: 12.5px; cursor: pointer; }
+.ev-chip.all { padding-left: 10px; }
+.ev-chip:hover { border-color: var(--ev-green); }
+.ev-chip[aria-pressed="true"] { border-color: var(--ev-red); box-shadow: inset 0 0 0 1px var(--ev-red); font-weight: 600; }
+.ev-chip .st { color: var(--muted); font-size: 11px; font-weight: 400; }
+.ev-raid { display: grid; gap: 6px; padding: 9px 12px; border-radius: 8px; background: var(--sunk); border: 1px solid var(--line); border-left: 3px solid var(--tc, var(--ev-red)); font-size: 13px; }
+.ev-raid[hidden] { display: none; }
+.ev-raid .er-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ev-raid .er-top b { font-size: 14px; margin-right: 2px; }
+.ev-raid .muted { font-size: 12.5px; }
+.ev-raid ol { margin: 0; padding-left: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px; }
+.ev-raid ol li { font-size: 12px; padding: 1px 7px; border-radius: 4px; background: var(--surface); border: 1px solid var(--line); }
+.ev-raid ol li b { font-family: var(--f-mono); font-weight: 500; margin-right: 4px; }
+.ev-more { font-size: 13px; }
+.ev-more summary { cursor: pointer; color: var(--muted); }
+.ev-more ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 3px; color: var(--muted); }
+.bcard .ev-raidn { color: var(--muted); font-size: 11.5px; }
+/* competitive sets: search, tier buttons and a scrolling list */
+.comp-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.comp-tools input { flex: 1 1 220px; min-width: 0; width: auto; height: 32px; padding: 0 9px; -webkit-appearance: none; appearance: none; }
+.comp-tools input::-webkit-search-decoration { -webkit-appearance: none; }
+.comp-tools .seg { height: 32px; box-sizing: border-box; }
+.comp-tools .seg button { padding: 0 10px; font-size: 12.5px; }
+.comp-empty { padding: 8px; color: var(--muted); font-size: 13px; }
+/* Start from a build: tabs, cards, IV pills, detail panel */
+.bp-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.bp-tabs button { border: 0; background: none; padding: 8px 12px; margin-bottom: -1px; cursor: pointer; font-size: 13.5px; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; }
+.bp-tabs button:hover { color: var(--ink); }
+.bp-tabs button[aria-selected="true"] { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
+.bp-panel { display: grid; gap: 8px; }
+.bp-panel[hidden] { display: none; }
+.bp-bar { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.bp-bar p { margin: 0; }
+.bcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); grid-auto-rows: max-content; gap: 8px; }
+.bcards.scroll { max-height: 430px; overflow: auto; padding: 2px; }
+.bcard { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "spr t use" "chips chips chips" "ivs ivs ivs";
+  gap: 6px 8px; align-items: center; text-align: left; cursor: pointer; padding: 8px 10px 9px 14px; border-radius: 8px; color: var(--ink); font: inherit; font-size: 13px;
+  border: 1px solid var(--line); background: linear-gradient(100deg, color-mix(in srgb, var(--tc) 13%, var(--surface)), var(--surface) 60%); overflow: hidden; }
+.bcard::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: linear-gradient(var(--tc), var(--tc2)); }
+.bcard:hover { border-color: var(--line-strong); }
+.bcard[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.bcard .bc-spr { grid-area: spr; display: flex; }
+.bcard .bc-t { grid-area: t; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bcard .bc-t span { color: var(--muted); }
+.bcard .inuse { grid-area: use; }
+.bcard .bc-chips { grid-area: chips; }
+.bcard .ivpills { grid-area: ivs; }
+.inuse { font-size: 11px; font-weight: 600; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 0 7px; white-space: nowrap; }
+.inuse.big { font-size: 13px; padding: 3px 10px; }
+.bc-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip2 { --cc: var(--line-strong); display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; line-height: 18px; padding: 0 7px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid color-mix(in srgb, var(--cc) 60%, transparent); background: color-mix(in srgb, var(--cc) 16%, transparent); color: var(--ink); }
+.chip2.tier { font-weight: 600; }
+.chip2.nat { --cc: var(--accent); }
+.chip2.item { padding-left: 3px; }
+.chip2.muted { color: var(--muted); background: none; }
+.iic { --i: 0; display: inline-block; flex: none; width: var(--s); height: var(--s); vertical-align: middle; background-image: url(/*ITEM_ICONS*/);
+  background-size: auto var(--s); background-position: calc(var(--i) * var(--s) * -1) 0; background-repeat: no-repeat; }
+.iic.none { width: 8px; height: 8px; margin: 0 3px; border-radius: 50%; background: var(--line-strong); }
+.ab-ic { width: 12px; height: 12px; margin-right: 4px; vertical-align: -1px; }
+.ivpills { display: flex; gap: 3px; flex-wrap: wrap; }
+.ivp { display: inline-grid; justify-items: center; min-width: 34px; padding: 1px 3px 2px; border-radius: 6px; font-family: var(--f-mono); font-size: 12px; line-height: 1.15; border: 1px solid var(--line); color: var(--muted); }
+.ivp i { font-style: normal; font-family: var(--f-body, inherit); font-size: 9.5px; letter-spacing: .02em; color: var(--muted); }
+.ivp.v31 { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--ink); font-weight: 600; }
+.ivp.v0 { border: 1px dashed var(--warn); color: var(--warn); font-weight: 600; }
+.ivp.vn { color: var(--ink); }
+.ivp.vx { opacity: .7; }
+.mtags { display: flex; flex-wrap: wrap; gap: 4px; }
+.mtag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; line-height: 20px; padding: 0 8px; border-radius: 5px; color: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--tc) 70%, transparent); background: color-mix(in srgb, var(--tc) 22%, var(--surface)); border-left: 4px solid var(--tc); }
+.mtag .egg { font-style: normal; font-size: 10px; font-weight: 600; padding: 0 4px; border-radius: 3px; background: var(--surface); color: var(--muted); border: 1px solid var(--line); line-height: 14px; }
+.bp-detail { display: grid; gap: 10px; padding: 12px 14px; border-radius: 10px; background: var(--sunk); border: 1px solid var(--line); font-size: 13.5px; }
+.bp-detail[hidden] { display: none; }
+.bpd-head { display: flex; align-items: center; gap: 10px; padding-bottom: 8px; border-bottom: 2px solid color-mix(in srgb, var(--tc) 60%, transparent); }
+.bpd-head h3 { margin: 0 0 4px; font-size: 15px; }
+.bp-detail dl { display: grid; grid-template-columns: auto 1fr; gap: 7px 14px; margin: 0; align-items: center; }
+.bp-detail dt { color: var(--muted); font-size: 12.5px; }
+.bp-detail dd { margin: 0; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bp-detail dd .iic { margin-right: 4px; }
+.bp-detail .seg button { padding: 3px 9px; font-size: 12.5px; }
+.bp-detail ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; color: var(--muted); font-size: 13px; }
+.bp-detail .ha { width: 12px; height: 10px; margin-right: 4px; vertical-align: -1px; }
+.bpd-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding-top: 2px; }
+.bpd-foot a { margin-left: auto; }
+@media (max-width: 560px) { .bcards { grid-template-columns: 1fr; } .bcards.scroll { max-height: 60vh; } .ivp { min-width: 0; flex: 1; } .bpd-foot .btn { width: 100%; } .bpd-foot a { margin-left: 0; } }
+.bc-comp { font-size: 12.5px; color: var(--muted); }
+.bc-comp .linkbtn { font-size: 12.5px; }
 .preset dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; margin: 0; align-items: baseline; }
 .preset dt { color: var(--muted); font-size: 12.5px; }
 .preset dd { margin: 0; min-width: 0; }
@@ -492,6 +596,7 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .bc-roles button { padding: 4px 10px; font-size: 12.5px; }
 .bc-goal .tag { font-family: var(--f-body); font-weight: 600; font-size: 12px; border: 1px solid var(--line-strong); border-radius: 999px; padding: 1px 8px; vertical-align: 2px; white-space: nowrap; }
 .bc-goal .tag .ha { width: 12px; height: 10px; margin-right: 4px; vertical-align: -1px; }
+.preset .ha { width: 12px; height: 10px; margin-right: 4px; vertical-align: -1px; }
 .bc-goal .tag.mv { color: var(--accent); border-color: currentColor; }
 .bc-nat select { font-size: 13px; padding: 6px 8px; }
 /* the Nature dropdown and Open in planner are the same height, side by side */
@@ -606,6 +711,16 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .bs-cell i { height: calc((92px - 22px) * var(--p)); min-height: 2px; margin: 0 3px; border-radius: 4px 4px 0 0; background: color-mix(in srgb, var(--accent) 65%, var(--surface)); }
 .bs-cell.zero b { color: var(--muted); font-weight: 400; }
 .bs-cell.zero i { background: var(--line); }
+/* each bar is a button: hovering, focusing or tapping it lights up the box spots with that many 31s (tap again to let go) */
+button.bs-cell { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; border-radius: 6px 6px 0 0; }
+button.bs-cell:disabled { cursor: default; }
+button.bs-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.bs-cell.hot i { background: var(--accent); }
+.bs-cell.hot b { color: var(--accent); }
+.bs-cell[aria-pressed="true"] i { box-shadow: 0 0 0 2px var(--accent-soft); }
+.bs-hl { min-height: 1.5em; }
+.pc-grid.hl-on .slot:not(.hl) { opacity: 0.28; }
+.pc-grid.hl-on .slot.hl { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 2px var(--accent-soft); }
 .bs-labels { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-top: -3px; }
 .bs-labels span { text-align: center; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
 .bs-note { font-size: 12px; color: var(--muted); }
@@ -740,10 +855,32 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
 
       <details class="panel fold" id="presets-wrap" open>
         <summary class="panel-head"><h2>Start from a build</h2><span class="eyebrow">Optional</span></summary>
-        <div class="preset-pick">
-          <div class="f"><span id="t-preset-l">Common builds</span><div class="pick" id="t-preset"><button type="button" class="pick-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="t-preset-list" aria-labelledby="t-preset-l t-preset-btn-v" id="t-preset-btn"><span class="pick-val" id="t-preset-btn-v"></span><svg class="pick-chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="pick-list" id="t-preset-list" role="listbox" aria-labelledby="t-preset-l" hidden></div></div></div>
+        <div class="bp-tabs" id="bp-tabs" role="tablist" aria-label="Kind of build">
+          <button type="button" role="tab" id="bp-tab-common" data-bp-tab="common" aria-controls="bp-common" aria-selected="true">Common builds</button>
+          <button type="button" role="tab" id="bp-tab-comp" data-bp-tab="comp" aria-controls="bp-comp" aria-selected="false" tabindex="-1">Competitive sets</button>
+          <button type="button" role="tab" id="bp-tab-events" data-bp-tab="events" aria-controls="bp-events" aria-selected="false" tabindex="-1" hidden>Events</button>
         </div>
-        <div class="preset" id="t-preset-info" hidden></div>
+        <div class="bp-panel" data-bp="common" id="bp-common" role="tabpanel" aria-labelledby="bp-tab-common">
+          <div class="bp-bar"><p class="muted small">Builds people breed to catch, farm and re-run trainers. Pick one to see it, then use it.</p><button class="linkbtn small" type="button" id="bp-clear">Clear goal</button></div>
+          <div class="bcards" id="bp-common-list" role="list" aria-label="Common builds"></div>
+        </div>
+        <div class="bp-panel comp" data-bp="comp" id="comp" role="tabpanel" aria-labelledby="bp-tab-comp" hidden>
+          <p class="muted small">PokeMMO PvP sets from the <a href="https://www.mmoshowdown.com/dex" target="_blank" rel="noopener">PokeMMO StratDex</a> (read November 2026), with their nature, the IVs that must be 31 or 0, ability and egg moves. Save your own version under Saved builds, or share it with Copy code.</p>
+          <div class="comp-tools"><input type="search" id="comp-q" placeholder="Search: Garchomp, Trick Room, 0 Spe, Scarf…" aria-label="Search competitive sets" autocomplete="off" spellcheck="false"><div class="seg" id="comp-tier" role="group" aria-label="Tier"></div><span class="muted small" id="comp-count" aria-live="polite"></span></div>
+          <div class="bcards scroll" id="comp-list" role="list" aria-label="Competitive sets"></div>
+        </div>
+        <div class="bp-panel" data-bp="events" id="bp-events" role="tabpanel" aria-labelledby="bp-tab-events" hidden>
+          <div class="ev" id="ev">
+            <div class="ev-head"><span class="ev-dot" aria-hidden="true"></span><h3 id="ev-h"></h3><span class="chip2 muted" title="Taken from last year's raid guides and not yet checked in game">unverified</span></div>
+            <p class="muted small" id="ev-when"></p>
+            <div class="ev-raids" id="ev-raids" role="group" aria-label="Raid boss"></div>
+            <div class="ev-raid" id="ev-raid" aria-live="polite" hidden></div>
+            <div class="bcards scroll" id="ev-list" role="list" aria-labelledby="ev-h"></div>
+            <details class="ev-more"><summary>Raid rules and where this comes from</summary><ul id="ev-rules"></ul></details>
+          </div>
+          <div class="bp-detail ev-info" id="t-ev-info" aria-live="polite" hidden></div>
+        </div>
+        <div class="bp-detail" id="bp-detail" aria-live="polite" hidden></div>
       </details>
 
       <section class="panel" aria-labelledby="h-goal">
@@ -877,7 +1014,7 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
             <details class="codes" id="box-worth-how">
               <summary>How this is counted</summary>
               <div class="codes-body" style="display:grid;gap:8px">
-                <p class="bs-note">Each Pokémon is worth what a similar one goes for on the GTL. 1×31 to 3×31 use the buy prices in the planner's Prices and options (the "with your nature" price when it has a nature that suits its species, the Ditto price for a Ditto). A good nature multiplies 4-6×31, a hidden ability adds a percentage, and egg moves, shiny, alpha and costume add a flat amount. Everything except the planner's prices is a guess you can change here. Blank IVs don't count as 31s.</p>
+                <p class="bs-note">Each Pokémon is worth what a similar one goes for on the GTL. 1×31 to 3×31 use the buy prices in the planner's Prices and options (the "with your nature" price when it has a nature that suits its species, the Ditto price for a Ditto). A good nature multiplies 4-6×31, a hidden ability adds a percentage, and egg moves, a 0 Atk or 0 Spe (wanted for special attackers and Trick Room), shiny, alpha and costume add a flat amount. Everything except the planner's prices is a guess you can change here. Blank IVs don't count as 31s.</p>
                 <div class="bw-set" id="bw-set"></div>
                 <div class="row"><button class="btn ghost mini" type="button" id="bw-reset">Reset to the guesses</button></div>
               </div>
@@ -1185,7 +1322,19 @@ const G_LABEL = { F: '♀ Female', M: '♂ Male', N: 'Genderless' };
 function ivControl(ivs, idx, prefix, exact, labelPrefix) {
   const k = STAT_KEYS[idx], v = ivs[idx];
   if (exact) return `<label class="ivnum s-${k}">${STAT_LABEL[idx]}<input type="number" min="0" max="31" inputmode="numeric" id="${prefix}-iv${idx}" data-iv="${idx}" value="${v == null ? '' : v}" placeholder="–" aria-label="${labelPrefix} ${STAT_LABEL[idx]} IV"></label>`;
-  return `<label class="chip s-${k}"><input type="checkbox" id="${prefix}-iv${idx}" data-iv="${idx}" ${v === 31 ? 'checked' : ''}>${STAT_LABEL[idx]} <span class="v">31</span></label>`;
+  const zero = prefix === 't' && v === 0;
+  const chip = `<label class="chip s-${k}${zero ? ' zero' : ''}"><input type="checkbox" id="${prefix}-iv${idx}" data-iv="${idx}" ${v === 31 ? 'checked' : ''}>${STAT_LABEL[idx]} <span class="v">${zero ? 0 : 31}</span></label>`;
+  // The goal can also ask for a 0 (0 Spe for Trick Room, 0 Atk for a special attacker): a 0 button under each chip.
+  if (prefix !== 't') return chip;
+  return `<span class="goal-iv s-${k}">${chip}<button type="button" class="iv31 iv0" data-zero="${idx}" aria-pressed="${v === 0}" aria-label="${STAT_LABEL[idx]} must be 0" title="${STAT_LABEL[idx]} must be 0${idx === 5 ? ' (Trick Room, Gyro Ball)' : idx === 1 ? ' (a special attacker: less damage from confusion and Foul Play)' : ''}">0</button></span>`;
+}
+// The goal's 0 buttons follow its IVs (a chip ticked to 31 turns its 0 off).
+function syncGoalZeros() {
+  document.querySelectorAll('#t-ivs [data-zero]').forEach((b) => {
+    const zero = state.target.ivs[+b.dataset.zero] === 0, chip = b.previousElementSibling;
+    b.setAttribute('aria-pressed', String(zero));
+    if (chip) { chip.classList.toggle('zero', zero); chip.querySelector('.v').textContent = zero ? '0' : '31'; }
+  });
 }
 
 function targetEggMoves() {
@@ -1196,10 +1345,10 @@ function renderTarget() {
   const t = state.target;
   $('t-species').value = t.species;
   $('t-nature').value = t.nature;
-  $('t-ivs-label').textContent = state.exact ? 'Minimum IVs you want (blank = don\'t care)' : 'IVs that must be 31';
+  $('t-ivs-label').textContent = state.exact ? 'Minimum IVs you want (blank = don\'t care, 0 = must be 0)' : 'IVs that must be 31 (or 0)';
   $('t-ivs').innerHTML = STAT_KEYS.map((_, i) => ivControl(t.ivs, i, 't', state.exact, 'Target')).join('');
   const set = t.ivs.filter((v) => v != null);
-  $('t-25').checked = state.exact && set.length > 0 && set.every((v) => v === 25);
+  $('t-25').checked = state.exact && set.some((v) => v === 25) && set.every((v) => v === 25 || v === 0);
   renderTargetSpecies();
   renderPreset();
 }
@@ -1407,7 +1556,7 @@ document.addEventListener('input', (e) => {
   if (el.dataset.combo) return;
   if (el.closest('#ec')) return ecInput(el);
   if (el.id === 'build-name') return syncBuildUi();
-  if (el.closest('#t-ivs')) { state.target.ivs[+el.dataset.iv] = readIv(el); return changed(); }
+  if (el.closest('#t-ivs')) { state.target.ivs[+el.dataset.iv] = readIv(el); syncGoalZeros(); return changed(); }
   if (el.dataset.move) { const t = state.target; t.moves = t.moves.filter((x) => x !== el.dataset.move); if (el.checked) t.moves.push(el.dataset.move); renderTmHint(); renderExtras(); return changed(); }
   if (el.dataset.tm) return setExtra(el.dataset.tm, el.checked);
   if (el.dataset.p) { state.prices[el.dataset.p] = parseFloat(el.value) || 0; if (EXTRA[el.dataset.p]) renderTmHint(); try { renderBoxWorth(); } catch (e) {} return changed(); }
@@ -1451,6 +1600,14 @@ document.addEventListener('change', (e) => {
 });
 function focusField(id, f) { const el = $(`m${id}-${f}`); if (el) { el.focus(); const n = el.value.length; try { el.setSelectionRange(n, n); } catch (e) {} } }
 document.addEventListener('click', (e) => {
+  const z = e.target.closest('#t-ivs [data-zero]');
+  if (z) {
+    const i = +z.dataset.zero, t = state.target;
+    t.ivs[i] = t.ivs[i] === 0 ? null : 0;
+    const chip = $('t-iv' + i);
+    if (chip && chip.type === 'checkbox') chip.checked = false;
+    syncGoalZeros(); changed(); return;
+  }
   const rm = e.target.closest('[data-rm]');
   if (rm) { state.mons = state.mons.filter((m) => m.id !== +rm.dataset.rm); renderMons(); changed(); return; }
   const un = e.target.closest('[data-unmove]');
@@ -1477,94 +1634,170 @@ function changed() { boxSyncMsg = ''; save(); schedule(); syncBuildUi(); renderP
 const PRESETS = [
   { key: 'breloom', label: 'Catching Breloom', species: 'Breloom', nature: 'Adamant', ability: 'Poison Heal', eggMoves: ['False Swipe'], items: ['toxic-orb'],
     sets: [{ label: 'Atk + Spe', ivs: [null, 31, null, null, null, 31] }],
-    facts: [['Item', 'Toxic Orb'], ['Moves', 'False Swipe, Spore']],
+    items_show: ['Toxic Orb'], moves: ['False Swipe', 'Spore'], facts: [],
     notes: ['False Swipe is an egg move, so the plan needs a male that knows it. Tick "Teach False Swipe with the TM instead" to skip that and buy the TM.',
       'Spore isn\'t an egg move. Shroomish learns it by level-up.'] },
   { key: 'smeargle', label: 'Catching Smeargle', species: 'Smeargle', nature: 'Adamant', ability: 'Technician', eggMoves: [],
     sets: [{ label: 'Ideal 5×31', ivs: [31, 31, 31, null, 31, 31], note: 'Everything but SpA at 31.' },
       { label: 'Budget 2×31', ivs: [null, 31, null, null, null, 31], note: 'Atk and Spe at 31, the rest as high as you can get. Much cheaper to breed.' }],
-    facts: [['EVs', '58 HP, 252 Atk, 200 Spe'], ['Item', 'Leftovers, Silk Scarf or Choice Band, depending on use'], ['Moves', 'False Swipe, Spore, Substitute, Soak']],
+    items_show: ['Leftovers', 'Silk Scarf', 'Choice Band'], moves: ['False Swipe', 'Spore', 'Substitute', 'Soak'], facts: [['EVs', '58 HP, 252 Atk, 200 Spe']],
     notes: ['Smeargle learns all four moves through Sketch, so there is nothing to breed in.'] },
   { key: 'typhlosion', label: 'Gym re-run Typhlosion', species: 'Typhlosion', nature: 'Modest', ability: '', eggMoves: [],
     sets: [{ label: 'SpA + Spe', ivs: [null, null, null, 31, null, 31] }],
-    facts: [['Moves', 'Eruption']],
+    moves: ['Eruption'], facts: [],
     notes: ['Eruption isn\'t an egg move. Typhlosion learns it by level-up.'] },
-  { key: 'dusknoir', label: 'Thief Dusknoir (fossil farming)', species: 'Dusknoir', nature: 'Bold', ability: 'Frisk', eggMoves: [], items: ['tm-thief'],
+  { key: 'cloyster', label: 'Trainer re-run Cloyster', species: 'Cloyster', nature: 'Adamant', ability: 'Skill Link', eggMoves: [],
+    sets: [{ label: 'Atk + Spe', ivs: [null, 31, null, null, null, 31] }],
+    items_show: ['White Herb', 'Focus Sash'], moves: ['Shell Smash', 'Icicle Spear', 'Rock Blast', 'Ice Shard'], facts: [],
+    notes: ['Skill Link is one of Cloyster\'s regular abilities, so it passes from the mother 80% of the time.',
+      'Rock Blast is an egg move for Shellder. Tick it under "I want egg moves" to breed it in, or skip it: Shell Smash, Icicle Spear and Ice Shard are learned another way.'] },
+  { key: 'dusknoir', label: 'Thief Dusknoir', species: 'Dusknoir', nature: 'Bold', ability: 'Frisk', eggMoves: [], items: ['tm-thief'],
     sets: [{ label: 'HP + Def', ivs: [31, null, 31, null, null, null], note: 'SpD as high as you can get.' },
       { label: '+ SpD (ideal)', ivs: [31, null, 31, null, 31, null], note: 'SpD at 31 too.' }],
-    facts: [['EVs', '252 HP, 252 Def, 6 SpA'], ['Moves', 'Thief, Trick, Absorb, Taunt']],
+    moves: ['Thief', 'Trick', 'Absorb', 'Taunt'], facts: [['EVs', '252 HP, 252 Def, 6 SpA']],
     notes: ['Frisk is Dusknoir\'s hidden ability, so it has to come from the mother\'s side.',
       'None of the four moves are egg moves for Duskull, so teach them after hatching.',
       'Max the PP on Thief and Trick with PP Ups so it lasts longer. Absorb too if you can, but it\'s optional.'] },
 ];
-// The build dropdowns work like a <select>, but each option shows the build's Pokémon icon,
-// which a native <select> can't. Picking the build that is already chosen does nothing, like a <select>.
-function makePick(id, builds, onPick) {
-  const root = $(id), btn = $(id + '-btn'), box = $(id + '-list');
-  const items = [{ key: '', label: 'None, fill in my own' }, ...builds];
-  const row = (it) => sprite(it.species || '', 1) + `<span>${esc(it.label)}</span>`;
-  box.innerHTML = items.map((it, i) => `<div class="opt" role="option" id="${id}-o${i}" data-i="${i}" aria-selected="false">${row(it)}</div>`).join('');
-  let value = null, active = -1;
-  const mark = (i) => {
-    active = i;
-    box.querySelectorAll('.opt').forEach((o) => o.setAttribute('aria-selected', String(+o.dataset.i === i)));
-    const o = $(id + '-o' + i);
-    if (o) { o.scrollIntoView({ block: 'nearest' }); btn.setAttribute('aria-activedescendant', o.id); }
-  };
-  const open = () => { box.hidden = false; btn.setAttribute('aria-expanded', 'true'); mark(Math.max(0, items.findIndex((it) => it.key === value))); };
-  const close = () => { box.hidden = true; btn.setAttribute('aria-expanded', 'false'); btn.removeAttribute('aria-activedescendant'); };
-  const choose = (i) => { close(); btn.focus(); const it = items[i]; if (it && it.key !== value) onPick(it.key); };
-  btn.addEventListener('click', () => (box.hidden ? open() : close()));
-  btn.addEventListener('keydown', (e) => {
-    if (box.hidden) {
-      if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) { e.preventDefault(); open(); }
-      return;
-    }
-    if (e.key === 'ArrowDown') mark(Math.min(items.length - 1, active + 1));
-    else if (e.key === 'ArrowUp') mark(Math.max(0, active - 1));
-    else if (e.key === 'Home') mark(0);
-    else if (e.key === 'End') mark(items.length - 1);
-    else if (e.key === 'Enter' || e.key === ' ') choose(active);
-    else if (e.key === 'Escape') { e.stopPropagation(); close(); }
-    else { if (e.key === 'Tab') close(); return; }
-    e.preventDefault();
+// ---------- start from a build: one picker ----------
+// Tabs (Common builds, Competitive sets, and Events once that group is in the page) over cards: sprite, a stripe
+// in the Pokémon's first type colour, chips for tier, nature and item, and the six IVs as 31 / 0 / – pills.
+// A card shows its build in the detail panel below; "Use this build" loads it into the goal (Undo brings the
+// old setup back). The card whose build is the goal right now says "In use".
+const MOVE_TYPES = /*MOVE_TYPES*/{};
+const ITEM_ICONS = /*ITEM_ICON_NAMES*/[];
+const TYPE_COLORS = { Normal: '#a8a77a', Fire: '#ee8130', Water: '#6390f0', Electric: '#e5be1e', Grass: '#7ac74c', Ice: '#76ccc8', Fighting: '#c22e28',
+  Poison: '#a33ea1', Ground: '#d9a347', Flying: '#a98ff3', Psychic: '#f95587', Bug: '#a6b91a', Rock: '#b6a136', Ghost: '#735797', Dragon: '#6f35fc',
+  Dark: '#705746', Steel: '#b7b7ce', Fairy: '#d685ad' };
+const typeColor = (t) => TYPE_COLORS[t] || 'var(--line-strong)';
+const moveType = (m) => MOVE_TYPES[m] || (/^Hidden Power (\w+)/.test(m) ? m.split(' ')[2] : '');
+const TIER_COLORS = { OU: '#d9534f', UU: '#3f7fd9', NU: '#3a9d5d', Doubles: '#8a5cd6' };
+const ABILITY_ICON = '<svg class="ab-ic" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .8l1.5 3.3 3.6.4-2.7 2.4.8 3.6L6 8.7l-3.2 1.8.8-3.6L.9 4.5l3.6-.4z" fill="#f5c542" stroke="#a5781a" stroke-width=".8" stroke-linejoin="round"/></svg>';
+function itemIc(name, size = 20) {
+  const i = ITEM_ICONS.indexOf(name);
+  if (i < 0) return `<span class="iic none" style="--s:${size}px" aria-hidden="true"></span>`;
+  return `<span class="iic" style="--s:${size}px;--i:${i}" aria-hidden="true"></span>`;
+}
+const natureHint = (n) => (NATURE_FX[n] ? `+${STAT_LABEL[NATURE_FX[n][0]]} −${STAT_LABEL[NATURE_FX[n][1]]}` : 'neutral');
+// The six IVs as pills: 31 filled, 0 dashed, – for "doesn't matter".
+const ivPills = (ivs) => `<span class="ivpills" aria-label="IVs: ${esc(STAT_LABEL.map((l, i) => `${l} ${ivs[i] == null ? 'any' : ivs[i]}`).join(', '))}">${STAT_LABEL.map((l, i) => {
+  const v = ivs[i];
+  return `<span class="ivp ${v === 31 ? 'v31' : v === 0 ? 'v0' : v == null ? 'vx' : 'vn'}" aria-hidden="true"><i>${l}</i>${v == null ? '–' : v}</span>`;
+}).join('')}</span>`;
+const chip = (text, cls = '', title = '', color = '') => `<span class="chip2 ${cls}"${color ? ` style="--cc:${color}"` : ''}${title ? ` title="${esc(title)}"` : ''}>${text}</span>`;
+const moveTag = (m, egg) => {
+  const t = moveType(m);
+  return `<span class="mtag" style="--tc:${typeColor(t)}" title="${esc(t ? `${t} type` : '')}${egg ? `${t ? ', ' : ''}egg move: bred in` : ''}">${esc(m)}${egg ? '<i class="egg">egg</i>' : ''}</span>`;
+};
+// What a card and the detail panel need, the same shape for a common build and a competitive set.
+function bpCommon(p, setIdx = 0) {
+  const set = p.sets[setIdx] || p.sets[0];
+  return { kind: 'common', key: p.key, species: p.species, title: p.species, sub: p.label.replace(new RegExp(`\\s*${p.species}$`), ''), name: p.label,
+    nature: p.nature, ability: p.ability, items: p.items_show || [], ivs: set.ivs, moves: p.moves || [], eggMoves: p.eggMoves, tier: '',
+    facts: p.facts, notes: [set.note, ...p.notes].filter(Boolean), sets: p.sets, setIdx, src: p };
+}
+function bpComp(p) {
+  const ha = sp(p.species).h === p.ability;
+  const notes = [ha ? `${p.ability} is ${p.species}'s hidden ability, so it comes from the mother's side (or a Ditto's partner).` : '',
+    p.eggMoves.length ? `${andList(p.eggMoves)} ${p.eggMoves.length > 1 ? 'are egg moves' : 'is an egg move'}, so the plan needs a parent that knows ${p.eggMoves.length > 1 ? 'them' : 'it'}. The other moves are learned another way.` : 'None of the moves need breeding in.',
+    STAT_LABEL.some((_, i) => compIvs(p)[i] === 0) ? 'A 0 IV is planned like a 31: a parent with it holds the Power item, or both parents have it. 0s are never bought, so they come from your own Pokémon.' : '',
+    p.notes, p.basis === 'usage' ? 'No set is written for it on the StratDex yet, so this one is put together from its PokeMMO usage stats (the most used nature, ability, item and moves).' : '',
+    p.verified || p.basis === 'usage' ? '' : 'Not checked against PokeMMO\'s current tiers yet: look it over before you spend on it.'].filter(Boolean);
+  return { kind: 'comp', key: p.key, species: p.species, title: p.species, name: p.name, nature: p.nature, ability: p.ability, items: p.item ? [p.item] : [],
+    ivs: compIvs(p), moves: p.moves, eggMoves: p.eggMoves, tier: p.tier, role: p.role, evs: p.evs, facts: [], notes, src: p,
+    source: /^https:\/\/www\.mmoshowdown\.com\//.test(p.source || '') ? p.source : '', usage: p.basis === 'usage', unverified: !p.verified && p.basis !== 'usage' };
+}
+const bp = { tab: '', sel: { common: '', comp: '' }, setIdx: {}, ready: false };
+try { bp.tab = localStorage.getItem('pokemmo-breeding-bp-tab') || ''; } catch (e) { /* private window */ }
+const bpInUse = (b) => (b.kind === 'comp' ? compOf(state.target) === b.src
+  : presetOf(state.target) === b.src && JSON.stringify(state.target.ivs) === JSON.stringify(b.ivs));
+function bpCard(b, selected) {
+  const t = (sp(b.species) || {}).t || [];
+  const inUse = bpInUse(b) || (b.kind === 'common' && presetOf(state.target) === b.src);
+  const chips = [b.tier ? chip(esc(b.tier), 'tier', `${b.tier} tier`, TIER_COLORS[b.tier]) : '',
+    b.nature ? chip(esc(b.nature), 'nat', natureHint(b.nature)) : '',
+    ...b.items.slice(0, 1).map((it) => chip(itemIc(it, 18) + esc(it), 'item', b.items.join(' or '))),
+    b.usage ? chip('from usage', 'muted', 'Built from PokeMMO usage stats, no written set yet') : ''].filter(Boolean).join('');
+  return `<button type="button" class="bcard" role="listitem" data-bp-card="${esc(b.kind)}:${esc(b.key)}" aria-pressed="${selected}" style="--tc:${typeColor(t[0])};--tc2:${typeColor(t[1] || t[0])}">`
+    + `<span class="bc-spr">${sprite(b.species, 1)}</span><span class="bc-t"><b>${esc(b.title)}</b> <span>${esc(b.kind === 'comp' ? b.name : b.sub)}</span></span>`
+    + (inUse ? '<span class="inuse">In use</span>' : '')
+    + `<span class="bc-chips">${chips}</span>${ivPills(b.ivs)}</button>`;
+}
+function bpDetail(b) {
+  const t = (sp(b.species) || {}).t || [], ha = b.ability && sp(b.species).h === b.ability, inUse = bpInUse(b);
+  const ver = b.sets && b.sets.length > 1
+    ? `<div class="seg" role="group" aria-label="IV version">${b.sets.map((x, i) => `<button type="button" data-bp-set="${i}" aria-pressed="${i === b.setIdx}">${esc(x.label)}</button>`).join('')}</div>` : '';
+  const facts = [
+    ['Nature', b.nature ? `${esc(b.nature)} <span class="muted">${esc(natureHint(b.nature))}</span>` : ''],
+    ['Ability', b.ability ? `${ha ? HA_ICON : ABILITY_ICON}${esc(b.ability)}${ha ? ' <span class="muted">hidden</span>' : ''}` : 'Any'],
+    ['Item', b.items.map((it) => `<span class="nobr">${itemIc(it, 24)}${esc(it)}</span>`).join(' or ')],
+    ['IVs', ivPills(b.ivs) + ver],
+    ['EVs', esc(b.evs || '')],
+    ...b.facts.map(([k, v]) => [k, esc(v)]),
+    ['Moves', b.moves.length ? `<span class="mtags">${b.moves.map((m) => moveTag(m, b.eggMoves.includes(m))).join('')}</span>` : ''],
+  ].filter(([, v]) => v);
+  const tags = [b.tier ? chip(esc(b.tier), 'tier', '', TIER_COLORS[b.tier]) : '', b.role ? chip(esc(b.role), 'muted') : '',
+    ...t.map((x) => chip(esc(x), 'type', '', typeColor(x))), b.usage ? chip('from usage', 'muted') : '', b.unverified ? chip('unverified', 'muted') : ''].join('');
+  return `<div class="bpd-head" style="--tc:${typeColor(t[0])}">${sprite(b.species, 2)}<div><h3>${esc(b.kind === 'comp' ? compLabel(b.src) : b.name)}</h3><div class="bc-chips">${tags}</div></div></div>`
+    + `<dl>${facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join('')}</dl>`
+    + (b.notes.length ? `<ul>${b.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : '')
+    + `<div class="bpd-foot">${inUse ? '<span class="inuse big">✓ This is your goal now</span>' : `<button type="button" class="btn primary" data-bp-use>Use this build</button>`}`
+    + `<span class="muted small">${b.kind === 'comp' ? 'Replaces your goal and keeps your Pokémon.' : 'Replaces your goal and Pokémon list.'}</span>`
+    + (b.source ? `<a class="small" href="${esc(b.source)}" target="_blank" rel="noopener">Source: PokeMMO StratDex</a>` : '') + '</div>';
+}
+const bpEventsOn = () => { const e = $('bp-events'); return !!e && e.childElementCount > 0; };
+function bpCurrent() {
+  const tab = bp.tab === 'events' && !bpEventsOn() ? 'common' : bp.tab || (compOf(state.target) ? 'comp' : 'common');
+  if (tab === 'common') {
+    const p = PRESETS.find((x) => x.key === bp.sel.common) || presetOf(state.target);
+    if (!p) return { tab, b: null };
+    const used = presetOf(state.target) === p ? p.sets.findIndex((x) => JSON.stringify(x.ivs) === JSON.stringify(state.target.ivs)) : -1;
+    const idx = bp.setIdx[p.key] != null ? bp.setIdx[p.key] : Math.max(0, used);
+    return { tab, b: bpCommon(p, idx) };
+  }
+  if (tab === 'comp') { const p = COMP.find((x) => x.key === bp.sel.comp) || compOf(state.target); return { tab, b: p ? bpComp(p) : null }; }
+  return { tab, b: null };
+}
+function renderBpLists() {
+  const { tab, b } = bpCurrent(), selKey = b ? `${b.kind}:${b.key}` : '';
+  document.querySelectorAll('#bp-tabs [data-bp-tab]').forEach((x) => {
+    x.setAttribute('aria-selected', String(x.dataset.bpTab === tab));
+    x.tabIndex = x.dataset.bpTab === tab ? 0 : -1;
+    if (x.dataset.bpTab === 'events') x.hidden = !bpEventsOn();
   });
-  box.addEventListener('mousedown', (e) => e.preventDefault());
-  box.addEventListener('click', (e) => { const o = e.target.closest('.opt'); if (o) choose(+o.dataset.i); });
-  document.addEventListener('pointerdown', (e) => { if (!box.hidden && !root.contains(e.target)) close(); });
-  return {
-    set(key) {
-      if (key === value) return;
-      value = key;
-      $(id + '-btn-v').innerHTML = row(items.find((it) => it.key === key) || items[0]);
-    },
-  };
+  document.querySelectorAll('#presets-wrap .bp-panel').forEach((x) => { x.hidden = x.dataset.bp !== tab; });
+  if (tab === 'common') $('bp-common-list').innerHTML = PRESETS.map((p) => bpCard(bpCommon(p), selKey === `common:${p.key}`)).join('');
+  if (tab === 'comp') {
+    const q = comp.q.toLowerCase().replace(/x/g, '×'), words = q.split(/\s+/).filter(Boolean);
+    const list = COMP.filter((p) => (!comp.tier || p.tier === comp.tier) && words.every((w) => compText(p).replace(/x/g, '×').includes(w)));
+    $('comp-tier').innerHTML = ['', ...compTiers].map((t) => `<button type="button" data-comp-tier="${esc(t)}" aria-pressed="${comp.tier === t}">${t ? esc(t) : 'All'}</button>`).join('');
+    $('comp-list').innerHTML = list.length ? list.map((p) => bpCard(bpComp(p), selKey === `comp:${p.key}`)).join('')
+      : `<div class="comp-empty">No set matches${comp.tier ? ` in ${esc(comp.tier)}` : ''}. Try another word, or All.</div>`;
+    $('comp-count').textContent = `${list.length} of ${COMP.length} sets`;
+  }
+  const box = $('bp-detail');
+  box.hidden = !b || tab === 'events';
+  box.innerHTML = b && tab !== 'events' ? bpDetail(b) : '';
+}
+const renderCompList = () => { if (bp.ready) renderBpLists(); };
+const renderComp = renderCompList;
+// The goal changed: "In use" marks and the detail panel's button follow it.
+function renderBp() {
+  if (!bp.ready) return;
+  renderBpLists();
+  // other groups in this panel re-render here too
+  if (typeof renderEvent === 'function') renderEvent();
 }
 const pickPreset = (key) => { const p = PRESETS.find((x) => x.key === key); if (p) applyPreset(p); else clearGoal(); };
-const presetPick = makePick('t-preset', PRESETS, pickPreset);
 // The build the goal currently matches; the IVs can be any of its versions.
 const presetOf = (t) => PRESETS.find((p) => p.species === t.species && p.nature === t.nature && p.ability === t.ability) || null;
-function renderPreset() {
-  const t = state.target, p = presetOf(t);
-  const set = p && p.sets.find((x) => JSON.stringify(x.ivs) === JSON.stringify(t.ivs));
-  presetPick.set(p ? p.key : '');
-  const box = $('t-preset-info'), sig = p ? p.key + '|' + (set ? set.label : '') : '';
-  if (box.dataset.sig === sig) return;
-  box.dataset.sig = sig;
-  box.hidden = !p;
-  if (!p) { box.innerHTML = ''; return; }
-  const ivs = p.sets.length > 1
-    ? `<div class="seg" role="group" aria-label="IV version">${p.sets.map((x, i) => `<button type="button" data-preset-set="${i}" aria-pressed="${x === set}">${esc(x.label)}</button>`).join('')}</div>`
-    : esc(p.sets[0].label);
-  const notes = [set && set.note, ...p.notes].filter(Boolean);
-  box.innerHTML = `<dl><dt>IVs</dt><dd>${ivs}</dd>${p.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`
-    + `<ul>${notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>`;
-}
+function renderPreset() { renderBp(); }
 // A new start: the goal and the Pokémon list are replaced, and the loaded saved build is let go so Save
 // can't overwrite it. Undo brings all of it back.
 // A goal (and Pokémon list) that only has 31s and blanks shows as the 31 buttons; exact numbers only when some IV
 // is a real minimum (25+, say) or a Pokémon row has a number other than 31 that the buttons would hide.
-const needsExact = (target, mons) => [target, ...mons].some((m) => m.ivs.some((v) => v != null && v !== 31));
+// The goal's 0s have their own buttons, so they don't need exact numbers either.
+const needsExact = (target, mons) => [target, ...mons].some((m) => m.ivs.some((v) => v != null && v !== 31 && !(m === target && v === 0)));
 function startGoal(target, mons, extras, msg) {
   const prev = { data: buildData(), buildId: state.buildId, name: $('build-name').value };
   Object.assign(state, { target, mons, extras, buildId: null, done: [], luck: [], exact: needsExact(target, mons) });
@@ -1574,23 +1807,217 @@ function startGoal(target, mons, extras, msg) {
   renderAll(); save(); renderBuilds();
   say(msg, () => restoreSetup(prev, 'Back to your previous setup.'));
 }
-function applyPreset(p) {
-  startGoal({ species: p.species, ivs: p.sets[0].ivs.slice(), gender: 'A', nature: p.nature, ability: p.ability, wantMoves: p.eggMoves.length > 0, moves: p.eggMoves.slice() },
+function applyPreset(p, setIdx = 0) {
+  const set = p.sets[setIdx] || p.sets[0];
+  bp.sel.common = p.key; bp.setIdx[p.key] = setIdx;
+  startGoal({ species: p.species, ivs: set.ivs.slice(), gender: 'A', nature: p.nature, ability: p.ability, wantMoves: p.eggMoves.length > 0, moves: p.eggMoves.slice() },
     [{ id: uid++, species: p.species, gender: 'F', ivs: [null, null, null, null, null, null], nature: '', ability: '', moves: [], qty: 1 }], (p.items || []).slice(),
     `Loaded ${p.label}. Fill in the Pokémon you have, starting with the ${p.species} row.`);
 }
-// "None" empties the goal, otherwise the preset would still match it and the dropdown would jump back.
+// "Clear goal" empties the goal and the Pokémon list.
 function clearGoal() {
   const e = emptySetup();
+  bp.sel.common = ''; bp.sel.comp = '';
   startGoal(e.target, e.mons, e.extras, 'Cleared, fill in your own goal and Pokémon.');
   $('t-species').focus();
 }
-$('t-preset-info').addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-preset-set]'), p = presetOf(state.target);
-  if (!btn || !p) return;
-  state.target.ivs = p.sets[+btn.dataset.presetSet].ivs.slice();
-  renderTarget(); changed();
+
+// ---------- competitive sets ----------
+// PvP sets from data/presets.json (from the PokeMMO StratDex: written sets, or built from its usage stats). One loads into the goal:
+// species, nature, ability, the IVs that must be 31 or 0, and the egg moves to breed in; the Pokémon list stays.
+// The item goes into the costs when it's one of the TMs and held items the planner knows.
+const COMP = (/*PRESETS*/{ sets: [] }).sets.filter((p) => p && sp(p.species));
+const compIvs = (p) => STAT_LABEL.map((l) => (typeof p.ivs[l] === 'number' ? p.ivs[l] : null));
+const compIvText = (p) => {
+  const v = compIvs(p), n31 = v.filter((x) => x === 31).length;
+  const odd = STAT_LABEL.map((l, i) => (v[i] != null && v[i] !== 31 ? `${v[i]} ${l}` : '')).filter(Boolean);
+  const miss = STAT_LABEL.filter((_, i) => v[i] == null);
+  return [n31 === 6 ? '6×31' : n31 ? `${n31}×31${miss.length && miss.length <= 2 ? ` (no ${miss.join(', ')})` : ''}` : '', ...odd].filter(Boolean).join(', ');
+};
+const compLabel = (p) => `${p.species} ${p.name}`;
+const TIER_ORDER = ['OU', 'UU', 'NU', 'Doubles'];
+const compTiers = [...new Set(COMP.map((p) => p.tier))].sort((a, b) => ((TIER_ORDER.indexOf(a) + 1) || 99) - ((TIER_ORDER.indexOf(b) + 1) || 99));
+const comp = { q: '', tier: '', chosen: '' };
+// The set the goal is: same species, nature, ability, IVs and egg moves. Two sets can share all that (Scarf and
+// Swords Dance Garchomp), so the one picked last wins.
+const compSame = (p, t) => p.species === t.species && p.nature === t.nature && p.ability === t.ability
+  && JSON.stringify(compIvs(p)) === JSON.stringify(t.ivs) && p.eggMoves.every((m) => t.wantMoves && t.moves.includes(m));
+function compOf(t) {
+  const fits = COMP.filter((p) => compSame(p, t));
+  return fits.find((p) => p.key === comp.chosen) || fits[0] || null;
+}
+function compText(p) {
+  return [p.species, dex.lineOf(p.species), p.name, p.tier, p.role, p.nature, p.ability, p.item, ...p.moves, compIvText(p), p.basis === 'usage' ? 'usage' : '', p.verified ? '' : 'unverified',
+    ...STAT_LABEL.filter((_, i) => compIvs(p)[i] === 0).map((l) => `0 ${l}`)].join(' ').toLowerCase();
+}
+function compGoal(p) {
+  return { species: p.species, ivs: compIvs(p), gender: 'A', nature: p.nature, ability: p.ability, wantMoves: p.eggMoves.length > 0, moves: p.eggMoves.slice(), shiny: false, alpha: false, costume: '' };
+}
+const compExtras = (p) => EXTRAS.filter((x) => x.item && x.item === p.item).map((x) => x.key);
+function applyComp(p, mons = state.mons.map((m) => ({ ...m, ivs: m.ivs.slice(), moves: m.moves.slice() })), msg) {
+  comp.chosen = p.key;
+  bp.sel.comp = p.key; bp.tab = 'comp';
+  startGoal(compGoal(p), mons, compExtras(p), msg || `Loaded ${compLabel(p)}${p.verified ? '' : ' (unverified)'}. Your Pokémon are kept.`);
+  renderCompList();
+}
+$('comp-q').addEventListener('input', (e) => { comp.q = e.target.value.trim(); renderCompList(); });
+function bpTab(tab, focus) {
+  bp.tab = tab;
+  try { localStorage.setItem('pokemmo-breeding-bp-tab', tab); } catch (e) { /* private window */ }
+  renderBpLists();
+  if (focus) $('bp-tab-' + tab).focus();
+}
+$('bp-tabs').addEventListener('click', (e) => { const t = e.target.closest('[data-bp-tab]'); if (t) bpTab(t.dataset.bpTab); });
+$('bp-tabs').addEventListener('keydown', (e) => {
+  const tabs = [...document.querySelectorAll('#bp-tabs [data-bp-tab]')].filter((x) => !x.hidden), i = tabs.indexOf(document.activeElement);
+  if (i < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+  e.preventDefault();
+  const j = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : (i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+  bpTab(tabs[j].dataset.bpTab, true);
 });
+$('presets-wrap').addEventListener('click', (e) => {
+  const t = e.target.closest('[data-comp-tier]');
+  if (t) { comp.tier = t.dataset.compTier; renderCompList(); const again = document.querySelector(`[data-comp-tier="${CSS.escape(comp.tier)}"]`); if (again) again.focus(); return; }
+  const card = e.target.closest('[data-bp-card]');
+  if (card) {
+    const [kind, key] = card.dataset.bpCard.split(':');
+    bp.sel[kind] = key;
+    renderBpLists();
+    const again = document.querySelector(`[data-bp-card="${CSS.escape(card.dataset.bpCard)}"]`);
+    if (again) again.focus();
+    const box = $('bp-detail'), r = box.getBoundingClientRect();
+    if (r.top > innerHeight - 120 || r.bottom < 0) box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    return;
+  }
+  if (e.target.closest('#bp-clear')) return clearGoal();
+  const { b } = bpCurrent();
+  if (!b) return;
+  const ver = e.target.closest('[data-bp-set]');
+  if (ver && b.kind === 'common') {
+    const i = +ver.dataset.bpSet;
+    bp.setIdx[b.key] = i;
+    if (presetOf(state.target) === b.src) { state.target.ivs = b.src.sets[i].ivs.slice(); renderTarget(); changed(); } else renderBpLists();
+    return;
+  }
+  if (e.target.closest('[data-bp-use]')) {
+    if (b.kind === 'comp') applyComp(b.src); else applyPreset(b.src, b.setIdx);
+  }
+});
+// Build center cards list the sets for their line.
+const compForLine = (line) => COMP.filter((p) => dex.lineOf(p.species) === line);
+// first drawn once the whole script has run (it uses NATURE_FX and HA_ICON, defined further down)
+queueMicrotask(() => { bp.ready = true; renderBp(); });
+
+// ---------- seasonal event builds (Events tab) ----------
+// Raid builds for the current event from data/events.json (Christmas for now). A chip per raid boss shows its
+// phases and plan and narrows the cards to the builds used there; a card opens its build below, and "Use this
+// build" loads it like a competitive set (goal replaced, Pokémon kept, Undo brings the old setup back).
+// Set event.on to false in data/events.json to hide the Events tab once the event is over.
+const EVENT = (/*EVENTS*/{ event: { on: false }, raids: [], sets: [] });
+const EV_SETS = EVENT.event.on ? EVENT.sets.filter((p) => p && sp(p.species)) : [];
+const EV_RAIDS = EVENT.raids.filter((r) => EV_SETS.some((p) => p.raids.includes(r.key)));
+const evRaid = (k) => EV_RAIDS.find((r) => r.key === k);
+const ev = { raid: '', sel: '', chosen: '' };
+const evLabel = (p) => `${p.species} ${p.name}`;
+function evOf(t) {
+  const fits = EV_SETS.filter((p) => compSame(p, t));
+  return fits.find((p) => p.key === ev.chosen) || fits[0] || null;
+}
+function evCard(p, selected) {
+  const t = sp(p.species).t, inUse = evOf(state.target) === p;
+  const chips = [chip(esc(p.role), 'muted'), chip(esc(p.nature), 'nat', natureHint(p.nature)), p.item ? chip(itemIc(p.item, 18) + esc(p.item), 'item', p.item) : ''].join('');
+  return `<button type="button" class="bcard" role="listitem" data-ev-card="${esc(p.key)}" aria-pressed="${selected}" style="--tc:${typeColor(t[0])};--tc2:${typeColor(t[1] || t[0])}"`
+    + ` title="${esc(`Used in: ${p.raids.map((k) => evRaid(k)?.name).filter(Boolean).join(', ')}`)}">`
+    + `<span class="bc-spr">${sprite(p.species, 1)}</span><span class="bc-t"><b>${esc(p.species)}</b> <span>${esc(p.name)}</span></span>`
+    + (inUse ? '<span class="inuse">In use</span>' : `<span class="ev-raidn">${p.raids.length} raid${p.raids.length > 1 ? 's' : ''}</span>`)
+    + `<span class="bc-chips">${chips}</span>${ivPills(compIvs(p))}</button>`;
+}
+function evDetail(p) {
+  const t = sp(p.species).t, ha = p.ability && sp(p.species).h === p.ability, inUse = evOf(state.target) === p;
+  const notes = [ha ? `${p.ability} is ${p.species}'s hidden ability, so it comes from the mother's side (or a Ditto's partner).` : '',
+    p.eggMoves.length ? `${andList(p.eggMoves)} ${p.eggMoves.length > 1 ? 'are egg moves' : 'is an egg move'}, so the plan needs a parent that knows ${p.eggMoves.length > 1 ? 'them' : 'it'}. The other moves are learned another way.` : 'None of the moves need breeding in.',
+    STAT_LABEL.some((_, i) => compIvs(p)[i] === 0) ? 'A 0 IV is planned like a 31: a parent with it holds the Power item, or both parents have it. 0s are never bought, so they come from your own Pokémon.' : '',
+    p.notes, EVENT.event.caveat].filter(Boolean);
+  const facts = [
+    ['Nature', `${esc(p.nature)} <span class="muted">${esc(natureHint(p.nature))}</span>`],
+    ['Ability', p.ability ? `${ha ? HA_ICON : ABILITY_ICON}${esc(p.ability)}${ha ? ' <span class="muted">hidden</span>' : ''}` : 'Any'],
+    ['Item', p.item ? `<span class="nobr">${itemIc(p.item, 24)}${esc(p.item)}</span>` : ''],
+    ['IVs', ivPills(compIvs(p))],
+    ['EVs', esc(p.evs || '')],
+    ['Raids', p.raids.map((k) => evRaid(k)).filter(Boolean).map((r) => `<button type="button" class="ev-chip" data-ev-raid="${esc(r.key)}">${sprite(r.name, 1)}${esc(r.name)} <span class="st">${r.stars}★</span></button>`).join('')],
+    ['Moves', `<span class="mtags">${p.moves.map((m) => moveTag(m, p.eggMoves.includes(m))).join('')}</span>`],
+  ].filter(([, v]) => v);
+  const tags = [chip(esc(EVENT.event.name), 'tier', '', '#c8283c'), chip(esc(p.role), 'muted'), ...t.map((x) => chip(esc(x), 'type', '', typeColor(x))), p.verified ? '' : chip('unverified', 'muted')].join('');
+  return `<div class="bpd-head" style="--tc:${typeColor(t[0])}">${sprite(p.species, 2)}<div><h3>${esc(evLabel(p))}</h3><div class="bc-chips">${tags}</div></div></div>`
+    + `<dl>${facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join('')}</dl>`
+    + `<ul>${notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>`
+    + `<div class="bpd-foot">${inUse ? '<span class="inuse big">✓ This is your goal now</span>' : '<button type="button" class="btn primary" data-ev-use>Use this build</button>'}`
+    + '<span class="muted small">Replaces your goal and keeps your Pokémon.</span></div>';
+}
+function renderEventList() {
+  const r = evRaid(ev.raid);
+  const list = EV_SETS.filter((p) => !r || p.raids.includes(r.key));
+  $('ev-raids').innerHTML = `<button type="button" class="ev-chip all" data-ev-raid="" aria-pressed="${!r}">All builds</button>`
+    + EV_RAIDS.map((x) => `<button type="button" class="ev-chip" data-ev-raid="${esc(x.key)}" aria-pressed="${x === r}" title="${esc(`${x.name} ${x.stars}★ raid`)}">${sprite(x.name, 1)}${esc(x.name)} <span class="st">${x.stars}★</span></button>`).join('');
+  const box = $('ev-raid');
+  box.hidden = !r;
+  if (r) {
+    const types = r.type.split('/');
+    box.style.setProperty('--tc', typeColor(types[0]));
+    box.innerHTML = `<div class="er-top"><b>${esc(r.name)} ${r.stars}★</b>${types.map((x) => chip(esc(x), 'type', '', typeColor(x))).join('')}<span class="muted">weak to ${esc(r.weak)}</span></div>`
+      + `<div class="muted">${esc(r.boss)}</div>`
+      + `<ol aria-label="Boss phases by HP left">${r.phases.split(' · ').map((x) => { const m = x.match(/^(\d+%)\s+(.*)$/); return m ? `<li><b>${esc(m[1])}</b>${esc(m[2])}</li>` : `<li>${esc(x)}</li>`; }).join('')}</ol>`
+      + `<div>${esc(r.plan)}</div>`;
+  } else box.innerHTML = '';
+  if (!list.some((p) => p.key === ev.sel)) ev.sel = '';
+  $('ev-list').innerHTML = list.map((p) => evCard(p, p.key === ev.sel)).join('');
+  renderEvent(true);
+}
+// The detail panel: the card picked last, or the event build the goal is.
+function renderEvent(force) {
+  if (!EV_SETS.length) return;
+  const p = EV_SETS.find((x) => x.key === ev.sel) || evOf(state.target), box = $('t-ev-info');
+  const sig = p ? `${p.key}|${evOf(state.target) === p}` : '';
+  if (!force) document.querySelectorAll('#ev-list [data-ev-card]').forEach((b) => { const x = EV_SETS.find((s) => s.key === b.dataset.evCard); if (x && (evOf(state.target) === x) !== !!b.querySelector('.inuse')) b.outerHTML = evCard(x, x.key === ev.sel); });
+  if (!force && box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  box.hidden = !p;
+  box.innerHTML = p ? evDetail(p) : '';
+}
+if (EV_SETS.length) {
+  const e = EVENT.event;
+  $('ev-h').textContent = e.label;
+  $('ev-when').textContent = `${e.when} Pick a raid to see its plan and the Pokémon people brought there.`;
+  $('ev-rules').innerHTML = [...e.rules, e.caveat].map((x) => `<li>${esc(x)}</li>`).join('')
+    + `<li>Sources: ${e.sources.map(([t, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>`).join(', ')}.</li>`;
+  $('bp-events').addEventListener('click', (x) => {
+    const c = x.target.closest('[data-ev-raid]');
+    if (c) {
+      ev.raid = c.closest('#ev-raids') && ev.raid === c.dataset.evRaid ? '' : c.dataset.evRaid;
+      renderEventList(); $('ev-list').scrollTop = 0;
+      document.querySelector(`#ev-raids [data-ev-raid="${CSS.escape(ev.raid)}"]`)?.focus();
+      if (!c.closest('#ev-raids')) $('ev-raid').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      return;
+    }
+    const card = x.target.closest('[data-ev-card]');
+    if (card) {
+      ev.sel = card.dataset.evCard; renderEventList();
+      document.querySelector(`[data-ev-card="${CSS.escape(ev.sel)}"]`)?.focus();
+      const box = $('t-ev-info'), r = box.getBoundingClientRect();
+      if (r.top > innerHeight - 120 || r.bottom < 0) box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      return;
+    }
+    if (x.target.closest('[data-ev-use]')) {
+      const p = EV_SETS.find((s) => s.key === ev.sel) || evOf(state.target);
+      if (!p) return;
+      ev.chosen = p.key;
+      startGoal(compGoal(p), state.mons.map((m) => ({ ...m, ivs: m.ivs.slice(), moves: m.moves.slice() })), compExtras(p),
+        `Loaded ${evLabel(p)} for the ${EVENT.event.name}${p.verified ? '' : ' (unverified)'}. Your Pokémon are kept.`);
+      renderEventList();
+    }
+  });
+  queueMicrotask(renderEventList); // after the rest of the script (natureHint, HA_ICON…)
+} else $('bp-events').replaceChildren(); // event over: no Events tab
 
 // ---------- egg move finder ----------
 // "I have X and want egg move Y: which Pokémon can pass Y on?" A move from another species comes in through
@@ -2118,7 +2545,7 @@ function gSym(g) { return g === 'F' ? '<span class="g-F" title="Female">♀</spa
 function ivChips(iv, need) {
   const t = state.target.ivs;
   const out = [];
-  iv.forEach((v, i) => { if (t[i] != null && v >= t[i]) out.push(`<span class="iv s-${STAT_KEYS[i]}">${STAT_LABEL[i]} ${v}</span>`); });
+  iv.forEach((v, i) => { if (Planner.meets(v, t[i])) out.push(`<span class="iv s-${STAT_KEYS[i]}">${STAT_LABEL[i]} ${v}</span>`); });
   return out.length ? `<div class="ivs">${out.join('')}</div>` : '<span class="muted small">No IVs needed</span>';
 }
 function itemFor(n, side) {
@@ -2240,7 +2667,7 @@ function renderSteps(order, final) {
     return `<li data-breed="${r.num}"><span class="stepno">${r.num}</span><div class="stepbody">
       ${doneRow(r.num)}
       <div class="pair">${cardFor(n.a, itemFor(n, 'a'), final)}<span class="x">×</span>${cardFor(n.b, itemFor(n, 'b'), final)}</div>
-      <div class="outcome">Hatches ${gSym(n.gender)} <b style="color:var(--ink)">${n.cos ? `${esc(state.target.costume)} ` : ''}${esc(n.baby || hatchLabel(n.line, n.gender))}</b> with ${r.iv.some((v, i) => state.target.ivs[i] != null && v >= state.target.ivs[i]) ? STAT_LABEL.filter((_, i) => state.target.ivs[i] != null && r.iv[i] >= state.target.ivs[i]).map((l) => `<b class="ink">${l}</b>`).join(', ') + ' locked' : 'no locked IVs'}${n.nat ? `, ${esc(state.target.nature)}` : ''}${n.abil ? `, ${esc(state.target.ability)} (chance)` : ''}. ${gPick ? gPick[0].toUpperCase() + gPick.slice(1) + '. ' : ''}${usedIn} <button class="linkbtn" type="button" data-egg-odds="${r.num}">Egg odds</button></div>
+      <div class="outcome">Hatches ${gSym(n.gender)} <b style="color:var(--ink)">${n.cos ? `${esc(state.target.costume)} ` : ''}${esc(n.baby || hatchLabel(n.line, n.gender))}</b> with ${r.iv.some((v, i) => Planner.meets(v, state.target.ivs[i])) ? STAT_LABEL.filter((_, i) => Planner.meets(r.iv[i], state.target.ivs[i])).map((l) => `<b class="ink">${state.target.ivs[STAT_LABEL.indexOf(l)] === 0 ? '0 ' : ''}${l}</b>`).join(', ') + ' locked' : 'no locked IVs'}${n.nat ? `, ${esc(state.target.nature)}` : ''}${n.abil ? `, ${esc(state.target.ability)} (chance)` : ''}. ${gPick ? gPick[0].toUpperCase() + gPick.slice(1) + '. ' : ''}${usedIn} <button class="linkbtn" type="button" data-egg-odds="${r.num}">Egg odds</button></div>
       ${luck}
     </div></li>`;
   }).join('')}</ol>`;
@@ -2283,6 +2710,9 @@ function showResult(out, retry) {
     } else {
       const t = state.target;
       const why = [];
+      // 0 IVs are never bought, so they have to come from your own Pokémon
+      const zeros = STAT_LABEL.filter((_, i) => t.ivs[i] === 0 && !(planInput && planInput.pool.some((p) => p.ivs[i] === 0)));
+      if (zeros.length) why.push(`a Pokémon with ${zeros.map((l) => `0 ${l}`).join(' and ')} that can breed into it (a 0 IV can't be bought here, so it has to come from your own Pokémon; a Ditto with it works for any line)`);
       if (t.ability) why.push(`a parent of the ${esc(t.species)} line with ${esc(t.ability)} (it must come from the mother side)`);
       const bred = bredMoves(), withTm = bred.filter(tmOf);
       if (bred.length) why.push(`a parent that knows ${bred.map(esc).join(', ')}${withTm.length ? ` (or tick "Teach ${esc(withTm[0])} with the TM instead" under your goal)` : ''}`);
@@ -2521,7 +2951,7 @@ function luckForm(r) {
 function luckDiff(r, got) {
   const t = state.target, m = hatchedMon(r), out = [];
   if (t.nature && (got.nature === t.nature) !== (m.nature === t.nature)) out.push(got.nature === t.nature ? t.nature : `not ${t.nature}`);
-  const meets = (ivs, i) => ivs[i] != null && ivs[i] >= t.ivs[i];
+  const meets = (ivs, i) => Planner.meets(ivs[i], t.ivs[i]);
   const up = [], down = [];
   t.ivs.forEach((v, i) => { if (v != null && meets(got.ivs, i) !== meets(m.ivs, i)) (meets(got.ivs, i) ? up : down).push(i); });
   if (up.length) out.push(`${up.map((i) => `${got.ivs[i]} ${STAT_LABEL[i]}`).join(', ')}`);
@@ -3053,6 +3483,8 @@ const n31 = (m) => m.ivs.filter((v) => v === 31).length;
 // IV stats for this box or all of them (shown under the box, see renderBoxStats)
 const STATS_KEY = 'pokemmo-breeding-box-stats';
 let statsAll = false;
+// which IV stats bar (0 to 6 31s) lights up box spots: statsPin is a tapped/clicked bar, statsHover the one under the mouse or focus
+let statsPin = null, statsHover = null;
 try { statsAll = localStorage.getItem(STATS_KEY) === 'all'; } catch (e) {}
 // The egg groups of a species' breeding line (a baby's are its line's), or its own for one with no line, like Ditto.
 const monGroups = (s) => lineGroups(dex.lineOf(s.n)) || s.e.join(' / ');
@@ -3915,11 +4347,18 @@ function panelGeometry(words, fw, fh) {
   const y = Math.max(0, Math.round(y0 - 8.7 * P)), b = Math.min(fh, Math.round(y0 + 10.6 * P)), gy = Math.max(0, Math.round(y0 - 4 * P));
   // where the box's first spot should be, from the game's layout: just right of the panel, level with the sprite
   // the box grid and party column end about 24 rows' worth right of the panel, where the PC window does
-  return { P, panel: { x, y, w: r - x, h: b - y }, grid: { x: r, y: gy, w: Math.min(fw - r, Math.round(23.8 * P)), h: b - gy }, sex: { y: Math.max(0, Math.round(y0 - 1.6 * P - y)), h: Math.round(P) },
+  // the game's name for the box is centred above the box tabs, about 18.3 rows right of where the values start and 8
+  // rows above the Stats line (Sean's three screenshots and his recording); room for a name of up to ~20 letters
+  const nx = Math.max(0, Math.round(vx + 12.3 * P)), ny = Math.max(0, Math.round(y0 - 8.55 * P));
+  const name = { x: nx, y: ny, w: Math.min(fw - nx, Math.round(12.1 * P)), h: Math.min(fh - ny, Math.round(1.1 * P)) };
+  return { P, name, panel: { x, y, w: r - x, h: b - y }, grid: { x: r, y: gy, w: Math.min(fw - r, Math.round(23.8 * P)), h: b - gy }, sex: { y: Math.max(0, Math.round(y0 - 1.6 * P - y)), h: Math.round(P) },
     first: { x: vx + 7.67 * P, y: y0 - 2.38 * P, sx: 2.093 * P, sy: 1.76 * P }, rows: { y0: y0 - y, vx: vx - x } };
 }
-// The cursor is a box drawn in one bright blue; its top and bottom edges are the long runs of that blue.
-const isCursor = (r, g, b) => r < 60 && g > 150 && g < 225 && b > 210;
+// The cursor is a box drawn in one blue; its top and bottom edges are the long runs of that blue. While the cursor
+// moves, the game pulses it between rgb(0,190,253) and a dimmer rgb(66,168,204) (Sean's recording, 2026-11-21), so
+// it's told by its hue rather than its brightness: a dim cursor went unseen half the time, and a spot the cursor
+// only stopped on while dim was never read.
+const isCursor = (r, g, b) => b > 160 && r < 100 && b - r > 110 && g > 0.68 * b && g < 0.93 * b;
 function findCursor(img, minRun) {
   const { data, width, height } = img, runs = [];
   for (let y = 0; y < height; y++) {
@@ -4038,7 +4477,7 @@ function placeReads(reads, first) {
 }
 
 const imp = { step: 'idle', status: '', stream: null, video: null, geo: null, first: null, reads: new Map(), queue: [], busy: false,
-  last: null, lost: 0, finding: false, review: null, from: '', frames: null, frameAt: 0, filled: null, filledAt: 0, visited: new Set(), into: -1 };
+  last: null, lost: 0, finding: false, review: null, from: '', frames: null, frameAt: 0, filled: null, filledAt: 0, visited: new Set(), into: -1, names: [], gameName: '', game: null };
 // Phones and tablets can't share a game window (some have the call but can only share the whole screen of the phone).
 const canShare = () => !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)
   && !(navigator.userAgentData ? navigator.userAgentData.mobile : /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
@@ -4055,7 +4494,7 @@ async function startReading(into = -1) {
   video.muted = true; video.playsInline = true; video.srcObject = stream;
   await video.play().catch(() => {});
   Object.assign(imp, { step: 'find', stream, video, geo: null, reads: new Map(), queue: [], last: null, lost: 0,
-    filled: null, filledAt: 0, missed: null, here: null, visited: new Set(), status: 'Loading the text reader (a few MB, only the first time)…' });
+    filled: null, filledAt: 0, missed: null, here: null, visited: new Set(), names: [], namePrint: null, nameAt: 0, gameName: '', settle: null, status: 'Loading the text reader (a few MB, only the first time)…' });
   stream.getVideoTracks()[0].addEventListener('ended', () => stopReading(true));
   renderImp();
   loadOcr().then(() => { if (imp.step === 'find') { imp.status = 'Looking for your PC box. Open it in the game so its side panel shows a Pokémon.'; renderImp(); } },
@@ -4099,8 +4538,8 @@ async function findPanel() {
         still.width = fw; still.height = fh; still.getContext('2d').drawImage(v, 0, 0);
         imp.debug = { found: { geo, words, frame: still }, reads: [] };
         Object.assign(imp, { geo, first: geo.first, lost: 0, step: imp.step === 'find' ? 'read' : imp.step });
-        imp.status = imp.into >= 0 ? 'Found your PC box. Move the cursor onto each spot that changed and wait for it to show up below, or go through the whole box a row at a time. Spots you don\'t go to stay as they are.'
-          : 'Found your PC box. Select its top-left spot, then tap → along the row and wait for each Pokémon to show up below. At the end of a row, tap ↓ and come back along the next one with ←.';
+        imp.status = imp.into >= 0 ? 'Found your PC box. Move the cursor onto each spot that changed with the arrow keys (not by clicking) and wait for it to show up below, or go through the whole box a row at a time. Spots you don\'t go to stay as they are.'
+          : 'Found your PC box. Select its top-left spot, then tap → along the row and wait for each Pokémon to show up below. At the end of a row, tap ↓ (not →, which goes to your party) and come back along the next one with ←.';
         renderImp();
       }
     }
@@ -4317,6 +4756,7 @@ function look(src, fw, fh) {
     const filled = filledSpots(grab(frame, g.grid, g.grid.w, g.grid.h, false), g);
     if (!imp.filled || [...filled].join() !== [...imp.filled].join()) { imp.filled = filled; renderImp(); }
   }
+  if (g.name && g.name.w > 0 && g.name.h > 0 && performance.now() - imp.nameAt > 300) { imp.nameAt = performance.now(); watchName(frame, g); }
   const at = { x: g.grid.x + cur.x / f, y: g.grid.y + cur.y / f, w: cur.w / f, h: cur.h / f };
   // which spot it is, by the layout's spacing: the cursor's measured size wobbles a pixel or two with the video,
   // too much to tell neighbouring spots apart by on the right of a wide screen
@@ -4335,19 +4775,93 @@ function look(src, fw, fh) {
   // panel still matches the last one read, the panel may not have caught up yet, so wait until the cursor has
   // rested there a moment (an empty spot after an empty one, or two exact copies). Once rested, a spot without a
   // clean read is read once more: the first copy can be of a frame the game was still drawing.
-  const fresh = !imp.last || printDiff(imp.last.print, print) > 8;
+  // A screen share can catch the game half-way through redrawing the panel, and a copy that mixes two Pokémon reads
+  // wrong (a white 8 tinted green and taken for a 31, say); a Rescan then took such a misread, of a spot the cursor
+  // only passed over, for a different Pokémon. So a changed panel is read straight away, and once two looks at least
+  // 50 ms apart see it the same, that read counts as sure (or, if the panel did change after the first copy, it's read
+  // again). A spot the cursor leaves sooner keeps its first read, marked as only glimpsed.
+  const st = imp.settle;
+  if (st && (st.key !== key || printDiff(st.print, print) > 8)) imp.settle = null;
+  else if (st && now - st.t >= 50) {
+    imp.settle = null;
+    imp.here.steady = true;
+    if (st.exact && printDiff(st.job.print, print) <= 2) { st.job.sure = true; if (st.job.entry) st.job.entry.sure = true; }
+    else { imp.last = { key, print }; queueRead(panelJob(g, at, key, col, row, 'settled', true, print)); }
+  }
+  // Once the panel has held steady with the cursor on a spot, a change while the cursor stays put isn't that spot's
+  // Pokémon: most likely the mouse pointer resting on another one (Sean sometimes clicks spots rather than using the
+  // arrow keys). It's left unread; moving the cursor reads the new spot as usual.
+  const fresh = (!imp.last || printDiff(imp.last.print, print) > 8) && !imp.here.steady;
   const rested = now - imp.here.t > 250, done = imp.reads.get(key), clean = done && (done.egg || done.read && !done.read.problems.length);
-  const kind = fresh ? 'new' : !rested ? '' : !imp.here.took ? 'rest' : !imp.here.again && !clean ? 'again' : '';
+  const kind = fresh ? 'new' : !rested ? '' : !imp.here.took ? 'rest' : !imp.here.again && !clean && !(imp.last && printDiff(imp.last.print, print) > 8) ? 'again' : '';
   if (kind) {
     imp.here.took = true;
     if (kind === 'again') imp.here.again = true;
+    if (kind === 'rest') imp.here.steady = true;
     imp.last = { key, print };
-    const c = document.createElement('canvas');
-    c.width = g.panel.w; c.height = g.panel.h;
-    c.getContext('2d').drawImage(frame, g.panel.x, g.panel.y, g.panel.w, g.panel.h, 0, 0, c.width, c.height);
-    imp.queue.push({ key, at, c, P: g.P, sex: g.sex, rows: g.rows, kind, icon: spotIcon(frame, g, col, row) });
-    pumpReads();
+    const job = panelJob(g, at, key, col, row, kind, kind !== 'new', print);
+    if (kind === 'new') imp.settle = { key, print, t: now, job, exact: true };
+    queueRead(job);
   }
+}
+// A copy of the side panel (and the spot's icon) from the current frame, to be read.
+function panelJob(g, at, key, col, row, kind, sure, print) {
+  const c = document.createElement('canvas');
+  c.width = g.panel.w; c.height = g.panel.h;
+  c.getContext('2d').drawImage(frame, g.panel.x, g.panel.y, g.panel.w, g.panel.h, 0, 0, c.width, c.height);
+  return { key, at, c, P: g.P, sex: g.sex, rows: g.rows, kind, sure, icon: spotIcon(frame, g, col, row), box: imp.names.length - 1, print };
+}
+function queueRead(job) {
+  imp.queue.push(job);
+  pumpReads();
+}
+// ---------- the game's name for the box ----------
+// The box's name ("B1", "SHITTOS") is written in white, centred above the box tabs. It's read once when the reader
+// starts and again whenever it changes (another box picked in the game), so each read knows which game box it came
+// from. imp.names holds one entry per box seen, in order: { name } once its text has been read ('' when it can't be).
+function watchName(src, g) {
+  const r = g.name, print = grab(src, r, 120, 12, true).data, out = new Uint8Array(print.length / 4);
+  for (let i = 0; i < out.length; i++) out[i] = Math.min(print[i * 4], print[i * 4 + 1], print[i * 4 + 2]);
+  if (imp.namePrint && printDiff(imp.namePrint, out) <= 6) return;
+  imp.namePrint = out;
+  const k = Math.min(4, Math.max(1, 90 / g.P)), c = inkCanvas(src, r.x, r.y, r.w, r.h, k, true);
+  const entry = { name: null };
+  imp.names.push(entry);
+  readBoxName(c, g.P * k).then((t) => { entry.name = t; if (t) imp.gameName = t; renderImp(); });
+}
+async function readBoxName(ink, rowPx) {
+  // nothing written there: Tesseract would make something up out of a blank line
+  const d = ink.getContext('2d').getImageData(0, 0, ink.width, ink.height).data;
+  let dark = 0;
+  for (let i = 0; i < d.length; i += 4) if (d[i] < 128) dark++;
+  if (dark < d.length / 4 * 0.004) return '';
+  const pad = Math.round(rowPx * 0.3), c = document.createElement('canvas');
+  c.width = ink.width + pad * 2; c.height = ink.height + pad * 2;
+  const x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(ink, pad, pad);
+  try {
+    const data = await ocr(c, 'line');
+    const t = fixBoxName(data.text.replace(/\s+/g, ' ').replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9)!?.]+$/g, '').trim());
+    return data.confidence >= 55 && t.length <= 20 ? t : '';
+  } catch (e) { return ''; }
+}
+// Box names are often a letter or two and a number ("B1", "IV 3"), where Tesseract takes a 1 for an l or I and a 0
+// for an O: "B1" came out as "Bl". In a word that's capitals and digits apart from that, they're read as digits.
+function fixBoxName(t) {
+  return t.split(' ').map((w) => {
+    if (/^[A-Z0-9lI|Oo]+$/.test(w) && /[A-Z0-9]/.test(w) && /[lI|]/.test(w)) {
+      // an l (or |) next to a capital or digit; an I only next to a digit, as IV and HA are real names
+      w = w.replace(/[l|]/g, '1').replace(/(?<=\d)I|I(?=\d)/g, '1');
+    }
+    return /\d/.test(w) && /^[A-Z0-9Oo]+$/.test(w) ? w.replace(/(?<=\d)[Oo]|[Oo](?=\d)/g, '0') : w;
+  }).join(' ');
+}
+// The game box most reads came from, and every game box name seen while reading.
+function gameBoxOf(reads) {
+  const count = new Map();
+  for (const r of reads) if (r.box >= 0 && imp.names[r.box] && imp.names[r.box].name) { const n = imp.names[r.box].name; count.set(n, (count.get(n) || 0) + 1); }
+  const all = [...count.keys()];
+  return { name: all.sort((a, b) => count.get(b) - count.get(a))[0] || '', all };
 }
 // The lines of the side panel by where they sit: a label to put in front, the row (in label rows from the Stats
 // label), where the text starts and ends (in rows from where the values start), how to read it, and how sure the
@@ -4461,7 +4975,10 @@ async function pumpReads() {
     // same panel only wins if it read better.
     const before = imp.reads.get(job.key), score = (r) => (r.egg ? 99 : !r.read ? 0 : !r.read.mon.species ? 1 : 50 - r.read.problems.length);
     const after = score({ read: got, egg });
-    if (!before || (job.kind === 'again' ? after >= score(before) : after > 0 || score(before) <= 1)) imp.reads.set(job.key, { ...job.at, read: got, egg });
+    // a copy only glimpsed in passing doesn't replace a settled one, and a settled one replaces a glimpse
+    const take = !before ? true : before.sure && !job.sure ? false : job.sure && !before.sure ? after > 0 || score(before) <= 1
+      : job.kind === 'again' ? after >= score(before) : after > 0 || score(before) <= 1;
+    if (take) { job.entry = { ...job.at, read: got, egg, box: job.box, sure: job.sure }; imp.reads.set(job.key, job.entry); }
     imp.current = null;
     if (imp.debug && text) imp.debug.reads.push({ at: job.at, text, sex, read: got, panel: job.c });
     renderImp();
@@ -4473,6 +4990,7 @@ function stopReading(keep) {
   if (imp.stream) imp.stream.getTracks().forEach((t) => t.stop());
   if (imp.frames) imp.frames.stop();
   imp.stream = null; imp.video = null; imp.frames = null;
+  imp.settle = null;
   // a rescan can end with nothing read and still have spots to empty
   if (!keep || !imp.reads.size && !imp.queue.length && !(imp.into >= 0 && imp.visited.size)) { Object.assign(imp, { step: 'idle', status: '', reads: new Map(), queue: [], current: null, geo: null, into: -1 }); return renderImp(); }
   imp.step = 'stopping';
@@ -4488,6 +5006,7 @@ function finishReading() {
   imp.review = [...seen.values()].map((r) => ({ ...r.read, slot: r.slot, on: !!r.read.mon.species }));
   imp.eggs = new Set(all.filter((r) => r.egg && !seen.has(r.slot)).map((r) => r.slot)).size;
   imp.missed = missedSpots(all, imp.filled);
+  imp.game = gameBoxOf(all);
   Object.assign(imp, { step: imp.review.length ? 'review' : 'idle', from: 'screen', reads: new Map(), geo: null, name: null,
     status: imp.review.length ? '' : imp.eggs ? 'Only eggs were read. Eggs are left out: their IVs and nature only show once they hatch.'
       : "No Pokémon were read. Make sure the PC box is open in the window you share, then go through it a row at a time from the top-left spot." });
@@ -4504,6 +5023,15 @@ function sameMon(a, b) {
   const eq = (x, y) => !x || !y || x === y;
   return eq(a.gender, b.gender) && eq(a.costume, b.costume) && eq(a.nature, b.nature) && eq(a.ability, b.ability) && a.ivs.every((v, i) => v == null || b.ivs[i] == null || v === b.ivs[i]);
 }
+// The same Pokémon but for one IV read differently: far more likely a misread off the screen than a sibling with
+// the same species, gender, nature and ability and all but one IV the same. Gives that IV's index, else -1.
+function oneIvOff(a, b) {
+  if (!a || !b || a.species !== b.species || !!a.shiny !== !!b.shiny) return -1;
+  const eq = (x, y) => !x || !y || x === y;
+  if (!(eq(a.gender, b.gender) && eq(a.costume, b.costume) && eq(a.nature, b.nature) && eq(a.ability, b.ability))) return -1;
+  const off = a.ivs.map((v, i) => (v != null && b.ivs[i] != null && v !== b.ivs[i] ? i : -1)).filter((i) => i >= 0);
+  return off.length === 1 ? off[0] : -1;
+}
 // Spots holding a Pokémon on the site that the cursor went to, that are empty in the game now and weren't read.
 function goneSpots(old, cells, passed) {
   const out = new Set();
@@ -4516,13 +5044,18 @@ function finishRescan() {
   const all = placeReads([...imp.reads.values()], imp.first).filter((r) => r.slot >= 0), passed = passedSpots(imp.visited, -1);
   const read = new Map(), cells = new Map();
   all.forEach((r) => { if (!cells.has(r.slot) || r.read || r.egg) cells.set(r.slot, r); });
-  all.filter((r) => r.read && r.read.mon.species).forEach((r) => read.set(r.slot, r.read));
+  all.filter((r) => r.read && r.read.mon.species).forEach((r) => read.set(r.slot, { ...r.read, glimpse: r.sure === false }));
   const changes = [], kept = new Set();
   if (b) {
     const old = b.slots;
     // the same Pokémon in the same spot is kept, unless the reader saw a costume on it that the site doesn't have yet
     const dressed = new Set();
     for (const [s, r] of read) if (sameMon(r.mon, old[s])) (r.mon.costume && !old[s].costume ? dressed : kept).add(s);
+    // one IV read differently: kept, with an unticked line offering the new number in case the box is the one that's wrong
+    for (const [s, r] of read) {
+      const i = kept.has(s) || dressed.has(s) ? -1 : oneIvOff(r.mon, old[s]);
+      if (i >= 0) { kept.add(s); changes.push({ slot: s, old: old[s], read: r, from: null, on: false, iv: { i, was: old[s].ivs[i], now: r.mon.ivs[i] } }); }
+    }
     const used = new Set([...kept, ...dressed]);
     for (const s of dressed) changes.push({ slot: s, old: old[s], read: read.get(s), from: null, on: true, costume: read.get(s).mon.costume });
     for (const [s, r] of [...read].sort((x, y) => x[0] - y[0])) {
@@ -4530,7 +5063,8 @@ function finishRescan() {
       // a Pokémon from another spot of this box, moved in the game: it keeps its nickname, egg moves and the rest
       const from = old.findIndex((m, t) => t !== s && m && !used.has(t) && sameMon(r.mon, m));
       if (from >= 0) used.add(from);
-      changes.push({ slot: s, old: old[s], read: r, from: from >= 0 ? from : null, on: true });
+      // a different Pokémon from one read only in passing is offered unticked: it may be a misread
+      changes.push({ slot: s, old: old[s], read: r, from: from >= 0 ? from : null, on: !(r.glimpse && old[s] && from < 0) });
     }
     // a spot a Pokémon moved away from is emptied by the move itself
     for (const s of goneSpots(old, cells, passed)) if (!changes.some((c) => c.from === s)) changes.push({ slot: s, old: old[s], read: null, from: null, on: true });
@@ -4539,7 +5073,7 @@ function finishRescan() {
   // filled spots the cursor went to without a read the reader could use; these stay as they are
   imp.missed = missedSpots(all.filter((r) => !r.read || r.read.mon.species), imp.filled, passed);
   imp.eggs = [...new Set(all.filter((r) => r.egg && !read.has(r.slot)).map((r) => r.slot))];
-  imp.rescan = { b: imp.into, name, kept: kept.size };
+  imp.rescan = { b: imp.into, name, kept: kept.size, game: gameBoxOf(all) };
   const missed = imp.missed.length ? ` ${cap(spotList(imp.missed))} couldn't be read, so ${imp.missed.length === 1 ? 'it stays' : 'they stay'} as before.` : '';
   Object.assign(imp, { step: changes.length ? 'review' : 'idle', from: 'rescan', review: changes, reads: new Map(), geo: null, name: null, into: -1,
     status: changes.length ? '' : (kept.size ? `Nothing changed: ${kept.size === 1 ? 'the Pokémon read is' : `the ${kept.size} Pokémon read are`} already in ${name}, in the same spot${kept.size === 1 ? '' : 's'}.` : 'No Pokémon were read, and no spots were seen emptied.') + missed });
@@ -4550,6 +5084,12 @@ const cap = (t) => t[0].toUpperCase() + t.slice(1);
 const monBits = (m) => `<span class="imp-ivs">${m.ivs.map((v) => (v == null ? '–' : v)).join('/')}</span> <span class="meta">${[m.nature || 'no nature', m.ability || 'no ability', ...(m.moves.length ? [m.moves.join(', ')] : [])].map(esc).join(' · ')}</span>`;
 const monName = (m) => `${gSym(m.gender)} ${esc(m.nick || m.species)}${m.shiny ? ' <span class="tip-shiny">Shiny</span>' : ''}${m.costume ? ` ${costumeTag(m.costume)}` : ''}${m.alpha ? ' <span class="tip-alpha">Alpha</span>' : ''}${m.level ? ` <span class="muted small">Lv. ${m.level}</span>` : ''}`;
 function rescanRow(c, i) {
+  if (c.iv) {
+    const st = STAT_LABEL[c.iv.i];
+    return `<li class="imp-row"><input type="checkbox" data-imp="${i}" ${c.on ? 'checked' : ''} aria-label="Spot ${c.slot + 1}: set ${st} to ${c.iv.now}">`
+      + `<span>${sprite(c.old.species, 1, c.old.costume)}</span><span class="imp-what"><span class="muted small">Spot ${c.slot + 1}</span> <b>${monName(c.old)}: ${st} read as ${c.iv.now}, your box has ${c.iv.was}</b><br>${monBits(c.old)}`
+      + `<br><span class="muted small">Everything else matches, so it's most likely a misread and stays as it is. Tick it if your box is the one that's wrong.</span></span></li>`;
+  }
   // a Pokémon kept from the box (the same one, or moved) takes the costume the reader saw on it
   const kept = c.costume ? c.old : c.read && c.from != null && box.boxes[imp.rescan.b].slots[c.from];
   const m = kept ? { ...kept, costume: c.read.mon.costume || kept.costume } : c.read ? c.read.mon : c.old;
@@ -4560,16 +5100,20 @@ function rescanRow(c, i) {
   const was = c.costume || !c.read || !c.old ? '' : movedOut ? `<br><span class="muted small">${monName(c.old)} moves to spot ${movedOut.slot + 1}</span>`
     : `<br><span class="muted small">in place of ${monName(c.old)}${c.old.species === m.species ? `, which was ${monBits(c.old)}` : ''}</span>`;
   const note = c.costume ? '<br><span class="muted small">Only the costume is added; everything else stays as it is.</span>'
-    : !c.read ? `<br><span class="muted small">This spot is empty in the game now.</span>` : c.from != null ? '<br><span class="muted small">Keeps its nickname, egg moves and the rest from this box.</span>' : '';
+    : !c.read ? `<br><span class="muted small">This spot is empty in the game now.</span>` : c.from != null ? '<br><span class="muted small">Keeps its nickname, egg moves and the rest from this box.</span>'
+    : c.read.glimpse && c.old ? '<br><span class="muted small">The cursor only passed over this spot, so this may be a misread and is left unticked. Tick it if it really changed, or go back and rest the cursor on it.</span>' : '';
   const probs = c.read && c.read.problems.length ? `<br><span class="mon-warn small">${esc(c.read.problems.join(' '))}</span>` : '';
   return `<li class="imp-row${probs ? ' warn' : ''}"><input type="checkbox" data-imp="${i}" ${c.on ? 'checked' : ''} aria-label="Spot ${c.slot + 1}: ${esc(c.read ? (m.nick || m.species) : 'take out ' + (c.old.nick || c.old.species))}">`
     + `<span class="${c.read ? '' : 'was'}">${sprite(m.species, 1, m.costume)}</span><span class="imp-what"><span class="muted small">Spot ${c.slot + 1}</span> <b>${what}</b><br>${monBits(m)}${was}${note}${probs}</span></li>`;
 }
 function renderRescan(rev) {
-  const r = imp.rescan, on = imp.review.filter((x) => x.on).length, n = imp.review.length;
+  const r = imp.rescan, on = imp.review.filter((x) => x.on).length, n = imp.review.filter((x) => !x.iv).length, ivs = imp.review.length - n;
   const missed = imp.missed.length ? ` ${cap(spotList(imp.missed))} couldn't be read, so ${imp.missed.length === 1 ? 'it stays' : 'they stay'} as before; rescan ${imp.missed.length === 1 ? 'it' : 'them'} after if need be.` : '';
   const eggs = imp.eggs.length ? ` ${cap(spotList(imp.eggs))} ${imp.eggs.length === 1 ? 'holds an egg' : 'hold eggs'} in the game; left as before.` : '';
-  rev.innerHTML = `<p>Rescanned ${esc(r.name)}: found ${n} change${n === 1 ? '' : 's'}${r.kept ? `, and ${r.kept} Pokémon ${r.kept === 1 ? 'is' : 'are'} still the same` : ''}.${missed}${eggs} Untick anything that looks wrong. Spots you didn't go to stay as they are.</p>`
+  const other = r.game.all.filter((n) => squash(n) !== squash(r.name));
+  const game = !other.length ? '' : r.game.all.length > 1 ? ` <span class="mon-warn">You read more than one box in the game (${r.game.all.map((n) => `“${esc(n)}”`).join(', ')}), so check the changes closely.</span>`
+    : ` <span class="mon-warn">The game's box is called “${esc(other[0])}”, not ${esc(r.name)}: check it's the right box.</span>`;
+  rev.innerHTML = `<p>Rescanned ${esc(r.name)}: found ${n} change${n === 1 ? '' : 's'}${r.kept ? `, and ${r.kept} Pokémon ${r.kept === 1 ? 'is' : 'are'} still the same` : ''}.${ivs ? ` ${ivs === 1 ? 'One of those had an IV' : `${ivs} of those had an IV`} read differently from your box; ${ivs === 1 ? "it's" : "they're"} listed unticked, as it's most likely a misread.` : ''}${missed}${eggs} Untick anything that looks wrong. Spots you didn't go to stay as they are.${game}</p>`
     + `<ul class="imp-list">${imp.review.map(rescanRow).join('')}</ul>`
     + `<div class="row"><button class="btn primary" type="button" id="imp-put" ${on ? '' : 'disabled'}>Apply ${on} change${on === 1 ? '' : 's'}</button>`
     + `<button class="btn" type="button" id="imp-drop">Throw these away</button></div>` + debugLink();
@@ -4580,7 +5124,8 @@ function applyRescan() {
   const before = b.slots.slice(), slots = b.slots.slice();
   // first empty the spots that are going (taken out, or moved away from), then fill the ones with something new
   for (const c of list) { if (c.from != null) slots[c.from] = null; if (!c.read) slots[c.slot] = null; }
-  for (const c of list) if (c.read) {
+  for (const c of list) if (c.iv) { const m = before[c.slot]; slots[c.slot] = { ...m, ivs: m.ivs.map((v, i) => (i === c.iv.i ? c.iv.now : v)) }; }
+  for (const c of list) if (c.read && !c.iv) {
     const m = c.costume ? before[c.slot] : c.from != null && before[c.from];
     slots[c.slot] = m ? { ...m, level: c.read.mon.level || m.level, costume: okCostume(m.species, c.read.mon.costume) || m.costume || '' } : cleanBoxMon({ ...c.read.mon, id: newPid() });
   }
@@ -4662,9 +5207,9 @@ function impRow(it, i) {
 // Where a screen import goes: the box on show when it's empty, so a box made and named for it beforehand keeps its
 // name, or else a new box. Null when every box is taken.
 function impTarget() {
-  const b = box.boxes[box.cur];
-  if (b && !b.slots.some(Boolean)) return { reuse: true, b: box.cur, name: b.name === `Box ${box.cur + 1}` ? 'From PokeMMO' : b.name };
-  return box.boxes.length < BOX_MAX ? { reuse: false, name: 'From PokeMMO' } : null;
+  const b = box.boxes[box.cur], game = imp.from === 'screen' && imp.game && imp.game.name ? imp.game.name.slice(0, 20) : '';
+  if (b && !b.slots.some(Boolean)) return { reuse: true, b: box.cur, name: game || (b.name === `Box ${box.cur + 1}` ? 'From PokeMMO' : b.name) };
+  return box.boxes.length < BOX_MAX ? { reuse: false, name: game || 'From PokeMMO' } : null;
 }
 function renderImp() {
   const scr = $('imp-screen'), rev = $('imp-review');
@@ -4676,7 +5221,10 @@ function renderImp() {
     const to = screen && impTarget();
     const missed = screen && imp.missed && imp.missed.length ? ` ${spotList(imp.missed)[0].toUpperCase() + spotList(imp.missed).slice(1)} ${imp.missed.length === 1 ? 'wasn\'t' : 'weren\'t'} read; add ${imp.missed.length === 1 ? 'that one' : 'those'} by hand, or throw these away and read the box again.` : '';
     const eggs = screen && imp.eggs ? ` ${imp.eggs === 1 ? 'An egg was' : `${imp.eggs} eggs were`} left out, as eggs don't show their IVs or nature until they hatch.` : '';
-    rev.innerHTML = `<p>${screen ? 'Read' : 'Found'} ${imp.review.length} Pokémon${bad ? `; ${bad} need a look (their notes are in red)` : ''}.${missed}${eggs} Untick any you don't want${to ? `, then put them in ${to.reuse ? 'this box, which is empty,' : 'a new box'} in the same spots as in the game` : ''}. You can fix anything later by clicking it in the box.</p>`
+    const gm = screen && imp.game ? imp.game : { name: '', all: [] }, same = !gm.name ? -1 : box.boxes.findIndex((b, i) => i !== (to && to.reuse ? to.b : -1) && squash(b.name) === squash(gm.name));
+    const games = gm.all.length > 1 ? ` <span class="mon-warn">You read more than one box in the game (${gm.all.map((n) => `“${esc(n)}”`).join(', ')}); a spot read in both holds the one read last.</span>` : '';
+    const twin = same >= 0 ? ` You already have a box called “${esc(box.boxes[same].name)}”: to update that one instead, open it and use Rescan.` : '';
+    rev.innerHTML = `<p>${screen ? 'Read' : 'Found'} ${imp.review.length} Pokémon${bad ? `; ${bad} need a look (their notes are in red)` : ''}.${missed}${eggs} Untick any you don't want${to ? `, then put them in ${to.reuse ? 'this box, which is empty,' : 'a new box'} in the same spots as in the game` : ''}. You can fix anything later by clicking it in the box.${games}${twin}</p>`
       + `<ul class="imp-list">${imp.review.map(impRow).join('')}</ul>`
       + (to ? `<label class="f" style="max-width:240px">${to.reuse ? 'Box name' : 'Name of the new box'}<input type="text" id="imp-name" maxlength="20" autocomplete="off" value="${esc(imp.name != null ? imp.name : to.name)}"></label>` : '')
       + `<div class="row"><button class="btn primary" type="button" id="imp-put" ${on ? '' : 'disabled'}>Put ${on} in ${!to ? 'my box' : to.reuse ? 'this box' : 'a new box'}</button>`
@@ -4694,11 +5242,12 @@ function renderImp() {
     const filled = box.boxes[box.cur].slots.some(Boolean);
     scr.innerHTML = `<p>Read your PC box straight off the screen while you go through it in the game.</p>`
       + `<ol class="imp-steps"><li>Press <b>Read my PC box</b> and share the PokeMMO window.</li><li>In the game, open your PC and put the cursor on the box's top-left spot.</li>`
-      + `<li>Tap → along the row, waiting for each Pokémon to show up on the map here. At the end of a row tap ↓, come back along the next one with ←, and so on down the box.</li></ol>`
+      + `<li>Tap → along the row, waiting for each Pokémon to show up on the map here. At the end of a row tap ↓ (→ there goes to your party, not the next row), come back along the next one with ←, and so on down the box. Use the arrow keys rather than clicking spots with the mouse, which the reader can't follow.</li></ol>`
       + `<div class="row"><button class="btn primary" type="button" id="imp-start">Read my PC box</button>${filled ? `<button class="btn" type="button" id="imp-rescan" title="Move the cursor onto just the spots that changed, or go through the whole box. You check a list of the changes before anything is touched, and can Undo after.">Rescan ${esc(box.boxes[box.cur].name)}</button>` : ''}</div>`
       + (filled ? `<p class="muted small">Changed something in the game since you read this box? Rescan it and go over just the spots that changed; you check the changes before anything is touched.</p>` : '')
       + (imp.status ? `<p class="small mon-warn" role="status">${esc(imp.status)}</p>` : '')
       + `<details class="codes imp-before"${imp.beforeOpen ? ' open' : ''}><summary>Before you start: tips, privacy and what it can get wrong</summary><ul class="imp-notes">`
+      + `<li><b>Arrow keys, not the mouse.</b> Clicking spots trips the reader up; step through the box with the arrow keys instead.</li>`
       + `<li><b>Tap, don't hold.</b> Holding a key goes too fast to read every Pokémon. Any the cursor passes without a read is outlined in red on the map, so you can go back to it, and you can fix anything by hand afterwards.</li>`
       + `<li><b>Nothing is saved or uploaded.</b> The page only looks at the window you share while it's reading. Each copy of the side panel stays in your browser's memory and is gone when you read again or close the page; no screenshots are stored or sent anywhere. The one exception is "Save what was read", which downloads them as a file, and only when you press it.</li>`
       + `<li><b>It isn't perfect.</b> Reading text off the screen can get things wrong, so check the list before adding them. It's built for the game's default look; interface mods, themes and texture packs can make it less reliable.</li>`
@@ -4714,7 +5263,7 @@ function renderImp() {
   const here = imp.here ? imp.here.slot : -1, passed = passedSpots(imp.visited, here), missed = missedSpots(placed, imp.filled, passed);
   const into = imp.into >= 0 && box.boxes[imp.into], old = into && into.slots, gone = goneSpots(old, cells, passed);
   scr.innerHTML = (into ? `<p class="small"><b>Rescanning ${esc(into.name)}.</b></p>` : '') + `<p class="imp-status" role="status">${imp.step === 'stopping' ? `Finishing the last ${waiting} reads…` : esc(imp.status)}</p>`
-    + (imp.step === 'read' || imp.step === 'stopping' ? `<p class="small">Read ${got} Pokémon${waiting ? `, ${waiting} still reading` : ''}.`
+    + (imp.step === 'read' || imp.step === 'stopping' ? `<p class="small">Read ${got} Pokémon${imp.gameName ? ` from the game's box “${esc(imp.gameName)}”` : ''}${waiting ? `, ${waiting} still reading` : ''}.`
       + `${missed.length ? ` <span class="mon-warn">Missed ${missed.length} (outlined in red): move the cursor back onto ${missed.length === 1 ? 'it' : 'them'}.</span>` : ' Missed one? Move the cursor back onto it.'}</p>${impMap(cells, missed, here, old, gone)}`
       + (into ? `<p class="muted small imp-legend"><span>Faded: what's in this box now, until its spot is read.</span>${gone.size ? `<span class="mon-warn">Dashed red: empty in the game now, so it comes out of this box.</span>` : ''}</p>` : '') : '')
     + `<div class="row">${imp.step === 'stopping' ? '' : `<button class="btn primary" type="button" id="imp-done" ${got || waiting || into && gone.size ? '' : 'disabled'}>Done</button>`}<button class="btn" type="button" id="imp-cancel">Cancel</button></div>`;
@@ -4813,13 +5362,54 @@ function renderBoxStats() {
   try { renderBoxWorth(); } catch (e) {} // set up just below
   seg.querySelectorAll('[data-bs]').forEach((x) => x.setAttribute('aria-pressed', String((x.dataset.bs === 'all') === all)));
   $('box-stats-copy').disabled = !st.n;
-  if (!st.n) { $('box-stats-body').innerHTML = `<p class="bs-note">${all ? 'Your boxes are empty' : 'This box is empty'}. Add Pokémon to see their IVs here.</p>`; return; }
+  if (!st.n) { $('box-stats-body').innerHTML = `<p class="bs-note">${all ? 'Your boxes are empty' : 'This box is empty'}. Add Pokémon to see their IVs here.</p>`; statsPin = statsHover = null; lightStats(); return; }
   const top = Math.max(...st.by);
   $('box-stats-body').innerHTML = `<p class="bs-avg">Average IV total <b>${st.avg == null ? '?' : st.avg.toFixed(1)}</b> <span class="muted">/ 186 · ${pkmn(st.n)}${all ? ` in ${box.boxes.length} boxes` : ''}</span></p>`
-    + `<div class="bs-bars">${st.by.map((c, k) => `<div class="bs-cell${c ? '' : ' zero'}" style="--p:${(c / top).toFixed(3)}" role="img" aria-label="${k}×31: ${c}"><b aria-hidden="true">${c}</b><i></i></div>`).join('')}</div>`
+    + `<div class="bs-bars" id="bs-bars">${st.by.map((c, k) => `<button type="button" class="bs-cell${c ? '' : ' zero'}" data-k="${k}" style="--p:${(c / top).toFixed(3)}" aria-pressed="false" aria-label="${k}×31: ${c}. Light up these Pokémon in the box"${c ? '' : ' disabled'}><b aria-hidden="true">${c}</b><i></i></button>`).join('')}</div>`
     + `<div class="bs-labels" aria-hidden="true">${st.by.map((_, k) => `<span>${k}×31</span>`).join('')}</div>`
+    + `<p class="bs-note bs-hl" id="bs-hl" aria-live="polite"></p>`
     + (st.blank ? `<p class="bs-note">${st.avg == null ? 'None of these have all six IVs filled in, so there is no average yet.' : `${pkmn(st.blank)} with blank IVs ${st.blank === 1 ? 'is' : 'are'} left out of the average.`} A blank IV doesn't count as a 31.</p>` : '');
+  if (statsPin != null && !st.by[statsPin]) statsPin = null;
+  lightStats();
 }
+// Light up the box spots holding Pokémon with the hovered (or tapped) bar's number of 31s, and dim the rest.
+// With All boxes picked, it says how many more sit in the other boxes.
+function lightStats() {
+  const k = statsHover ?? statsPin, grid = $('box-grid'), b = box.boxes[box.cur], note = $('bs-hl');
+  grid.classList.toggle('hl-on', k != null);
+  grid.querySelectorAll('.slot').forEach((x) => { const m = b.slots[+x.dataset.slot]; x.classList.toggle('hl', k != null && !!m && n31(m) === k); });
+  const bars = $('bs-bars');
+  if (bars) bars.querySelectorAll('.bs-cell').forEach((x) => { x.classList.toggle('hot', +x.dataset.k === k); x.setAttribute('aria-pressed', String(+x.dataset.k === statsPin)); });
+  if (!note) return;
+  const mouse = matchMedia('(hover: hover)').matches;
+  if (k == null) { note.textContent = `${mouse ? 'Hover over or click' : 'Tap'} a bar to light up those Pokémon in the box.`; return; }
+  const here = b.slots.filter((m) => m && n31(m) === k).length, { all, mons } = statsScope();
+  const other = all ? mons.filter((m) => n31(m) === k).length - here : 0;
+  note.textContent = `${k}×31: ${here ? `${here} lit up in this box` : 'none in this box'}${other ? `, ${other} more in your other boxes` : ''}.${statsPin != null ? ` ${mouse ? 'Click' : 'Tap'} the bar again to stop.` : ''}`;
+}
+$('box-stats-body').addEventListener('pointerover', (e) => {
+  const c = e.target.closest('.bs-cell');
+  if (!c || c.disabled || e.pointerType !== 'mouse') return;
+  statsHover = +c.dataset.k; lightStats();
+});
+$('box-stats-body').addEventListener('pointerout', (e) => {
+  const c = e.target.closest('.bs-cell');
+  if (!c || (e.relatedTarget && c.contains(e.relatedTarget))) return;
+  statsHover = null; lightStats();
+});
+$('box-stats-body').addEventListener('focusin', (e) => { const c = e.target.closest('.bs-cell'); if (c && c.matches(':focus-visible')) { statsHover = +c.dataset.k; lightStats(); } });
+$('box-stats-body').addEventListener('focusout', (e) => { if (e.target.closest('.bs-cell')) { statsHover = null; lightStats(); } });
+$('box-stats-body').addEventListener('click', (e) => {
+  const c = e.target.closest('.bs-cell');
+  if (!c) return;
+  const k = +c.dataset.k;
+  statsPin = statsPin === k ? null : k;
+  if (statsPin == null) statsHover = null; // a tap to let go shouldn't leave a phone's sticky hover lit
+  lightStats();
+});
+$('box-stats-body').addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && e.target.closest('.bs-cell') && (statsPin != null || statsHover != null)) { statsPin = statsHover = null; lightStats(); }
+});
 // ---------- rough Pokéyen worth of the box ----------
 // A guess, not a price check: each Pokémon gets what a similar one costs on the GTL. 1x31 to 3x31 come from the
 // planner's buy prices (natured when its nature is one Builds.recommendNatures suggests for the species, Ditto
@@ -4833,6 +5423,7 @@ const WORTH_FIELDS = [
   ['nat', 'Good nature', 2, '×'],
   ['ha', 'Hidden ability', 50, '%'],
   ['move', 'Each egg move', 10000, '$'],
+  ['iv0', '0 Atk or 0 Spe', 10000, '$'],
   ['shiny', 'Shiny', 1000000, '$'],
   ['alpha', 'Alpha', 500000, '$'],
   ['costume', 'Costume', 250000, '$'],
@@ -4849,6 +5440,8 @@ function monWorth(m) {
   else v = worthOf('x' + k) * (good ? worthOf('nat') : 1);
   if (hasHA(m)) v *= 1 + worthOf('ha') / 100;
   v += (m.moves || []).length * worthOf('move');
+  // a 0 Spe (Trick Room) or 0 Atk (special attackers) parent is wanted for competitive builds
+  if (m.ivs[1] === 0 || m.ivs[5] === 0) v += worthOf('iv0');
   if (m.shiny) v += worthOf('shiny');
   if (m.alpha) v += worthOf('alpha');
   if (costumeOf(m)) v += worthOf('costume');
@@ -4860,7 +5453,7 @@ function boxWorth(mons) {
   const each = mons.map((m) => ({ m, v: monWorth(m) })).sort((a, b) => b.v - a.v);
   return { total: each.reduce((a, x) => a + x.v, 0), top: each.slice(0, 3) };
 }
-const worthLabel = (m) => `${m.shiny ? 'Shiny ' : ''}${m.alpha ? 'Alpha ' : ''}${costumeOf(m) ? `${costumeOf(m)} ` : ''}${m.nick || m.species}${n31(m) ? ` ${n31(m)}×31` : ''}`;
+const worthLabel = (m) => `${m.shiny ? 'Shiny ' : ''}${m.alpha ? 'Alpha ' : ''}${costumeOf(m) ? `${costumeOf(m)} ` : ''}${m.nick || m.species}${n31(m) ? ` ${n31(m)}×31` : ''}${[1, 5].filter((i) => m.ivs[i] === 0).map((i) => ` 0 ${STAT_LABEL[i]}`).join('')}`;
 function renderBoxWorth() {
   const { all, mons } = statsScope(), body = $('box-worth-body');
   $('box-worth').hidden = !mons.length;
@@ -4933,7 +5526,7 @@ function boxPool(room) {
     const line = dex.lineOf(s.n), L = dex.lines.get(line);
     if (!L || (s.e.includes('Undiscovered') && !dex.evolveInto(s.n) && s.n !== (ts && ts.n))) continue;
     let score = s.n === 'Ditto' ? 2 : line === tLine ? 3 : T && [...L.groups].some((g) => T.groups.has(g)) ? 1 : 0;
-    it.mon.ivs.forEach((v, i) => { if (t.ivs[i] != null && v != null && v >= t.ivs[i]) score += 4; });
+    it.mon.ivs.forEach((v, i) => { if (Planner.meets(v, t.ivs[i])) score += 4; });
     if (t.nature && it.mon.nature === t.nature) score += 3;
     if (t.ability && it.mon.ability === t.ability) score += 3;
     if (moves.length && moves.every((mv) => it.mon.moves.some((x) => x.toLowerCase() === mv))) score += 5;
@@ -4947,7 +5540,7 @@ function boxPool(room) {
   const keysOf = ([, it], i) => {
     if (it.spent) return ['spent' + i];
     const s = sp(it.mon.species), who = s.n === 'Ditto' ? 'D' : (dex.lineOf(s.n) === tLine ? '' : 'x') + it.mon.gender, out = [who];
-    it.mon.ivs.forEach((v, j) => { if (t.ivs[j] != null && v != null && v >= t.ivs[j]) out.push(who + j); });
+    it.mon.ivs.forEach((v, j) => { if (Planner.meets(v, t.ivs[j])) out.push(who + j); });
     if (t.nature && it.mon.nature === t.nature) out.push(who + 'n');
     return out;
   };
@@ -4976,7 +5569,7 @@ $('box-only-on').addEventListener('change', (e) => { state.boxOnly = e.target.ch
 // What hatches from a breed, as a box Pokémon: the guaranteed IVs, and the nature, ability and moves it was bred for.
 function hatchedMon(r) {
   const n = r.node, t = state.target, species = n.baby || dex.hatchName(n.line, n.gender);
-  return { species, gender: n.gender === 'F' || n.gender === 'M' ? n.gender : genderChoices(species)[0], ivs: r.iv.map((v, i) => (t.ivs[i] != null && v >= t.ivs[i] ? v : null)),
+  return { species, gender: n.gender === 'F' || n.gender === 'M' ? n.gender : genderChoices(species)[0], ivs: r.iv.map((v, i) => (Planner.meets(v, t.ivs[i]) ? v : null)),
     nature: n.nat ? t.nature : '', ability: n.abil ? t.ability : '', moves: n.mv ? bredMoves() : [], from: r.sig, level: 1, shiny: !!t.shiny, alpha: !!t.alpha, costume: n.cos ? okCostume(species, t.costume) : '' };
 }
 const monLabel = (m) => `${m.gender === 'F' ? '♀ ' : m.gender === 'M' ? '♂ ' : ''}${m.nick || m.species}`;
@@ -5470,6 +6063,7 @@ function bcCard(card) {
     <div class="bc-goal">${esc(s.label)}${s.nature ? ` <span class="nat">${esc(s.nature)}</span>` : ''}${s.abil ? ` <span class="tag"${ha ? ' title="Hidden ability"' : ''}>${ha ? HA_ICON : ''}${esc(s.abil)}</span>` : ''}${s.move ? ` <span class="tag mv">${esc(s.move)}</span>` : ''}</div>
     ${roles.length > 1 && s.ability ? `<div class="bc-sub">Physical with ${esc(s.ability)}</div>` : ''}
     ${bcChips(s.ivs)}
+    ${bcCompHtml(card.line)}
     ${meta}
     ${showUses ? `<div class="bc-uses"><span>Uses ${s.uses.length} of your Pokémon</span><span class="icons">${usesHtml}</span></div>` : ''}
     ${bcGtlHtml(s)}
@@ -5481,6 +6075,12 @@ function bcCard(card) {
     <div class="bc-act"><div class="bc-picks">${bcNatSelect(s, s.nature)}${bcAbilSelect(s, s.abil)}${bcMoveSelect(s, s.move)}</div><button class="btn primary" type="button" data-bc-open="${esc(s.key)}"${s.pending ? ' disabled' : ''}>Open in planner</button></div>
   </article>`;
 }
+// The competitive sets for a card's line, each a button that opens it in the planner with the box.
+function bcCompHtml(line) {
+  const list = compForLine(line);
+  if (!list.length) return '';
+  return `<div class="bc-comp">Competitive sets: ${list.map((p) => `<button class="linkbtn" type="button" data-comp-open="${esc(p.key)}" title="Open ${esc(compLabel(p))} (${esc(p.tier)}${p.verified ? '' : ', unverified'}) in the planner with your box">${esc(p.species === line || list.every((x) => x.species === p.species) ? p.name : compLabel(p))}${p.tier === 'Doubles' ? ' (Doubles)' : ''}</button>`).join(', ')}</div>`;
+}
 // Every species in a breeding line (babies and middle stages too), so the filter finds a card by any of them.
 const bcLineNames = new Map();
 function bcLineMembers(line) {
@@ -5489,7 +6089,8 @@ function bcLineMembers(line) {
 }
 function bcMatches(s, q) {
   if (!q) return true;
-  const text = [s.line, ...s.forSpecies, ...bcLineMembers(s.line), ...bcGroups(s.line), s.label || '', s.goalText || '', bcNatOf(s), s.roleLabel, s.ability || ''].join(' ').toLowerCase().replace(/x/g, '×');
+  const text = [s.line, ...s.forSpecies, ...bcLineMembers(s.line), ...bcGroups(s.line), s.label || '', s.goalText || '', bcNatOf(s), s.roleLabel, s.ability || '',
+    ...compForLine(s.line).map((p) => `${p.name} ${p.tier}`)].join(' ').toLowerCase().replace(/x/g, '×');
   return q.toLowerCase().replace(/x/g, '×').split(/\s+/).filter(Boolean).every((w) => text.includes(w));
 }
 function bcRender() {
@@ -5616,8 +6217,21 @@ $('bc-out').addEventListener('click', (e) => {
   }
   const d = e.target.closest('[data-bc-deep]');
   if (d) return bcDeeper(d.dataset.bcDeep === '*' ? bc.cutLines : [d.dataset.bcDeep]);
+  const c = e.target.closest('[data-comp-open]'), p = c && COMP.find((x) => x.key === c.dataset.compOpen);
+  if (p) return bcOpenComp(p);
   const b = e.target.closest('[data-bc-open]'); if (b) bcOpen(b.dataset.bcOpen, !!b.dataset.bcNext, !!b.dataset.bcGtl);
 });
+// A competitive set from a card: its goal, planned from the box (the Pokémon list is left out, as with Open in planner).
+function bcOpenComp(p) {
+  const wasUseBox = state.useBox;
+  state.useBox = true;
+  applyComp(p, [], `Loaded ${compLabel(p)}${p.verified ? '' : ' (unverified)'} from the Build center. The plan uses the Pokémon in your box.`);
+  const undo = undoFn;
+  undoFn = undo && (() => { state.useBox = wasUseBox; undo(); renderUseBox(); renderMons(); });
+  renderUseBox(); renderMons(); changed();
+  setView('planner');
+  window.scrollTo({ top: 0 });
+}
 
 // ---------- saved builds ----------
 // On claude.ai builds are kept in your Claude account (private to you, on every device).
@@ -5639,8 +6253,9 @@ function cleanBuild(b) {
 }
 const newId = () => 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 function autoName(d = state) {
-  const t = d.target, n = t.ivs.filter((v) => v != null).length;
-  return [t.nature, t.species || 'Untitled', n ? (t.ivs.every((v) => v == null || v === 31) ? `${n}×31` : `${n} IVs`) : ''].filter(Boolean).join(' ');
+  const t = d.target, n = t.ivs.filter((v) => v != null).length, n31 = t.ivs.filter((v) => v === 31).length;
+  const zeros = STAT_LABEL.filter((_, i) => t.ivs[i] === 0).map((l) => `0 ${l}`).join(' ');
+  return [t.nature, t.species || 'Untitled', n ? (t.ivs.every((v) => v == null || v === 31 || v === 0) ? [n31 ? `${n31}×31` : '', zeros].filter(Boolean).join(' ') : `${n} IVs`) : ''].filter(Boolean).join(' ');
 }
 const activeBuild = () => store.builds.find((b) => b.id === state.buildId) || null;
 const sameData = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -6225,7 +6840,7 @@ function ecResult() {
     if (!known(i)) el.innerHTML = '<b>?</b><span>Fill in both parents</span>';
     else el.innerHTML = `<b>${st.low === st.high ? st.low : `${st.low} – ${st.high}`}</b><span>${st.braced ? 'braced' : [...st.odds].map(([v, p]) => `${v}: ${pct(p)}`).join(' · ')}</span>`;
     const w = ec.want[i];
-    $('ec-pct' + i).textContent = w == null || !known(i) ? '' : pct([...st.odds].reduce((t, [v, p]) => (v >= w ? t + p : t), 0));
+    $('ec-pct' + i).textContent = w == null || !known(i) ? '' : pct([...st.odds].reduce((t, [v, p]) => (Planner.meets(v, w) ? t + p : t), 0));
   });
   const wants = ec.want.some((v) => v != null), missing = ec.want.some((v, i) => v != null && !known(i));
   const p = o.chance(ec.want);
@@ -6259,7 +6874,7 @@ function ecIvsOf(r) {
   const n = r.node, t = state.target.ivs;
   if (n.t === 'own') return n.p.src.ivs.map((v) => (v == null ? null : v));
   if (n.t === 'buy') return r.iv.map((v, i) => (n.stats.includes(i) ? v : null));
-  return r.iv.map((v, i) => (t[i] != null && v >= t[i] ? v : null));
+  return r.iv.map((v, i) => (Planner.meets(v, t[i]) ? v : null));
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-egg-odds]');
@@ -6268,7 +6883,7 @@ document.addEventListener('click', (e) => {
   if (!r) return;
   const n = r.node, t = state.target.ivs;
   Object.assign(ec, { a: ecIvsOf(n.a), b: ecIvsOf(n.b), ia: n.bA >= 0 ? 'b' + n.bA : n.holder === 'A' ? 'ever' : '', ib: n.bB >= 0 ? 'b' + n.bB : n.holder === 'B' ? 'ever' : '',
-    shiny: !!state.target.shiny, want: r.iv.map((v, i) => (t[i] != null && v >= t[i] ? t[i] : null)) });
+    shiny: !!state.target.shiny, want: r.iv.map((v, i) => (Planner.meets(v, t[i]) ? t[i] : null)) });
   ecSave(); renderEc();
   $('egg-calc').open = true;
   $('egg-calc').scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
