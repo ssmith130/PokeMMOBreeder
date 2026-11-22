@@ -20,12 +20,12 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #10151b; --surface: #18202a; --sunk: #141b23; --ink: #e6ebf1; --muted: #93a0b0;
   --line: #2a3542; --line-strong: #4e5d6e; --accent: #4cc195; --accent-soft: #173a2e; --on-accent: #0b1f17;
-  --cost: #e2a54b; --warn: #f2867d; --warn-soft: #3a1f1d; --female: #ff7eac; --male: #74adff; color-scheme: dark;
+  --cost: #e2a54b; --warn: #f2867d; --warn-soft: #3a1f1d; --female: #ff7eac; --male: #74adff; color-scheme: dark; --sprite-rim: #6b7d90;
 } }
 :root[data-theme="dark"] {
   --bg: #10151b; --surface: #18202a; --sunk: #141b23; --ink: #e6ebf1; --muted: #93a0b0;
   --line: #2a3542; --line-strong: #4e5d6e; --accent: #4cc195; --accent-soft: #173a2e; --on-accent: #0b1f17;
-  --cost: #e2a54b; --warn: #f2867d; --warn-soft: #3a1f1d; --female: #ff7eac; --male: #74adff; color-scheme: dark;
+  --cost: #e2a54b; --warn: #f2867d; --warn-soft: #3a1f1d; --female: #ff7eac; --male: #74adff; color-scheme: dark; --sprite-rim: #6b7d90;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -381,7 +381,7 @@ span.pull-cell .spr { opacity: 0.3; filter: grayscale(1); }
 .bp-detail dd .iic { margin-right: 4px; }
 .bp-detail .seg button { padding: 3px 9px; font-size: 12.5px; }
 .bp-detail ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; color: var(--muted); font-size: 13px; }
-.bp-detail .ha { width: 12px; height: 10px; margin-right: 4px; vertical-align: -1px; }
+.bp-detail .ha { width: calc(11 * var(--px, 1px)); height: calc(9 * var(--px, 1px)); margin-right: 4px; vertical-align: -1px; }
 .bpd-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding-top: 2px; }
 .bpd-foot a { margin-left: auto; }
 @media (max-width: 560px) { .bcards { grid-template-columns: 1fr; } .bcards.scroll { max-height: 60vh; } .ivp { min-width: 0; flex: 1; } .bpd-foot .btn { width: 100%; } .bpd-foot a { margin-left: 0; } }
@@ -464,10 +464,18 @@ body.popped { overflow: hidden; }
 .pill button:hover { color: var(--warn); }
 .mon-warn { color: var(--warn); }
 /* Item icons: SVG symbols from src/items.py, the six power items in stat order, then the Everstone */
-.item-ic { display: inline-block; width: 20px; height: 20px; margin: -4px 3px -4px 0; vertical-align: middle; flex: none; overflow: visible; }
+/* PokeMMO's item icons (24x24 pixel art) and hidden ability mark. --px is one sprite pixel in CSS px, set by
+   snapPixels() so that it is a whole number of screen pixels at any Windows scaling or browser zoom (125% would
+   otherwise draw some sprite pixels 1 screen pixel wide and others 2, which looks like a rough outline). */
+.item-ic { display: inline-block; width: calc(24 * var(--px, 1px)); height: calc(24 * var(--px, 1px)); margin: calc(-6 * var(--px, 1px)) 2px calc(-6 * var(--px, 1px)) -1px; vertical-align: middle; flex: none; overflow: visible; }
+/* Dark theme: the sprites' own dark outlines vanish into the dark page, so they get a one-sprite-pixel light rim
+   (the game shows them on a light bag panel). Light theme draws them as they are. */
+:root { --sprite-rim: transparent; }
+.item-ic { filter: drop-shadow(var(--px, 1px) 0 0 var(--sprite-rim)) drop-shadow(calc(-1 * var(--px, 1px)) 0 0 var(--sprite-rim))
+  drop-shadow(0 var(--px, 1px) 0 var(--sprite-rim)) drop-shadow(0 calc(-1 * var(--px, 1px)) 0 var(--sprite-rim)); }
 .item-fan { display: inline-flex; vertical-align: middle; margin-right: 2px; }
-.item-fan .item-ic { margin: -4px 0; }
-.item-fan .item-ic + .item-ic { margin-left: -11px; }
+.item-fan .item-ic { margin: calc(-6 * var(--px, 1px)) 0; }
+.item-fan .item-ic + .item-ic { margin-left: calc(-13 * var(--px, 1px)); }
 .nobr { white-space: nowrap; }
 .spr { --s: 1; display: inline-block; flex: none; width: calc(40px * var(--s)); height: calc(30px * var(--s)); background-image: var(--sheet);
   background-repeat: no-repeat; background-size: calc(1000px * var(--s)) calc(780px * var(--s));
@@ -627,8 +635,8 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .bc-roles { align-self: flex-start; max-width: 100%; flex-wrap: wrap; }
 .bc-roles button { padding: 4px 10px; font-size: 12.5px; }
 .bc-goal .tag { font-family: var(--f-body); font-weight: 600; font-size: 12px; border: 1px solid var(--line-strong); border-radius: 999px; padding: 1px 8px; vertical-align: 2px; white-space: nowrap; }
-.bc-goal .tag .ha { width: 12px; height: 10px; margin-right: 4px; vertical-align: -1px; }
-.preset .ha { width: 12px; height: 10px; margin-right: 4px; vertical-align: -1px; }
+.bc-goal .tag .ha { width: calc(11 * var(--px, 1px)); height: calc(9 * var(--px, 1px)); margin-right: 4px; vertical-align: -1px; }
+.preset .ha { width: calc(11 * var(--px, 1px)); height: calc(9 * var(--px, 1px)); margin-right: 4px; vertical-align: -1px; }
 .bc-goal .tag.mv { color: var(--accent); border-color: currentColor; }
 .bc-nat select { font-size: 13px; padding: 6px 8px; }
 /* the Nature dropdown and Open in planner are the same height, side by side */
@@ -695,7 +703,7 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .slot .n31, .slot .lv, .slot .g, .slot .ha, .slot .shiny-mark, .slot .costume-mark { z-index: 1; }
 .slot .n31 { text-shadow: 0 0 2px var(--surface), 0 0 2px var(--surface); }
 /* Hidden ability: a blue diamond in the top right corner, as in the game */
-.slot .ha { position: absolute; right: 4px; top: 3px; width: 13px; height: 11px; }
+.slot .ha { position: absolute; right: 4px; top: 3px; width: calc(11 * var(--px, 1px)); height: calc(9 * var(--px, 1px)); }
 /* Shiny: the game's small gold star in the top left corner of the spot (the 31 count moves over for it), and
    its big summary-panel star next to names */
 .shiny-star { display: inline-block; width: 15px; height: 15px; vertical-align: -2px; flex: none; margin-right: 3px; }
@@ -708,7 +716,7 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 /* Phones: 6 across instead of the game's 10, so the icons and 31 counts stay readable (the spots keep their order) */
 @media (max-width: 600px) { .pc-grid { --cols: 6; --cell: calc((100vw - 32px - 36px - 18px - 20px) / var(--cols)); gap: 4px; padding: 8px; } .slot { border-radius: 6px; }
   .slot .spr { --s: 1 !important; } .slot.alpha .spr { --s: 1.12 !important; } .slot .lv { display: none; } .slot .n31 { left: 3px; top: 1px; font-size: 9.5px; }
-  .slot.shiny .n31 { left: 15px; } .slot .ha { width: 10px; height: 9px; right: 2px; top: 2px; } .slot .shiny-mark { left: 2px; top: 2px; } .slot .g { font-size: 11px; right: 3px; bottom: 0; }
+  .slot.shiny .n31 { left: 15px; } .slot .ha { right: 2px; top: 2px; } .slot .shiny-mark { left: 2px; top: 2px; } .slot .g { font-size: 11px; right: 3px; bottom: 0; }
   .slot .costume-mark { width: 10px; height: 9px; right: 2px; top: 13px; } }
 .pc-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
 .pc-foot .row { gap: 6px; }
@@ -1173,6 +1181,14 @@ const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 const STAT_LABEL = ['HP', 'Atk', 'Def', 'SpA', 'SpD', 'Spe'];
 const BRACE = ['Power Weight', 'Power Bracer', 'Power Belt', 'Power Lens', 'Power Band', 'Power Anklet'];
 const EVERSTONE = 6; // its icon number, after the six braces
+// Pixel art only looks clean when each sprite pixel covers a whole number of screen pixels. Pick that number (k) so
+// the icons come out close to their normal size, and redo it when the zoom or screen changes.
+function snapPixels() {
+  const d = window.devicePixelRatio || 1, k = Math.max(1, Math.round(d * 0.92));
+  document.documentElement.style.setProperty('--px', `${k / d}px`);
+  try { matchMedia(`(resolution: ${d}dppx)`).addEventListener('change', snapPixels, { once: true }); } catch { /* old browser: keep it */ }
+}
+snapPixels();
 const itemIcon = (i) => `<svg class="item-ic" aria-hidden="true"><use href="#it-${i}"/></svg>`;
 const incenseIcon = (name) => `<svg class="item-ic" aria-hidden="true"><use href="#it-in-${name.split(' ')[0].toLowerCase()}"/></svg>`;
 const braceFan = () => `<span class="item-fan" aria-hidden="true">${BRACE.map((_, i) => itemIcon(i)).join('')}</span>`;
@@ -3562,7 +3578,8 @@ try { statsAll = localStorage.getItem(STATS_KEY) === 'all'; } catch (e) {}
 // The egg groups of a species' breeding line (a baby's are its line's), or its own for one with no line, like Ditto.
 const monGroups = (s) => lineGroups(dex.lineOf(s.n)) || s.e.join(' / ');
 const hasHA = (m) => { const s = sp(m.species); return !!(s && s.h && m.ability === s.h); };
-const HA_ICON = '<svg class="ha" viewBox="0 0 13 11" aria-hidden="true"><path d="M3 .5h7l2.5 3-6 7-6-7z" fill="#3ec8f0" stroke="#1b7fae"/><path d="M3.6 1.5h2.2L4.6 3.6H1.9z" fill="#d8f6ff"/></svg>';
+// PokeMMO's hidden ability mark from box spots (HiddenAbilitySmall in the game's sprite atlas; src/build-breeding-icons.py prints it)
+const HA_ICON = '<svg class="ha" viewBox="0 0 11 9" shape-rendering="crispEdges" aria-hidden="true"><path fill="#254950" d="M3 0h4v1h-4zM2 1h1v1h-1zM1 2h1v1h-1zM9 2h1v1h-1zM0 3h1v1h-1zM10 3h1v1h-1zM1 4h1v1h-1zM9 4h1v1h-1zM2 5h1v1h-1zM8 5h1v1h-1zM3 6h1v1h-1zM7 6h1v1h-1zM4 7h1v1h-1zM6 7h1v1h-1zM5 8h1v1h-1z"/><path fill="#f4f4f4" d="M7 0h2v1h-2zM7 1h2v1h-2zM3 5h1v1h-1z"/><path fill="#bcf7fb" d="M3 1h1v1h-1zM5 1h1v1h-1zM2 2h1v1h-1zM4 2h3v1h-3zM4 4h3v1h-3zM4 5h3v1h-3zM5 6h1v1h-1z"/><path fill="#6adcee" d="M4 1h1v1h-1zM3 2h1v1h-1zM8 2h1v1h-1zM2 4h1v1h-1zM8 4h1v1h-1zM7 5h1v1h-1z"/><path fill="#17c0e1" d="M6 1h1v1h-1zM7 2h1v1h-1zM1 3h1v1h-1zM9 3h1v1h-1zM3 4h1v1h-1zM7 4h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM5 7h1v1h-1z"/><path fill="#169bc9" d="M2 3h7v1h-7z"/></svg>';
 function renderBox() {
   const b = box.boxes[box.cur];
   $('box-count').textContent = boxMons();

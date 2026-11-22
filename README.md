@@ -225,7 +225,8 @@ Every push to `main` builds the site and publishes it to GitHub Pages
 | `data/logo.png` | The Smearguru logo, painted onto Smeargle's box icon by `src/build-logo.py`. |
 | `data/costume-reader.png` | Plain and costumed icons the screen import compares box spots with to see a costume. |
 | `data/unknown-icon.png` | The "?" icon shown for an unknown or empty species (the sheet's own "?" at the end is no longer used). |
-| `src/items.py` | The brace, Everstone and incense icons, drawn as SVG. |
+| `data/breeding-items.png` | PokeMMO's brace, Everstone and incense icons (the Black/White item icons the game shows), taken from a ROM by `src/build-breeding-icons.py`. That script also prints the game's hidden ability mark used for `HA_ICON` in `src/page.html`. |
+| `src/items.py` | Puts the breeding item icons into the page, one SVG symbol per icon. |
 | `public/` | App icons, favicons, the link-preview image and the web app manifest (redrawn by `src/build-icons.py`), and the page's fonts (`public/fonts`, under the SIL Open Font License). |
 | `build.py` | Puts it all into `dist/`, along with `404.html`, `robots.txt` and `sitemap.xml`. Also writes `build/artifact.html`, a version for claude.ai. |
 | `site-url.txt` | The site's address, used for link previews and the sitemap. |
