@@ -52,7 +52,7 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
   "you hatched it" cards and the Pokémon used to breed them stay out). Undo above the plan, or Clear checkmarks,
   goes back.
 - **Egg moves and TMs.** It plans who has to know each egg move, or lets you teach it with a TM instead.
-- **Common builds.** Catching Breloom, Smeargle, gym re-run Typhlosion and Thief Dusknoir fill in the goal
+- **Common builds.** Catching Breloom, Smeargle, gym re-run Typhlosion and fossil farming Dusknoir fill in the goal
   in one click, from their own dropdown above the goal.
 - **Competitive sets.** Under "Start from a build", a searchable list of PokeMMO PvP sets (OU, UU, NU, Doubles), each
   with its nature, ability (hidden ones marked), the IVs that must be 31 or 0, and the egg moves to breed in. Picking
@@ -75,9 +75,8 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
   optional (set in the editor, read off the game's panel or a "Level:" line, 1 for hatched Pokémon).
   Under the box, IV stats show the average IV total and how many Pokémon have 0×31 up to 6×31, for this box or all
   of them; Copy stats puts that on the clipboard as a few lines of text to paste in Discord.
-  Below that is a rough Pokéyen worth: each Pokémon counts as what a similar one costs on the GTL (1×31 to 3×31 from
-  the planner's buy prices, natured when its nature suits the species; 0×31, 4-6×31, hidden ability, egg moves,
-  shiny, alpha and costume are editable guesses under "How this is counted"). It's labelled an estimate.
+  Below that is a rough Pokéyen worth: each Pokémon counts as about what a similar one sells for on the GTL,
+  labelled an estimate, with every value editable under "How this is counted". See "Box worth" below.
   Tick "Use the Pokémon in my box" and the planner breeds with them; ticking off breeds can take the parents
   out of the box and put the finished Pokémon in (unticking puts them back). The box is kept apart from saved
   builds and moves to another device with its own code. Box size is `BOX_COLS`/`BOX_ROWS` in `src/page.html`.
@@ -302,7 +301,11 @@ interception and anything that automates input, so the import is built to stay c
 it with a macro or auto-clicker to step through the box.
 
 It is tuned to the default interface theme. Alphas are picked up from the red mark in the panel's corner, and shinies from the gold star in the same corner.
-Eggs are left out, since the panel shows ??? for their IVs, nature and ability until they hatch.
+Eggs are read too: the panel's title says what one hatches as ("Lv. ??? Togepi Egg") and its moves show, while
+Stats, IVs, nature and ability show ??? until it hatches. An egg goes in the box as that species with the egg flag
+(drawn as an egg with the species small in the corner, "Egg: Yes" in text, a trailing list in box codes); the
+planner, Build center, IV stats and box worth leave eggs out until the flag is unticked in the box editor or a
+Rescan reads the hatched Pokémon in its spot.
 
 ## Credits
 
@@ -315,3 +318,26 @@ prices are estimates you can edit. The rules were checked against PokeMMO source
 
 Pokémon and its sprites are © Nintendo, Game Freak and The Pokémon Company. This is an unofficial fan
 tool, not affiliated with PokeMMO.
+
+## Box worth
+
+The My box worth estimate (`monWorth` in `src/page.html`) uses these defaults, researched 2026-11-22. GTL prices
+move and nobody publishes Pokémon sale data (price trackers like PokeMMO Hub and mmobreeder.com/market cover
+items only), so these are ballparks from guides and player reports:
+
+| What | Value | Where it comes from |
+| --- | --- | --- |
+| 0×31 | $1k, $3k with a good nature | Random Magikarp sell for ~600-1,300 ([GTL guide, forums 2026](https://forums.pokemmo.com/index.php?/topic/199224-pokemmo-ultimate-master-gtl-guide/)) |
+| 1-3×31 | the planner's buy prices | ~5k / ~20k / ~80k ([PikaMMO GTL guide](https://www.pikammo.fr/Pokemmo/en/money/gtl-trading)); natured 1×31 8-15k, 2×31 20-50k, 3×31 50-90k (forum guide) |
+| 4×31 | $150k, $300k good nature | PikaMMO average ~300k; brace cost alone 140k ([wiki](https://pokemmo.shoutwiki.com/wiki/Guide:Money_Making/Breeding_for_Profit)); a 4×31 male can turn up for ~80k ([forum, May 2026](https://forums.pokemmo.com/index.php?/topic/197806-how-do-people-breed-5x316x31-pok%C3%A9mon-cheaply/)) |
+| 5×31 | $400k, $900k good nature | 5×31 male breeder ~400k (same forum thread); natured 5×31 "1M+", costs ~935k to breed (PikaMMO, wiki) |
+| 6×31 | $700k, $1.5M good nature | ~885k to breed without a nature ([PikaMMO breeding tool](https://www.pikammo.fr/Pokemmo/en/tools/breeding)); egg-shiny hunters sell 5-6×31 leftovers at a loss, which keeps prices down |
+| Strong / weak species | ×1.5 / ×0.6 on 4-6×31 | line's best base stat total 580+ / under 450; "right nature and species" 5×31 sell for 1M+ (PikaMMO) |
+| Female of a 7:1 species | ×1.5 | females pass the species on and are scarce in starter lines (forum guide, wiki) |
+| Hidden ability | +50%, at least +$20k | HA Pokémon 50k-500k (PikaMMO) |
+| Shiny | +$2M | 200k to 10M+ (PikaMMO); common horde shinies 2-8M per a bot seller's guide (April 2026); a rare Kecleon went for 6-10M ([forum, 2023](https://forums.pokemmo.com/index.php?/topic/168304-people-how-much-could-this-shiny-cost/)); players say prices fell in 2026 |
+| Alpha | +$15k | alphas come with 2×31 and their hidden ability, which are counted already; unwanted alphas sell for $5-8k ([forum](https://forums.pokemmo.com/index.php?/topic/162612-alpha-trade-ins-or-other-way-to-remove-alphas-from-circulation/)) |
+| Costume | +$250k | a guess: no public prices found |
+| Egg move, 0 Atk/Spe | +$10k each | a guess |
+
+Not counted: secret shinies, event-only alphas (Kanto starters, Suicune, Articuno), which sell for far more.

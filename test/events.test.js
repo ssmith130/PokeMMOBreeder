@@ -30,6 +30,7 @@ for (const p of sets) check(p.key, () => {
   assert.ok(p.name && p.role, 'needs a name and role');
   assert.ok(Array.isArray(p.raids) && p.raids.length, 'raids: at least one');
   for (const k of p.raids) assert.ok(raidKeys.has(k), `unknown raid ${k}`);
+  if (event.groups) assert.ok(event.groups.some((g) => g.key === p.group), `unknown group ${p.group}`);
   assert.ok(!p.nature || NATURES.includes(p.nature), `unknown nature ${p.nature}`);
   assert.ok(!p.ability || [...s.a, s.h].includes(p.ability), `${p.species} can't have ${p.ability} (has ${[...s.a, s.h].filter(Boolean).join(', ')})`);
   for (const [k, v] of Object.entries(p.ivs)) {

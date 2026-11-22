@@ -106,8 +106,10 @@ input:focus-visible, select:focus-visible, button:focus-visible, .chip:has(input
 .goal-iv { display: inline-grid; gap: 4px; }
 .goal-iv .iv0 { font-size: 12px; }
 .chip.zero { border-style: dashed; border-color: var(--c); }
-.chip.zero::before { opacity: 1; background: none; border: 1.5px solid var(--c); width: 5px; height: 5px; }
+.chip.zero::before { opacity: 1; background: none; border: 1.5px solid var(--c); box-sizing: border-box; width: 8px; height: 8px; }
 .chip.zero .v { color: var(--ink); }
+/* "31" and "0" take the same room, so a chip keeps its width when it switches to 0 */
+.goal-iv .chip .v { display: inline-block; min-width: 2ch; text-align: right; }
 .stats:has(> .goal-iv) { display: grid; grid-template-columns: repeat(6, max-content); gap: 6px; }
 @media (max-width: 560px) { .stats:has(> .goal-iv) { grid-template-columns: repeat(3, max-content); } }
 .stats:has(> .ivnum), .stats:has(> .iv-cell) { display: grid; grid-template-columns: repeat(6, minmax(0, 52px)); gap: 6px; }
@@ -259,21 +261,51 @@ span.pull-cell .spr { opacity: 0.3; filter: grayscale(1); }
 .pick-list .opt:hover { background: var(--sunk); }
 .pick-list .opt[aria-selected="true"] { background: var(--accent-soft); }
 /* seasonal event builds (data/events.json), in the Events tab: raid chips, the picked raid's plan, build cards */
-.ev { --ev-red: #c8283c; --ev-green: #1f8a55; display: grid; gap: 8px; }
-.ev-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border-radius: 8px;
-  background: linear-gradient(100deg, color-mix(in srgb, var(--ev-red) 14%, transparent), transparent 55%, color-mix(in srgb, var(--ev-green) 14%, transparent)); }
+.ev { display: grid; gap: 8px; }
+.ev-head { position: relative; overflow: hidden; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border-radius: 8px; background: var(--sunk); border: 1px solid var(--line);
+  --xr: #d23a4b; --xg: #239a5f; }
+.ev-head > * { position: relative; }
+/* Bar styles, picked by event.style in data/events.json: gradient (default), candy, lights, snow */
+.ev-head.st-gradient { border-color: color-mix(in srgb, var(--xr) 35%, var(--line));
+  background: linear-gradient(100deg, color-mix(in srgb, var(--xr) 30%, var(--sunk)) 0%, var(--sunk) 48%, var(--sunk) 52%, color-mix(in srgb, var(--xg) 30%, var(--sunk)) 100%); }
+.ev-head.st-candy { border: 0; padding: 11px 13px; background: var(--sunk);
+  box-shadow: inset 0 0 0 1px var(--line); }
+.ev-head.st-candy::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 4px; pointer-events: none;
+  background: repeating-linear-gradient(-45deg, var(--xr) 0 7px, #fff 7px 14px, var(--xg) 14px 21px, #fff 21px 28px);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+.ev-head.st-lights { padding-top: 16px; border-color: color-mix(in srgb, var(--xg) 35%, var(--line)); }
+.ev-head.st-lights::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 12px; pointer-events: none;
+  background: radial-gradient(circle at 50% 0, transparent 8px, var(--muted) 8.5px, transparent 9.5px) 0 -6px / 26px 12px repeat-x; opacity: 0.5; }
+.ev-head.st-lights::after { content: ''; position: absolute; left: 0; right: 0; top: 4px; height: 9px; pointer-events: none;
+  background: radial-gradient(circle, var(--xr) 3px, transparent 3.5px) 0 0 / 52px 9px repeat-x,
+    radial-gradient(circle, #f2c230 3px, transparent 3.5px) 13px 1px / 52px 9px repeat-x,
+    radial-gradient(circle, var(--xg) 3px, transparent 3.5px) 26px 0 / 52px 9px repeat-x,
+    radial-gradient(circle, #3f8ee6 3px, transparent 3.5px) 39px 1px / 52px 9px repeat-x;
+  filter: drop-shadow(0 0 3px rgb(255 220 120 / 0.6)); animation: ev-twinkle 1.6s ease-in-out infinite alternate; }
+@keyframes ev-twinkle { from { opacity: 1; } to { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .ev-head.st-lights::after { animation: none; } }
+.ev-head.st-snow { border-color: color-mix(in srgb, #7fb8e6 40%, var(--line));
+  background: radial-gradient(circle, color-mix(in srgb, var(--ink) 30%, transparent) 1.2px, transparent 1.8px) 0 0 / 23px 19px,
+    radial-gradient(circle, color-mix(in srgb, var(--ink) 18%, transparent) 1px, transparent 1.5px) 11px 9px / 31px 23px,
+    linear-gradient(180deg, color-mix(in srgb, #3f7fc0 30%, var(--sunk)), var(--sunk)); }
 .ev-head h3 { margin: 0; font-size: 14px; }
-.ev-head .ev-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ev-red); box-shadow: 10px 0 0 var(--ev-green); margin-right: 10px; }
+.ev-head .ev-emoji { font-size: 18px; line-height: 1; }
+.ev-head .ev-decor { margin-left: auto; font-size: 15px; letter-spacing: 3px; white-space: nowrap; }
+@media (max-width: 560px) { .ev-head .ev-decor { display: none; } }
+.ev-group { grid-column: 1 / -1; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin: 6px 2px 0; }
+.ev-group:first-child { margin-top: 0; }
+.ev-group h4 { margin: 0; font-size: 13.5px; }
+.ev-group span { color: var(--muted); font-size: 12px; }
 .ev > p { margin: 0; }
 .ev-raids { display: flex; flex-wrap: wrap; gap: 6px; }
 @media (max-width: 560px) { .ev-raids { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; } .ev-chip { flex: none; } }
 .ev-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px 2px 3px; min-height: 30px; border-radius: 999px; border: 1px solid var(--line-strong);
   background: var(--surface); color: var(--ink); font-size: 12.5px; cursor: pointer; }
 .ev-chip.all { padding-left: 10px; }
-.ev-chip:hover { border-color: var(--ev-green); }
-.ev-chip[aria-pressed="true"] { border-color: var(--ev-red); box-shadow: inset 0 0 0 1px var(--ev-red); font-weight: 600; }
+.ev-chip:hover { border-color: var(--accent); }
+.ev-chip[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft); font-weight: 600; }
 .ev-chip .st { color: var(--muted); font-size: 11px; font-weight: 400; }
-.ev-raid { display: grid; gap: 6px; padding: 9px 12px; border-radius: 8px; background: var(--sunk); border: 1px solid var(--line); border-left: 3px solid var(--tc, var(--ev-red)); font-size: 13px; }
+.ev-raid { display: grid; gap: 6px; padding: 9px 12px; border-radius: 8px; background: var(--sunk); border: 1px solid var(--line); border-left: 3px solid var(--tc, var(--accent)); font-size: 13px; }
 .ev-raid[hidden] { display: none; }
 .ev-raid .er-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .ev-raid .er-top b { font-size: 14px; margin-right: 2px; }
@@ -654,6 +686,9 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .costume-mark { position: absolute; right: 4px; top: 16px; width: 13px; height: 11px; }
 .costume-pick select { padding: 4px 6px; }
 .slot .g { position: absolute; right: 5px; bottom: 1px; font-size: 12px; }
+.slot .egg-icon { width: 30px; height: 36px; }
+.slot.egg .spr { position: absolute; right: 1px; bottom: 0; --s: 0.85 !important; z-index: 1; }
+.tip-egg { color: var(--muted); }
 .slot .n31 { position: absolute; left: 5px; top: 2px; font-family: var(--f-mono); font-size: 10.5px; color: var(--ink); opacity: 0.75; }
 .slot.dragging { opacity: 0.4; }
 /* the labels always draw over the icon, with a halo so a sprite behind them doesn't hide the text */
@@ -871,12 +906,12 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
         </div>
         <div class="bp-panel" data-bp="events" id="bp-events" role="tabpanel" aria-labelledby="bp-tab-events" hidden>
           <div class="ev" id="ev">
-            <div class="ev-head"><span class="ev-dot" aria-hidden="true"></span><h3 id="ev-h"></h3><span class="chip2 muted" title="Taken from last year's raid guides and not yet checked in game">unverified</span></div>
+            <div class="ev-head"><span class="ev-emoji" id="ev-emoji" aria-hidden="true"></span><h3 id="ev-h"></h3><span class="chip2 muted" id="ev-basis" title="Taken from last year's raid guides and not yet checked in game"></span><span class="ev-decor" id="ev-decor" aria-hidden="true"></span></div>
             <p class="muted small" id="ev-when"></p>
             <div class="ev-raids" id="ev-raids" role="group" aria-label="Raid boss"></div>
             <div class="ev-raid" id="ev-raid" aria-live="polite" hidden></div>
             <div class="bcards scroll" id="ev-list" role="list" aria-labelledby="ev-h"></div>
-            <details class="ev-more"><summary>Raid rules and where this comes from</summary><ul id="ev-rules"></ul></details>
+            <details class="ev-more"><summary>📜 Raid rules and where this comes from</summary><ul id="ev-rules"></ul></details>
           </div>
           <div class="bp-detail ev-info" id="t-ev-info" aria-live="polite" hidden></div>
         </div>
@@ -1014,7 +1049,7 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
             <details class="codes" id="box-worth-how">
               <summary>How this is counted</summary>
               <div class="codes-body" style="display:grid;gap:8px">
-                <p class="bs-note">Each Pokémon is worth what a similar one goes for on the GTL. 1×31 to 3×31 use the buy prices in the planner's Prices and options (the "with your nature" price when it has a nature that suits its species, the Ditto price for a Ditto). A good nature multiplies 4-6×31, a hidden ability adds a percentage, and egg moves, a 0 Atk or 0 Spe (wanted for special attackers and Trick Room), shiny, alpha and costume add a flat amount. Everything except the planner's prices is a guess you can change here. Blank IVs don't count as 31s.</p>
+                <p class="bs-note">Each Pokémon is worth about what a similar one sells for on the GTL (checked November 2026; sources in the README). 1×31 to 3×31 use the buy prices in the planner's Prices and options: the "with your nature" price when it has a nature that suits its species, the Ditto price for a Ditto. 4-6×31 have their own prices, with a good nature and without, and count for more on strong species (Dratini, Gible, Larvitar...) and less on weak ones. A female of a mostly-male species (starters, Eevee) counts for more because she passes the species on. A hidden ability, egg moves, a 0 Atk or 0 Spe, shiny, alpha and costume add on top. Alphas already have 2×31 and their hidden ability, so the alpha mark itself adds little. Shiny prices vary the most, from a million or two for a common horde shiny to ten million or more for a rare one. You can change every value here. Blank IVs don't count as 31s.</p>
                 <div class="bw-set" id="bw-set"></div>
                 <div class="row"><button class="btn ghost mini" type="button" id="bw-reset">Reset to the guesses</button></div>
               </div>
@@ -1222,6 +1257,8 @@ let uid = 1;
 // summary panel (used next to names here) and the small one from a box spot (used on box spots).
 const SHINY_STAR = '<svg class="shiny-star" viewBox="0 0 20 20" shape-rendering="crispEdges" aria-hidden="true"><path fill="#3d2829" d="M9 0h2v1h-2zM8 1h1v1h-1zM11 1h1v1h-1zM7 2h1v1h-1zM12 2h1v1h-1zM7 3h1v1h-1zM12 3h1v1h-1zM6 4h1v1h-1zM13 4h1v1h-1zM6 5h1v1h-1zM13 5h1v1h-1zM1 6h5v1h-5zM14 6h5v1h-5zM0 7h1v1h-1zM19 7h1v1h-1zM0 8h1v1h-1zM19 8h1v1h-1zM1 9h1v1h-1zM18 9h1v1h-1zM2 10h1v1h-1zM17 10h1v1h-1zM3 11h1v1h-1zM16 11h1v1h-1zM4 12h1v1h-1zM15 12h1v1h-1zM4 13h1v1h-1zM15 13h1v1h-1zM3 14h1v1h-1zM16 14h1v1h-1zM3 15h1v1h-1zM16 15h1v1h-1zM2 16h1v1h-1zM9 16h2v1h-2zM17 16h1v1h-1zM2 17h1v1h-1zM7 17h2v1h-2zM11 17h2v1h-2zM17 17h1v1h-1zM2 18h1v1h-1zM5 18h2v1h-2zM13 18h2v1h-2zM17 18h1v1h-1zM3 19h2v1h-2zM15 19h2v1h-2z"/><path fill="#fd9a2c" d="M9 1h2v1h-2zM6 6h1v1h-1zM13 6h1v1h-1zM1 7h1v1h-1zM18 7h1v1h-1zM3 10h1v1h-1zM16 10h1v1h-1zM4 11h1v1h-1zM15 11h1v1h-1zM3 18h1v1h-1zM16 18h1v1h-1z"/><path fill="#e97749" d="M8 2h1v1h-1zM11 2h1v1h-1zM7 4h1v1h-1zM12 4h1v1h-1zM1 8h1v1h-1zM18 8h1v1h-1zM4 14h1v1h-1zM15 14h1v1h-1zM3 16h1v1h-1zM8 16h1v1h-1zM11 16h1v1h-1zM16 16h1v1h-1zM6 17h1v1h-1zM13 17h1v1h-1zM4 18h1v1h-1zM15 18h1v1h-1z"/><path fill="#fdbb30" d="M9 2h2v1h-2zM8 3h4v1h-4zM2 7h2v1h-2zM16 7h2v1h-2zM2 8h1v1h-1zM17 8h1v1h-1zM2 9h1v1h-1zM17 9h1v1h-1zM4 16h1v1h-1zM15 16h1v1h-1zM3 17h3v1h-3zM14 17h3v1h-3z"/><path fill="#fdcc31" d="M8 4h1v1h-1zM11 4h1v1h-1zM7 5h1v1h-1zM12 5h1v1h-1zM4 7h1v1h-1zM15 7h1v1h-1zM3 8h1v1h-1zM16 8h1v1h-1zM4 15h1v1h-1zM15 15h1v1h-1zM5 16h1v1h-1zM14 16h1v1h-1z"/><path fill="#fdd432" d="M9 4h2v1h-2zM3 9h1v1h-1zM16 9h1v1h-1zM5 15h1v1h-1zM14 15h1v1h-1zM6 16h1v1h-1zM13 16h1v1h-1z"/><path fill="#fddc34" d="M8 5h4v1h-4zM7 6h1v1h-1zM12 6h1v1h-1zM5 7h1v1h-1zM14 7h1v1h-1zM4 8h1v1h-1zM15 8h1v1h-1zM4 9h1v1h-1zM15 9h1v1h-1zM4 10h1v1h-1zM15 10h1v1h-1zM5 14h1v1h-1zM14 14h1v1h-1zM6 15h2v1h-2zM12 15h2v1h-2zM7 16h1v1h-1zM12 16h1v1h-1z"/><path fill="#fdeb57" d="M8 6h4v1h-4zM7 7h1v1h-1zM12 7h1v1h-1zM6 8h1v1h-1zM13 8h1v1h-1zM5 9h1v1h-1zM14 9h1v1h-1zM5 10h1v1h-1zM14 10h1v1h-1zM5 11h1v1h-1zM14 11h1v1h-1zM5 12h1v1h-1zM14 12h1v1h-1zM6 13h1v1h-1zM13 13h1v1h-1zM7 14h1v1h-1zM12 14h1v1h-1zM9 15h2v1h-2z"/><path fill="#fde544" d="M6 7h1v1h-1zM13 7h1v1h-1zM5 8h1v1h-1zM14 8h1v1h-1zM5 13h1v1h-1zM14 13h1v1h-1zM6 14h1v1h-1zM13 14h1v1h-1zM8 15h1v1h-1zM11 15h1v1h-1z"/><path fill="#fdf36b" d="M8 7h4v1h-4zM7 8h2v1h-2zM11 8h2v1h-2zM6 9h2v1h-2zM12 9h2v1h-2zM6 10h1v1h-1zM13 10h1v1h-1zM6 11h1v1h-1zM13 11h1v1h-1zM6 12h2v1h-2zM12 12h2v1h-2zM7 13h2v1h-2zM11 13h2v1h-2zM8 14h4v1h-4z"/><path fill="#fdf97f" d="M9 8h2v1h-2zM8 9h4v1h-4zM7 10h2v1h-2zM11 10h2v1h-2zM7 11h2v1h-2zM11 11h2v1h-2zM8 12h4v1h-4zM9 13h2v1h-2z"/><path fill="#fdfd9e" d="M9 10h2v1h-2zM9 11h2v1h-2z"/></svg>';
 const SHINY_MARK = '<svg class="shiny-mark" viewBox="0 0 11 11" shape-rendering="crispEdges" aria-hidden="true"><path fill="#303030" d="M5 0h1v1h-1zM4 1h1v1h-1zM6 1h1v1h-1zM3 2h2v1h-2zM6 2h2v1h-2zM0 3h4v1h-4zM7 3h4v1h-4zM0 4h1v1h-1zM10 4h1v1h-1zM1 5h1v1h-1zM9 5h1v1h-1zM2 6h1v1h-1zM8 6h1v1h-1zM2 7h1v1h-1zM8 7h1v1h-1zM1 8h1v1h-1zM5 8h1v1h-1zM9 8h1v1h-1zM1 9h1v1h-1zM3 9h2v1h-2zM6 9h2v1h-2zM9 9h1v1h-1zM1 10h2v1h-2zM8 10h2v1h-2z"/><path fill="#fdeb57" d="M5 1h1v1h-1zM5 2h1v1h-1zM5 3h1v1h-1zM1 4h9v1h-9zM3 5h5v1h-5zM4 6h3v1h-3zM3 7h5v1h-5zM2 8h2v1h-2zM7 8h2v1h-2zM2 9h1v1h-1zM8 9h1v1h-1z"/><path fill="#c08e02" d="M4 3h1v1h-1zM6 3h1v1h-1zM2 5h1v1h-1zM8 5h1v1h-1zM3 6h1v1h-1zM7 6h1v1h-1zM4 8h1v1h-1zM6 8h1v1h-1z"/></svg>';
+// An egg in the box: a cream egg with green spots, like the game's, with what it hatches as small in the corner.
+const EGG_ICON = '<svg class="egg-icon" viewBox="0 0 20 24" aria-hidden="true"><ellipse cx="10" cy="13.5" rx="8.2" ry="9.6" fill="#f3ecd6" stroke="#4a4a40" stroke-width="1.3"/><circle cx="6.5" cy="9" r="2.2" fill="#7cc46a"/><circle cx="13" cy="13" r="2.6" fill="#7cc46a"/><circle cx="7.5" cy="17.5" r="1.9" fill="#7cc46a"/></svg>';
 
 // The game's alpha mark (sprites/atlas/main.png, "alphaLight", 24x24), copied pixel for pixel: the red claw it shows
 // in the summary panel's top left corner for an alpha. Used next to names, like the big shiny star.
@@ -1640,24 +1677,43 @@ const PRESETS = [
   { key: 'smeargle', label: 'Catching Smeargle', species: 'Smeargle', nature: 'Adamant', ability: 'Technician', eggMoves: [],
     sets: [{ label: 'Ideal 5×31', ivs: [31, 31, 31, null, 31, 31], note: 'Everything but SpA at 31.' },
       { label: 'Budget 2×31', ivs: [null, 31, null, null, null, 31], note: 'Atk and Spe at 31, the rest as high as you can get. Much cheaper to breed.' }],
-    items_show: ['Leftovers', 'Silk Scarf', 'Choice Band'], moves: ['False Swipe', 'Spore', 'Substitute', 'Soak'], facts: [['EVs', '58 HP, 252 Atk, 200 Spe']],
+    items_show: ['Safety Goggles', 'Leftovers'], moves: ['False Swipe', 'Spore', 'Substitute', 'Soak'], facts: [['EVs', '58 HP, 252 Atk, 200 Spe']],
     notes: ['Smeargle learns all four moves through Sketch, so there is nothing to breed in.'] },
-  { key: 'typhlosion', label: 'Gym re-run Typhlosion', species: 'Typhlosion', nature: 'Modest', ability: '', eggMoves: [],
+  { key: 'typhlosion', label: 'Gym re-run Typhlosion', species: 'Typhlosion', nature: 'Modest', ability: '', eggMoves: [], items: ['choice-specs'],
     sets: [{ label: 'SpA + Spe', ivs: [null, null, null, 31, null, 31] }],
-    moves: ['Eruption'], facts: [],
+    items_show: ['Choice Specs'], moves: ['Eruption'], facts: [['EVs', '252 SpA, 252 Spe']],
     notes: ['Eruption isn\'t an egg move. Typhlosion learns it by level-up.'] },
   { key: 'cloyster', label: 'Trainer re-run Cloyster', species: 'Cloyster', nature: 'Adamant', ability: 'Skill Link', eggMoves: [],
     sets: [{ label: 'Atk + Spe', ivs: [null, 31, null, null, null, 31] }],
-    items_show: ['White Herb', 'Focus Sash'], moves: ['Shell Smash', 'Icicle Spear', 'Rock Blast', 'Ice Shard'], facts: [],
+    items_show: ['Choice Band'], moves: ['Icicle Spear', 'Shell Smash', 'Rock Blast', 'Ice Shard'], facts: [['EVs', '252 Atk, 252 Spe']],
     notes: ['Skill Link is one of Cloyster\'s regular abilities, so it passes from the mother 80% of the time.',
       'Rock Blast is an egg move for Shellder. Tick it under "I want egg moves" to breed it in, or skip it: Shell Smash, Icicle Spear and Ice Shard are learned another way.'] },
-  { key: 'dusknoir', label: 'Thief Dusknoir', species: 'Dusknoir', nature: 'Bold', ability: 'Frisk', eggMoves: [], items: ['tm-thief'],
+  { key: 'dusknoir', label: 'Fossil farming Dusknoir', species: 'Dusknoir', nature: 'Bold', ability: 'Frisk', eggMoves: [], items: ['tm-thief'],
     sets: [{ label: 'HP + Def', ivs: [31, null, 31, null, null, null], note: 'SpD as high as you can get.' },
       { label: '+ SpD (ideal)', ivs: [31, null, 31, null, 31, null], note: 'SpD at 31 too.' }],
-    moves: ['Thief', 'Trick', 'Absorb', 'Taunt'], facts: [['EVs', '252 HP, 252 Def, 6 SpA']],
+    moves: ['Thief', 'Trick', 'Absorb', 'Taunt'], facts: [['Item', 'None: it needs an empty hand to steal with Thief'], ['EVs', '252 HP, 252 Def, 6 SpA']],
     notes: ['Frisk is Dusknoir\'s hidden ability, so it has to come from the mother\'s side.',
       'None of the four moves are egg moves for Duskull, so teach them after hatching.',
       'Max the PP on Thief and Trick with PP Ups so it lasts longer. Absorb too if you can, but it\'s optional.'] },
+  { key: 'persian', label: 'Pay Day Persian', species: 'Persian', nature: 'Adamant', ability: '', eggMoves: [],
+    sets: [{ label: 'Atk + Spe', ivs: [null, 31, null, null, null, 31] }],
+    items_show: ['Silk Scarf'], moves: ['Pay Day', 'Thunderbolt', 'Water Pulse', 'Swift'], facts: [['EVs', '252 Atk, 252 Spe']],
+    notes: ['Earns money every battle with Pay Day; use it on Sweet Scent hordes. An Amulet Coin raises the payout.',
+      'Pay Day isn\'t an egg move: Meowth learns it by level-up, so there is nothing to breed in.',
+      'From the PikaMMO Pay Day guide (pikammo.fr).'] },
+  { key: 'pickup-meowth', label: 'Pickup Meowth', species: 'Meowth', nature: 'Adamant', ability: 'Pickup', eggMoves: [], items: ['tm-thief'],
+    sets: [{ label: 'Atk + Spe', ivs: [null, 31, null, null, null, 31] }],
+    moves: ['Pay Day', 'Thief'], facts: [['Item', 'None: it needs an empty hand to steal and pick up items']],
+    notes: ['Keep it a Meowth: Persian can\'t have Pickup. Pickup is a regular ability, so it passes from the mother 80% of the time.',
+      'Fish at Undella Bay: Pay Day on Shellder and Remoraid, Thief on Luvdisc for Heart Scales.',
+      'From the PokeMMO wiki guide "Pay Day Pickup (Undella Bay)".'] },
+  { key: 'banette', label: 'Amulet Coin Banette', species: 'Banette', nature: '', ability: 'Frisk', eggMoves: [], items: ['tm-thief'],
+    sets: [{ label: 'Spe', ivs: [null, null, null, null, null, 31], note: 'The guide gives no IVs; 31 Spe helps it steal before the horde moves.' }],
+    moves: ['Thief'], facts: [],
+    notes: ['Frisk shows which wild Pokémon hold an item, and Thief takes it. Take the stolen item off before the next steal.',
+      'Steal Amulet Coins from Meowth hordes on Treasure Beach (One Island) after a Sweet Scent. The same Banette takes Flame Orbs from Heatmor.',
+      'Frisk is a regular ability of the Shuppet line, so it passes from the mother 80% of the time.',
+      'From the PikaMMO farming guide (pikammo.fr).'] },
 ];
 // ---------- start from a build: one picker ----------
 // Tabs (Common builds, Competitive sets, and Events once that group is in the page) over cards: sprite, a stripe
@@ -1685,9 +1741,11 @@ const ivPills = (ivs) => `<span class="ivpills" aria-label="IVs: ${esc(STAT_LABE
   return `<span class="ivp ${v === 31 ? 'v31' : v === 0 ? 'v0' : v == null ? 'vx' : 'vn'}" aria-hidden="true"><i>${l}</i>${v == null ? '–' : v}</span>`;
 }).join('')}</span>`;
 const chip = (text, cls = '', title = '', color = '') => `<span class="chip2 ${cls}"${color ? ` style="--cc:${color}"` : ''}${title ? ` title="${esc(title)}"` : ''}>${text}</span>`;
-const moveTag = (m, egg) => {
-  const t = moveType(m);
-  return `<span class="mtag" style="--tc:${typeColor(t)}" title="${esc(t ? `${t} type` : '')}${egg ? `${t ? ', ' : ''}egg move: bred in` : ''}">${esc(m)}${egg ? '<i class="egg">egg</i>' : ''}</span>`;
+// An egg move the species can also learn by TM says "egg or TM": breed it in, or teach it after hatching.
+const canTM = (m, species) => { const s = sp(species), set = TM_LEARNERS[m]; return !!(s && set && (set.has(s.i) || (s.b && sp(s.b) && set.has(sp(s.b).i)))); };
+const moveTag = (m, egg, species) => {
+  const t = moveType(m), tm = egg && species && canTM(m, species);
+  return `<span class="mtag" style="--tc:${typeColor(t)}" title="${esc(t ? `${t} type` : '')}${egg ? `${t ? ', ' : ''}egg move: bred in${tm ? ', or taught by TM after hatching' : ''}` : ''}">${esc(m)}${egg ? `<i class="egg">${tm ? 'egg or TM' : 'egg'}</i>` : ''}</span>`;
 };
 // What a card and the detail panel need, the same shape for a common build and a competitive set.
 function bpCommon(p, setIdx = 0) {
@@ -1734,7 +1792,7 @@ function bpDetail(b) {
     ['IVs', ivPills(b.ivs) + ver],
     ['EVs', esc(b.evs || '')],
     ...b.facts.map(([k, v]) => [k, esc(v)]),
-    ['Moves', b.moves.length ? `<span class="mtags">${b.moves.map((m) => moveTag(m, b.eggMoves.includes(m))).join('')}</span>` : ''],
+    ['Moves', b.moves.length ? `<span class="mtags">${b.moves.map((m) => moveTag(m, b.eggMoves.includes(m), b.species)).join('')}</span>` : ''],
   ].filter(([, v]) => v);
   const tags = [b.tier ? chip(esc(b.tier), 'tier', '', TIER_COLORS[b.tier]) : '', b.role ? chip(esc(b.role), 'muted') : '',
     ...t.map((x) => chip(esc(x), 'type', '', typeColor(x))), b.usage ? chip('from usage', 'muted') : '', b.unverified ? chip('unverified', 'muted') : ''].join('');
@@ -1919,6 +1977,8 @@ const EV_RAIDS = EVENT.raids.filter((r) => EV_SETS.some((p) => p.raids.includes(
 const evRaid = (k) => EV_RAIDS.find((r) => r.key === k);
 const ev = { raid: '', sel: '', chosen: '' };
 const evLabel = (p) => `${p.species} ${p.name}`;
+const EV_GROUPS = EVENT.event.groups || [];
+const evBasis = () => EVENT.event.basis || 'unverified';
 function evOf(t) {
   const fits = EV_SETS.filter((p) => compSame(p, t));
   return fits.find((p) => p.key === ev.chosen) || fits[0] || null;
@@ -1929,7 +1989,7 @@ function evCard(p, selected) {
   return `<button type="button" class="bcard" role="listitem" data-ev-card="${esc(p.key)}" aria-pressed="${selected}" style="--tc:${typeColor(t[0])};--tc2:${typeColor(t[1] || t[0])}"`
     + ` title="${esc(`Used in: ${p.raids.map((k) => evRaid(k)?.name).filter(Boolean).join(', ')}`)}">`
     + `<span class="bc-spr">${sprite(p.species, 1)}</span><span class="bc-t"><b>${esc(p.species)}</b> <span>${esc(p.name)}</span></span>`
-    + (inUse ? '<span class="inuse">In use</span>' : `<span class="ev-raidn">${p.raids.length} raid${p.raids.length > 1 ? 's' : ''}</span>`)
+    + (inUse ? '<span class="inuse">In use</span>' : `<span class="ev-raidn">${p.top ? '⭐ ' : ''}${p.raids.length} raid${p.raids.length > 1 ? 's' : ''}</span>`)
     + `<span class="bc-chips">${chips}</span>${ivPills(compIvs(p))}</button>`;
 }
 function evDetail(p) {
@@ -1945,9 +2005,11 @@ function evDetail(p) {
     ['IVs', ivPills(compIvs(p))],
     ['EVs', esc(p.evs || '')],
     ['Raids', p.raids.map((k) => evRaid(k)).filter(Boolean).map((r) => `<button type="button" class="ev-chip" data-ev-raid="${esc(r.key)}">${sprite(r.name, 1)}${esc(r.name)} <span class="st">${r.stars}★</span></button>`).join('')],
-    ['Moves', `<span class="mtags">${p.moves.map((m) => moveTag(m, p.eggMoves.includes(m))).join('')}</span>`],
+    ['Moves', `<span class="mtags">${p.moves.map((m) => moveTag(m, p.eggMoves.includes(m), p.species)).join('')}</span>`],
   ].filter(([, v]) => v);
-  const tags = [chip(esc(EVENT.event.name), 'tier', '', '#c8283c'), chip(esc(p.role), 'muted'), ...t.map((x) => chip(esc(x), 'type', '', typeColor(x))), p.verified ? '' : chip('unverified', 'muted')].join('');
+  const g = EV_GROUPS.find((x) => x.key === p.group);
+  const tags = [chip(`${esc(EVENT.event.emoji || '')} ${esc(EVENT.event.name)}`, 'muted'), p.top ? chip('⭐ Top pick', 'muted', `Used in ${p.raids.length} raids`) : '', g ? chip(`${g.emoji} ${esc(g.label)}`, 'muted') : '',
+    ...t.map((x) => chip(esc(x), 'type', '', typeColor(x))), p.verified ? '' : chip(esc(evBasis()), 'muted')].join('');
   return `<div class="bpd-head" style="--tc:${typeColor(t[0])}">${sprite(p.species, 2)}<div><h3>${esc(evLabel(p))}</h3><div class="bc-chips">${tags}</div></div></div>`
     + `<dl>${facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join('')}</dl>`
     + `<ul>${notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>`
@@ -1957,7 +2019,7 @@ function evDetail(p) {
 function renderEventList() {
   const r = evRaid(ev.raid);
   const list = EV_SETS.filter((p) => !r || p.raids.includes(r.key));
-  $('ev-raids').innerHTML = `<button type="button" class="ev-chip all" data-ev-raid="" aria-pressed="${!r}">All builds</button>`
+  $('ev-raids').innerHTML = `<button type="button" class="ev-chip all" data-ev-raid="" aria-pressed="${!r}">${EVENT.event.emoji ? `${EVENT.event.emoji} ` : ''}All builds</button>`
     + EV_RAIDS.map((x) => `<button type="button" class="ev-chip" data-ev-raid="${esc(x.key)}" aria-pressed="${x === r}" title="${esc(`${x.name} ${x.stars}★ raid`)}">${sprite(x.name, 1)}${esc(x.name)} <span class="st">${x.stars}★</span></button>`).join('');
   const box = $('ev-raid');
   box.hidden = !r;
@@ -1967,10 +2029,17 @@ function renderEventList() {
     box.innerHTML = `<div class="er-top"><b>${esc(r.name)} ${r.stars}★</b>${types.map((x) => chip(esc(x), 'type', '', typeColor(x))).join('')}<span class="muted">weak to ${esc(r.weak)}</span></div>`
       + `<div class="muted">${esc(r.boss)}</div>`
       + `<ol aria-label="Boss phases by HP left">${r.phases.split(' · ').map((x) => { const m = x.match(/^(\d+%)\s+(.*)$/); return m ? `<li><b>${esc(m[1])}</b>${esc(m[2])}</li>` : `<li>${esc(x)}</li>`; }).join('')}</ol>`
-      + `<div>${esc(r.plan)}</div>`;
+      + `<div>🎯 ${esc(r.plan)}</div>`;
   } else box.innerHTML = '';
   if (!list.some((p) => p.key === ev.sel)) ev.sel = '';
-  $('ev-list').innerHTML = list.map((p) => evCard(p, p.key === ev.sel)).join('');
+  // grouped (support first, then attackers by type) with a heading per group, as ordered in data/events.json
+  const groups = EV_GROUPS.length ? EV_GROUPS : [{ key: undefined, label: '' }];
+  $('ev-list').innerHTML = groups.map((g) => {
+    const ps = list.filter((p) => !EV_GROUPS.length || p.group === g.key);
+    if (!ps.length) return '';
+    return (g.label ? `<div class="ev-group" role="presentation"><h4>${g.emoji ? `${g.emoji} ` : ''}${esc(g.label)}</h4>${g.note && !r ? `<span>${esc(g.note)}</span>` : ''}</div>` : '')
+      + ps.map((p) => evCard(p, p.key === ev.sel)).join('');
+  }).join('');
   renderEvent(true);
 }
 // The detail panel: the card picked last, or the event build the goal is.
@@ -1987,6 +2056,10 @@ function renderEvent(force) {
 if (EV_SETS.length) {
   const e = EVENT.event;
   $('ev-h').textContent = e.label;
+  $('ev-emoji').textContent = e.emoji || '';
+  $('ev-decor').textContent = e.decor || '';
+  $('ev-h').parentElement.classList.add(`st-${e.style || 'gradient'}`);
+  $('ev-basis').textContent = evBasis();
   $('ev-when').textContent = `${e.when} Pick a raid to see its plan and the Pokémon people brought there.`;
   $('ev-rules').innerHTML = [...e.rules, e.caveat].map((x) => `<li>${esc(x)}</li>`).join('')
     + `<li>Sources: ${e.sources.map(([t, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>`).join(', ')}.</li>`;
@@ -2012,7 +2085,7 @@ if (EV_SETS.length) {
       if (!p) return;
       ev.chosen = p.key;
       startGoal(compGoal(p), state.mons.map((m) => ({ ...m, ivs: m.ivs.slice(), moves: m.moves.slice() })), compExtras(p),
-        `Loaded ${evLabel(p)} for the ${EVENT.event.name}${p.verified ? '' : ' (unverified)'}. Your Pokémon are kept.`);
+        `${EVENT.event.emoji ? `${EVENT.event.emoji} ` : ''}Loaded ${evLabel(p)} for the ${EVENT.event.name}${p.verified ? '' : ` (${evBasis().replace(/^B/, 'b')})`}. Your Pokémon are kept.`);
       renderEventList();
     }
   });
@@ -3334,7 +3407,7 @@ function cleanBoxMon(m) {
   if (!m || typeof m !== 'object' || !str(m.species).trim()) return null;
   const species = str(m.species).trim(), gs = genderChoices(species);
   return { id: okId(m.id) ? m.id : newPid(), species, nick: str(m.nick).trim().slice(0, 20), gender: gs.includes(m.gender) ? m.gender : gs[0],
-    ivs: ivList(m.ivs), nature: NATURES.includes(m.nature) ? m.nature : '', ability: str(m.ability), moves: strs(m.moves).slice(0, 8), from: okSig(m.from) ? m.from : '', alpha: m.alpha === true, shiny: m.shiny === true, level: okLevel(m.level), costume: okCostume(species, m.costume) };
+    ivs: ivList(m.ivs), nature: NATURES.includes(m.nature) ? m.nature : '', ability: str(m.ability), moves: strs(m.moves).slice(0, 8), from: okSig(m.from) ? m.from : '', alpha: m.alpha === true, shiny: m.shiny === true, level: okLevel(m.level), costume: okCostume(species, m.costume), egg: m.egg === true };
 }
 function cleanBox(b, i) {
   const slots = Array.from({ length: BOX_SIZE }, (_, k) => cleanBoxMon(b && Array.isArray(b.slots) ? b.slots[k] : null));
@@ -3507,6 +3580,7 @@ function renderBox() {
     const on = !!box.sel && box.sel.b === box.cur && box.sel.s === s;
     if (!m) return `<button type="button" class="slot empty" data-slot="${s}" aria-pressed="${on}" aria-label="Empty spot ${s + 1}, add a Pokémon"></button>`;
     const k = n31(m), name = m.nick || m.species;
+    if (m.egg) return `<button type="button" class="slot egg" data-slot="${s}" draggable="true" aria-pressed="${on}" aria-label="${esc(`${name} egg`)}">${EGG_ICON}${sprite(m.species, 1).replace(' role="img"', ' aria-hidden="true"')}</button>`;
     return `<button type="button" class="slot${m.alpha ? ' alpha' : ''}${m.shiny ? ' shiny' : ''}" data-slot="${s}" draggable="true" aria-pressed="${on}" aria-label="${esc(`${m.shiny ? 'Shiny ' : ''}${m.alpha ? 'Alpha ' : ''}${m.costume ? `${m.costume} ` : ''}${name}${m.level ? `, level ${m.level}` : ''}${m.gender === 'F' ? ', female' : m.gender === 'M' ? ', male' : ''}${k ? `, ${k}×31` : ''}${hasHA(m) ? ', hidden ability' : ''}`)}">`
       + `${sprite(m.species, 2, m.costume).replace(' role="img"', ' aria-hidden="true"')}${m.shiny ? SHINY_MARK : ''}${k ? `<span class="n31">${k}×31</span>` : ''}${m.level ? `<span class="lv">Lv${m.level}</span>` : ''}${hasHA(m) ? HA_ICON : ''}${m.costume ? COSTUME_MARK : ''}${m.gender === 'F' || m.gender === 'M' ? `<span class="g">${gSym(m.gender)}</span>` : ''}</button>`;
   }).join('');
@@ -3517,6 +3591,10 @@ function renderBox() {
 // What hovering a Pokémon shows: the same things the game's summary does for breeding.
 function monSummary(m) {
   const s = sp(m.species), fx = NATURE_FX[m.nature];
+  if (m.egg) return `<div class="tip-head">${sprite(m.species, 1)}<b>${esc(m.nick || m.species)} egg</b></div>`
+    + `<p class="small tip-egg">Not hatched yet: its IVs, nature, ability and gender show once it hatches. The planner leaves it out until then.</p>`
+    + [['Moves', m.moves.length ? m.moves.map(esc).join(', ') : '<span class="muted">None</span>'], ...(s ? [['Egg group', esc(monGroups(s) || 'None')]] : [])]
+      .map(([k, v]) => `<div class="tip-row"><span>${k}</span><span>${v}</span></div>`).join('');
   const ivs = STAT_KEYS.map((k, i) => `<span class="s-${k}${m.ivs[i] === 31 ? ' max' : ''}">${STAT_LABEL[i]}<b>${m.ivs[i] == null ? '?' : m.ivs[i]}</b></span>`).join('');
   const rows = [
     ['Nature', m.nature ? `${esc(m.nature)} ${fx ? `<span class="up">+${STAT_LABEL[fx[0]]}</span> <span class="down">−${STAT_LABEL[fx[1]]}</span>` : '<span class="muted">neutral</span>'}` : '<span class="muted">Not set</span>'],
@@ -3603,6 +3681,7 @@ function renderDraft() {
     <div class="row" style="align-items:end;gap:16px"><label class="f" style="max-width:110px">Level (optional)<input type="number" id="bx-level" min="1" max="100" inputmode="numeric" value="${m.level || ''}"></label>
       <label class="check" style="margin-bottom:8px"><input type="checkbox" id="bx-alpha" ${m.alpha ? 'checked' : ''}>${ALPHA_MARK}Alpha</label>
       <label class="check" style="margin-bottom:8px"><input type="checkbox" id="bx-shiny" ${m.shiny ? 'checked' : ''}>${SHINY_STAR}Shiny</label>
+      <label class="check" style="margin-bottom:8px" title="Not hatched yet: the planner leaves it out until you untick this and fill in its IVs"><input type="checkbox" id="bx-egg" ${m.egg ? 'checked' : ''}>Egg</label>
       <label class="f" id="bx-costume-l" style="max-width:190px"${dex.costumesOf(m.species).length ? '' : ' hidden'}>Costume<select id="bx-costume">${costumeOptions(m.species, m.costume, 'None')}</select></label></div>
     <div style="display:grid;gap:6px">
       <div class="moves-head"><span class="eyebrow">IVs (blank = don't know)</span><button class="linkbtn small" type="button" id="bx-all31">Set all to 31</button></div>
@@ -3718,6 +3797,7 @@ $('box-edit').addEventListener('change', (e) => {
   if (e.target.id === 'bx-gender') boxDraft.mon.gender = e.target.value;
   if (e.target.id === 'bx-ability') boxDraft.mon.ability = e.target.value;
   if (e.target.id === 'bx-alpha') boxDraft.mon.alpha = e.target.checked;
+  if (e.target.id === 'bx-egg') boxDraft.mon.egg = e.target.checked;
   if (e.target.id === 'bx-shiny') boxDraft.mon.shiny = e.target.checked;
   if (e.target.id === 'bx-costume') { boxDraft.mon.costume = e.target.value; $('bx-spr').innerHTML = sprite(boxDraft.mon.species, 2, boxDraft.mon.costume); }
 });
@@ -4004,8 +4084,10 @@ function packBoxes(boxes) {
       });
     });
     putList(w, shinies);
-    // then the costumes (an empty shiny list writes nothing, so mark it first)
-    if (mons.some((m) => COSTUME_NAMES.includes(m.costume))) { if (!shinies.length) w.bit(0); putCostumes(w, mons); }
+    // then the costumes (an empty shiny list writes nothing, so mark it first), then the eggs (likewise)
+    const eggs = mons.map((m, k) => (m.egg ? k : -1)).filter((k) => k >= 0), dressed = mons.some((m) => COSTUME_NAMES.includes(m.costume));
+    if (dressed || eggs.length) { if (!shinies.length) w.bit(0); putCostumes(w, mons); }
+    if (eggs.length) { if (!dressed) w.bit(0); putList(w, eggs); }
   });
 }
 function unpackBoxes(bytes) {
@@ -4024,6 +4106,7 @@ function unpackBoxes(bytes) {
   }
   for (const k of getList(r, all.length)) all[k].shiny = true;
   getCostumes(r, all);
+  for (const k of getList(r, all.length)) all[k].egg = true;
   return { boxes };
 }
 const makeBoxCode = (boxes) => codeText('PMBX', packBoxes(boxes));
@@ -4172,7 +4255,7 @@ function sixIvs(nums) {
 function readPanel(lines, gender) {
   const at = lines.findIndex((l) => /\bL\s*[vV][.,:]?\s*[\d?]/.test(l));
   if (at < 0) return null;
-  if (/L\s*[vV][.,:]?\s*\d*\?|\beg+\W*$/i.test(lines[at])) return { egg: true };
+  if (/L\s*[vV][.,:]?\s*\d*\?|\beg+\W*$/i.test(lines[at])) return readEgg(lines, at);
   const [, lv, head] = /L\s*[vV][.,:]?\s*(\d+)\s*(.*)$/.exec(lines[at]), problems = [];
   const c = closestIn(head.replace(/[^A-Za-z0-9.'’\- ]/g, ' '), SPECIES_NAMES);
   let species = c.score >= 0.7 ? c.name : '';
@@ -4205,6 +4288,19 @@ function readPanel(lines, gender) {
   const from = mark >= 0 ? mark + 1 : abl >= 0 ? abl + 3 : rest.length - 4;
   mon.moves = eggMovesIn(rest.slice(Math.max(0, from), Math.max(0, from) + 4), 0.85);
   return { mon, problems };
+}
+
+// An egg: "Lv. ??? Togepi Egg" names what it hatches as, and Stats, IVs, nature and ability all show "???" until it
+// hatches. Its moves do show (often egg moves), and its gender doesn't, so it's left at the species' first one.
+function readEgg(lines, at) {
+  const head = lines[at].replace(/^.*?L\s*[vV][.,:]?\s*[\d?]*\s*/, '').replace(/\s*\beg+\W*$/i, '');
+  const c = closestIn(head.replace(/[^A-Za-z0-9.'’\- ]/g, ' '), SPECIES_NAMES), species = c.score >= 0.7 ? c.name : '', problems = [];
+  if (!species) problems.push(`Couldn't make out what the egg is ("${head.trim().slice(0, 24)}").`);
+  const rest = lines.slice(at + 1).map((l) => l.replace(/^[^A-Za-z0-9]+/, '')), mark = rest.findIndex((l) => /mark/i.test(l));
+  const from = mark >= 0 ? mark + 1 : Math.max(0, rest.length - 4);
+  const mon = { species, nick: '', gender: species ? genderChoices(species)[0] : '', ivs: ivList(null), nature: '', ability: '', moves: eggMovesIn(rest.slice(from, from + 4), 0.85),
+    alpha: false, shiny: false, level: null, costume: '', egg: true };
+  return { egg: true, mon, problems };
 }
 
 // Pokémon written out as text, in the Showdown / PokePaste format:
@@ -4251,18 +4347,22 @@ function parseSet(lines) {
       if (n.score >= 0.8) mon.nature = n.name; else problems.push(`Unknown nature "${m[1]}".`);
     } else if ((m = /^alpha(?::\s*(\w+))?$/i.exec(l))) mon.alpha = !m[1] || /^(yes|true|y)$/i.test(m[1]);
     else if ((m = /^shiny(?::\s*(\w+))?$/i.exec(l))) mon.shiny = !m[1] || /^(yes|true|y)$/i.test(m[1]);
+    else if ((m = /^egg(?::\s*(\w+))?$/i.exec(l))) mon.egg = !m[1] || /^(yes|true|y)$/i.test(m[1]);
     else if ((m = /^costume:\s*(.+)$/i.exec(l))) {
       const c = closest(m[1].trim(), COSTUME_NAMES);
       if (c.score >= 0.8 && okCostume(species, c.name)) mon.costume = c.name;
       else if (!/^(none|no)$/i.test(m[1].trim())) problems.push(`${species || 'This Pokémon'} has no "${m[1].trim().slice(0, 20)}" costume.`);
     } else if ((m = /^[-–•]\s*(.+)$/.exec(l))) moves.push(m[1].replace(/\[.*?\]/g, '').trim());
   }
-  mon.ivs = mon.ivs.map((v, i) => (v == null && !unknown.has(i) ? 31 : v));
+  // an egg's IVs aren't known until it hatches, and nor is its gender
+  if (mon.egg) { mon.ivs = ivList(null); const k = problems.findIndex((x) => /^No gender found/.test(x)); if (k >= 0) problems.splice(k, 1); }
+  else mon.ivs = mon.ivs.map((v, i) => (v == null && !unknown.has(i) ? 31 : v));
   mon.moves = eggMovesIn(moves, 1);
   return { mon, problems };
 }
 function monText(m) {
-  const lines = [`${m.nick ? `${m.nick} (${m.species})` : m.species}${m.gender === 'M' || m.gender === 'F' ? ` (${m.gender})` : ''}`];
+  const lines = [`${m.nick ? `${m.nick} (${m.species})` : m.species}${!m.egg && (m.gender === 'M' || m.gender === 'F') ? ` (${m.gender})` : ''}`];
+  if (m.egg) lines.push('Egg: Yes');
   if (m.alpha) lines.push('Alpha: Yes');
   if (m.ability) lines.push(`Ability: ${m.ability}`);
   if (m.level) lines.push(`Level: ${m.level}`);
@@ -4270,7 +4370,7 @@ function monText(m) {
   if (m.costume) lines.push(`Costume: ${m.costume}`);
   if (m.nature) lines.push(`${m.nature} Nature`);
   // a stat left out reads as 31 (as in Showdown), so unknown ones are written as "?"
-  const ivs = m.ivs.map((v, i) => (v === 31 ? '' : `${v == null ? '?' : v} ${STAT_LABEL[i]}`)).filter(Boolean);
+  const ivs = m.egg ? [] : m.ivs.map((v, i) => (v === 31 ? '' : `${v == null ? '?' : v} ${STAT_LABEL[i]}`)).filter(Boolean);
   if (ivs.length) lines.push('IVs: ' + ivs.join(' / '));
   m.moves.forEach((mv) => lines.push('- ' + mv));
   return lines.join('\n');
@@ -4869,7 +4969,7 @@ function gameBoxOf(reads) {
 // The nickname and level lines are white, so only white counts as text there: the sprite can reach into them.
 // Some sprites send white smoke or sparkles up into the nickname's row, which reads as a jumble of letters that
 // Tesseract isn't sure of, so a nickname it's less than half sure of is dropped.
-const PANEL_LINES = [['', -8.27, -1.6, 4.6, 'white', 50], ['', -1.16, -2.6, 4.6, 'white'], ['IVs: ', 1, -0.2, 6.5, 'digits'],
+const PANEL_LINES = [['', -8.27, -1.6, 4.6, 'white', 50], ['', -1.16, -2.6, 5.6, 'white'], ['IVs: ', 1, -0.2, 6.5, 'digits'],
   ['Nature: ', 3, -0.2, 6.5, 'line'], ['Ability: ', 4, -0.2, 6.5, 'line'], ['Markings:', null],
   ...[0, 1, 2, 3].map((i) => ['', 6.95 + 0.93 * i, -0.65, 6.5, 'line'])];
 function lineCanvas(job, row, x0, x1, k, mode) {
@@ -4958,7 +5058,7 @@ async function readJob(job) {
       got = fillGaps(got, readPanel(t.split('\n').map((l) => l.trim()).filter(Boolean), sex));
       text += '\n---\n' + t;
     }
-    if (got && got.mon) { got.mon.alpha = alpha; got.mon.shiny = shiny; got.mon.costume = readCostume(job, got.mon.species, shiny); }
+    if (got && got.mon && !got.egg) { got.mon.alpha = alpha; got.mon.shiny = shiny; got.mon.costume = readCostume(job, got.mon.species, shiny); }
   } catch (e) { /* counted as unreadable */ }
   return { got, text, sex };
 }
@@ -4969,8 +5069,8 @@ async function pumpReads() {
     const job = imp.current = imp.queue.shift();
     let { got, text, sex } = await readJob(job);
     if (imp.step === 'idle') break;
+    // an egg is kept too: its species and moves are read, the rest shows once it hatches
     const egg = !!(got && got.egg);
-    if (egg) got = null;
     // A newer copy of a spot's panel wins, as the panel may have caught up since the last one; a second read of the
     // same panel only wins if it read better.
     const before = imp.reads.get(job.key), score = (r) => (r.egg ? 99 : !r.read ? 0 : !r.read.mon.species ? 1 : 50 - r.read.problems.length);
@@ -5008,7 +5108,7 @@ function finishReading() {
   imp.missed = missedSpots(all, imp.filled);
   imp.game = gameBoxOf(all);
   Object.assign(imp, { step: imp.review.length ? 'review' : 'idle', from: 'screen', reads: new Map(), geo: null, name: null,
-    status: imp.review.length ? '' : imp.eggs ? 'Only eggs were read. Eggs are left out: their IVs and nature only show once they hatch.'
+    status: imp.review.length ? '' : imp.eggs ? "Only eggs were seen, and the reader couldn't make out what they are. Go over them again, resting the cursor on each one."
       : "No Pokémon were read. Make sure the PC box is open in the window you share, then go through it a row at a time from the top-left spot." });
   renderImp();
 }
@@ -5019,14 +5119,15 @@ function finishReading() {
 // spots that changed is enough. Nothing changes until the list of changes is checked, and Undo puts it all back.
 // The same Pokémon, as far as the reader can tell: what it couldn't read doesn't count against it.
 function sameMon(a, b) {
-  if (!a || !b || a.species !== b.species || !!a.shiny !== !!b.shiny) return false;
+  if (!a || !b || a.species !== b.species || !!a.shiny !== !!b.shiny || !!a.egg !== !!b.egg) return false;
+  if (a.egg) return true; // an egg shows nothing else to tell two apart
   const eq = (x, y) => !x || !y || x === y;
   return eq(a.gender, b.gender) && eq(a.costume, b.costume) && eq(a.nature, b.nature) && eq(a.ability, b.ability) && a.ivs.every((v, i) => v == null || b.ivs[i] == null || v === b.ivs[i]);
 }
 // The same Pokémon but for one IV read differently: far more likely a misread off the screen than a sibling with
 // the same species, gender, nature and ability and all but one IV the same. Gives that IV's index, else -1.
 function oneIvOff(a, b) {
-  if (!a || !b || a.species !== b.species || !!a.shiny !== !!b.shiny) return -1;
+  if (!a || !b || a.species !== b.species || !!a.shiny !== !!b.shiny || a.egg || b.egg) return -1;
   const eq = (x, y) => !x || !y || x === y;
   if (!(eq(a.gender, b.gender) && eq(a.costume, b.costume) && eq(a.nature, b.nature) && eq(a.ability, b.ability))) return -1;
   const off = a.ivs.map((v, i) => (v != null && b.ivs[i] != null && v !== b.ivs[i] ? i : -1)).filter((i) => i >= 0);
@@ -5081,8 +5182,8 @@ function finishRescan() {
 }
 const cap = (t) => t[0].toUpperCase() + t.slice(1);
 // One line of what a Pokémon is: its IVs, nature, ability and egg moves.
-const monBits = (m) => `<span class="imp-ivs">${m.ivs.map((v) => (v == null ? '–' : v)).join('/')}</span> <span class="meta">${[m.nature || 'no nature', m.ability || 'no ability', ...(m.moves.length ? [m.moves.join(', ')] : [])].map(esc).join(' · ')}</span>`;
-const monName = (m) => `${gSym(m.gender)} ${esc(m.nick || m.species)}${m.shiny ? ' <span class="tip-shiny">Shiny</span>' : ''}${m.costume ? ` ${costumeTag(m.costume)}` : ''}${m.alpha ? ' <span class="tip-alpha">Alpha</span>' : ''}${m.level ? ` <span class="muted small">Lv. ${m.level}</span>` : ''}`;
+const monBits = (m) => m.egg ? `<span class="imp-ivs">Egg</span>${m.moves.length ? ` <span class="meta">${m.moves.map(esc).join(', ')}</span>` : ''}` : `<span class="imp-ivs">${m.ivs.map((v) => (v == null ? '–' : v)).join('/')}</span> <span class="meta">${[m.nature || 'no nature', m.ability || 'no ability', ...(m.moves.length ? [m.moves.join(', ')] : [])].map(esc).join(' · ')}</span>`;
+const monName = (m) => `${m.egg ? '' : gSym(m.gender) + ' '}${esc(m.nick || m.species)}${m.egg ? ' egg' : ''}${m.shiny ? ' <span class="tip-shiny">Shiny</span>' : ''}${m.costume ? ` ${costumeTag(m.costume)}` : ''}${m.alpha ? ' <span class="tip-alpha">Alpha</span>' : ''}${m.level ? ` <span class="muted small">Lv. ${m.level}</span>` : ''}`;
 function rescanRow(c, i) {
   if (c.iv) {
     const st = STAT_LABEL[c.iv.i];
@@ -5109,7 +5210,7 @@ function rescanRow(c, i) {
 function renderRescan(rev) {
   const r = imp.rescan, on = imp.review.filter((x) => x.on).length, n = imp.review.filter((x) => !x.iv).length, ivs = imp.review.length - n;
   const missed = imp.missed.length ? ` ${cap(spotList(imp.missed))} couldn't be read, so ${imp.missed.length === 1 ? 'it stays' : 'they stay'} as before; rescan ${imp.missed.length === 1 ? 'it' : 'them'} after if need be.` : '';
-  const eggs = imp.eggs.length ? ` ${cap(spotList(imp.eggs))} ${imp.eggs.length === 1 ? 'holds an egg' : 'hold eggs'} in the game; left as before.` : '';
+  const eggs = imp.eggs.length ? ` ${cap(spotList(imp.eggs))} ${imp.eggs.length === 1 ? 'holds an egg' : 'hold eggs'} the reader couldn't make out; left as before.` : '';
   const other = r.game.all.filter((n) => squash(n) !== squash(r.name));
   const game = !other.length ? '' : r.game.all.length > 1 ? ` <span class="mon-warn">You read more than one box in the game (${r.game.all.map((n) => `“${esc(n)}”`).join(', ')}), so check the changes closely.</span>`
     : ` <span class="mon-warn">The game's box is called “${esc(other[0])}”, not ${esc(r.name)}: check it's the right box.</span>`;
@@ -5197,10 +5298,10 @@ function impMap(cells, missed, here, old, gone) {
   }).join('')}</div>`;
 }
 function impRow(it, i) {
-  const m = it.mon, ivs = m.ivs.map((v) => (v == null ? '–' : v)).join('/');
-  const bits = [m.nature || 'no nature', m.ability || 'no ability', ...(m.moves.length ? [m.moves.join(', ')] : [])].map(esc).join(' · ');
+  const m = it.mon, ivs = m.egg ? 'Egg' : m.ivs.map((v) => (v == null ? '–' : v)).join('/');
+  const bits = (m.egg ? ['IVs, nature and ability show once it hatches', ...(m.moves.length ? [m.moves.join(', ')] : [])] : [m.nature || 'no nature', m.ability || 'no ability', ...(m.moves.length ? [m.moves.join(', ')] : [])]).map(esc).join(' · ');
   return `<li class="imp-row${it.problems.length ? ' warn' : ''}"><input type="checkbox" data-imp="${i}" ${it.on ? 'checked' : ''} ${m.species ? '' : 'disabled'} aria-label="Import ${esc(m.nick || m.species || 'this one')}">`
-    + `${sprite(m.species, 1, m.costume)}<span class="imp-what"><b>${gSym(m.gender)} ${esc(m.nick || m.species || 'Unknown')}</b>${m.nick ? ` <span class="muted small">${esc(m.species)}</span>` : ''}${m.shiny ? ' <span class="tip-shiny">Shiny</span>' : ''}${m.costume ? ` ${costumeTag(m.costume)}` : ''}${m.alpha ? ' <span class="tip-alpha">Alpha</span>' : ''}${m.level ? ` <span class="muted small">Lv. ${m.level}</span>` : ''}`
+    + `${sprite(m.species, 1, m.costume)}<span class="imp-what"><b>${m.egg ? '' : gSym(m.gender) + ' '}${esc(m.nick || m.species || 'Unknown')}${m.egg ? ' egg' : ''}</b>${m.nick ? ` <span class="muted small">${esc(m.species)}</span>` : ''}${m.shiny ? ' <span class="tip-shiny">Shiny</span>' : ''}${m.costume ? ` ${costumeTag(m.costume)}` : ''}${m.alpha ? ' <span class="tip-alpha">Alpha</span>' : ''}${m.level ? ` <span class="muted small">Lv. ${m.level}</span>` : ''}`
     + `${it.slot != null ? ` <span class="muted small">spot ${it.slot + 1}</span>` : ''}<br><span class="imp-ivs">${ivs}</span> <span class="meta">${bits}</span>`
     + `${it.problems.length ? `<br><span class="mon-warn small">${esc(it.problems.join(' '))}</span>` : ''}</span></li>`;
 }
@@ -5220,7 +5321,7 @@ function renderImp() {
     const on = imp.review.filter((x) => x.on).length, bad = imp.review.filter((x) => x.problems.length).length, screen = imp.from === 'screen';
     const to = screen && impTarget();
     const missed = screen && imp.missed && imp.missed.length ? ` ${spotList(imp.missed)[0].toUpperCase() + spotList(imp.missed).slice(1)} ${imp.missed.length === 1 ? 'wasn\'t' : 'weren\'t'} read; add ${imp.missed.length === 1 ? 'that one' : 'those'} by hand, or throw these away and read the box again.` : '';
-    const eggs = screen && imp.eggs ? ` ${imp.eggs === 1 ? 'An egg was' : `${imp.eggs} eggs were`} left out, as eggs don't show their IVs or nature until they hatch.` : '';
+    const eggs = screen && imp.eggs ? ` ${imp.eggs === 1 ? 'An egg was' : `${imp.eggs} eggs were`} left out, as the reader couldn't make out what ${imp.eggs === 1 ? 'it is' : 'they are'}.` : '';
     const gm = screen && imp.game ? imp.game : { name: '', all: [] }, same = !gm.name ? -1 : box.boxes.findIndex((b, i) => i !== (to && to.reuse ? to.b : -1) && squash(b.name) === squash(gm.name));
     const games = gm.all.length > 1 ? ` <span class="mon-warn">You read more than one box in the game (${gm.all.map((n) => `“${esc(n)}”`).join(', ')}); a spot read in both holds the one read last.</span>` : '';
     const twin = same >= 0 ? ` You already have a box called “${esc(box.boxes[same].name)}”: to update that one instead, open it and use Rescan.` : '';
@@ -5353,7 +5454,8 @@ function ivStats(mons) {
 }
 function statsScope() {
   const all = statsAll && box.boxes.length > 1, b = box.boxes[box.cur];
-  return { all, mons: (all ? box.boxes.flatMap((x) => x.slots) : b.slots).filter(Boolean), name: b.name.trim() || `Box ${box.cur + 1}` };
+  // eggs have no IVs to count yet, and aren't worth anything until they hatch
+  return { all, mons: (all ? box.boxes.flatMap((x) => x.slots) : b.slots).filter((m) => m && !m.egg), name: b.name.trim() || `Box ${box.cur + 1}` };
 }
 const pkmn = (n) => `${n.toLocaleString('en-US')} Pokémon`;
 function renderBoxStats() {
@@ -5377,13 +5479,13 @@ function renderBoxStats() {
 function lightStats() {
   const k = statsHover ?? statsPin, grid = $('box-grid'), b = box.boxes[box.cur], note = $('bs-hl');
   grid.classList.toggle('hl-on', k != null);
-  grid.querySelectorAll('.slot').forEach((x) => { const m = b.slots[+x.dataset.slot]; x.classList.toggle('hl', k != null && !!m && n31(m) === k); });
+  grid.querySelectorAll('.slot').forEach((x) => { const m = b.slots[+x.dataset.slot]; x.classList.toggle('hl', k != null && !!m && !m.egg && n31(m) === k); });
   const bars = $('bs-bars');
   if (bars) bars.querySelectorAll('.bs-cell').forEach((x) => { x.classList.toggle('hot', +x.dataset.k === k); x.setAttribute('aria-pressed', String(+x.dataset.k === statsPin)); });
   if (!note) return;
   const mouse = matchMedia('(hover: hover)').matches;
   if (k == null) { note.textContent = `${mouse ? 'Hover over or click' : 'Tap'} a bar to light up those Pokémon in the box.`; return; }
-  const here = b.slots.filter((m) => m && n31(m) === k).length, { all, mons } = statsScope();
+  const here = b.slots.filter((m) => m && !m.egg && n31(m) === k).length, { all, mons } = statsScope();
   const other = all ? mons.filter((m) => n31(m) === k).length - here : 0;
   note.textContent = `${k}×31: ${here ? `${here} lit up in this box` : 'none in this box'}${other ? `, ${other} more in your other boxes` : ''}.${statsPin != null ? ` ${mouse ? 'Click' : 'Tap'} the bar again to stop.` : ''}`;
 }
@@ -5411,34 +5513,63 @@ $('box-stats-body').addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && e.target.closest('.bs-cell') && (statsPin != null || statsHover != null)) { statsPin = statsHover = null; lightStats(); }
 });
 // ---------- rough Pokéyen worth of the box ----------
-// A guess, not a price check: each Pokémon gets what a similar one costs on the GTL. 1x31 to 3x31 come from the
-// planner's buy prices (natured when its nature is one Builds.recommendNatures suggests for the species, Ditto
-// prices for Ditto); 0x31, 4-6x31 and the extras are guesses the user can change (saved per browser in WORTH_KEY).
-const WORTH_KEY = 'pokemmo-breeding-box-worth';
+// A guess, not a price check: each Pokémon gets about what a similar one sells for on the GTL. Researched 2026-11-22
+// (README "Box worth", sources there): 1x31 to 3x31 come from the planner's buy prices (natured when its nature is
+// one Builds.recommendNatures suggests for the species, Ditto prices for Ditto). 4-6x31 follow PikaMMO's GTL guide
+// (4x31 ~300k, natured 5x31 900k-1M+), the PokeMMO wiki's brace cost table (5x31 + nature ~935k to breed) and a
+// 2026 forum report of 5x31 male breeders at ~400k. Alphas are cheap (2x31 + hidden ability; forum: trash alphas
+// $5-8k), shinies are worth millions. The user can change every value (saved per browser in WORTH_KEY; the key
+// changed with the 2026-11-22 values so old guesses don't stick).
+const WORTH_KEY = 'pokemmo-breeding-box-worth-v2';
 const WORTH_FIELDS = [
   ['zero', '0×31', 1000, '$'],
-  ['x4', '4×31', 100000, '$'],
-  ['x5', '5×31', 250000, '$'],
-  ['x6', '6×31', 750000, '$'],
-  ['nat', 'Good nature', 2, '×'],
+  ['x4', '4×31', 150000, '$'],
+  ['x5', '5×31', 400000, '$'],
+  ['x6', '6×31', 700000, '$'],
+  ['n0', '0×31, good nature', 3000, '$'],
+  ['n4', '4×31, good nature', 300000, '$'],
+  ['n5', '5×31, good nature', 900000, '$'],
+  ['n6', '6×31, good nature', 1500000, '$'],
+  ['top', 'Strong species', 1.5, '×'],
+  ['weak', 'Weak species', 0.6, '×'],
+  ['fem', 'Female, 7:1 species', 1.5, '×'],
   ['ha', 'Hidden ability', 50, '%'],
-  ['move', 'Each egg move', 10000, '$'],
-  ['iv0', '0 Atk or 0 Spe', 10000, '$'],
-  ['shiny', 'Shiny', 1000000, '$'],
-  ['alpha', 'Alpha', 500000, '$'],
-  ['costume', 'Costume', 250000, '$'],
+  ['haMin', 'Hidden ability, min', 20000, '+'],
+  ['move', 'Each egg move', 10000, '+'],
+  ['iv0', '0 Atk or 0 Spe', 10000, '+'],
+  ['shiny', 'Shiny', 2000000, '+'],
+  ['alpha', 'Alpha', 15000, '+'],
+  ['costume', 'Costume', 250000, '+'],
 ];
+const WORTH_UNIT = { '$': '$', '×': 'times', '%': '+%', '+': '+$' };
 let worthSet = {};
 try { const j = JSON.parse(localStorage.getItem(WORTH_KEY) || '{}'); if (j && typeof j === 'object') worthSet = j; } catch (e) {}
 const worthOf = (k) => { const v = Number(worthSet[k]); const f = WORTH_FIELDS.find((x) => x[0] === k); return Number.isFinite(v) && v >= 0 ? v : f[2]; };
+// How strong a species is, by the best base stat total in its line (Gible counts as Garchomp): 580+ is the
+// pseudo-legendaries and the like, which sell for more; under 450 is a line few people build.
+let lineBestCache = null;
+function lineBest(name) {
+  if (!lineBestCache) {
+    lineBestCache = new Map();
+    for (const x of SPECIES) {
+      const l = dex.lineOf(x.n), t = (x.s || []).reduce((a, v) => a + v, 0);
+      if (l && t > (lineBestCache.get(l) || 0)) lineBestCache.set(l, t);
+    }
+  }
+  return lineBestCache.get(dex.lineOf(name)) || 0;
+}
 function monWorth(m) {
   const s = sp(m.species), k = n31(m), ditto = !!s && s.n === 'Ditto', P = state.prices || {};
   const good = !ditto && !!s && !!m.nature && Builds.recommendNatures(dex, s.n).includes(m.nature);
   let v;
-  if (!k) v = worthOf('zero');
-  else if (k <= 3) v = Number(P[BUY_KEYS[ditto ? 'd' : good ? 'n' : 'p'][k - 1]]) || 0;
-  else v = worthOf('x' + k) * (good ? worthOf('nat') : 1);
-  if (hasHA(m)) v *= 1 + worthOf('ha') / 100;
+  if (k >= 1 && k <= 3) v = Number(P[BUY_KEYS[ditto ? 'd' : good ? 'n' : 'p'][k - 1]]) || 0;
+  else if (ditto) v = k ? worthOf('n' + k) : worthOf('zero'); // a 4-6x31 Ditto sells like a natured one
+  else if (good) v = worthOf('n' + k);
+  else v = k ? worthOf('x' + k) : worthOf('zero');
+  if (k >= 4 && s && !ditto) { const b = lineBest(s.n); if (b >= 580) v *= worthOf('top'); else if (b && b < 450) v *= worthOf('weak'); }
+  // females of mostly-male lines (starters, Eevee) are the ones that pass the species on, and are scarce
+  if (k && s && m.gender === 'F' && s.g >= 0.875) v *= worthOf('fem');
+  if (hasHA(m)) v = Math.max(v * (1 + worthOf('ha') / 100), v + worthOf('haMin'));
   v += (m.moves || []).length * worthOf('move');
   // a 0 Spe (Trick Room) or 0 Atk (special attackers) parent is wanted for competitive builds
   if (m.ivs[1] === 0 || m.ivs[5] === 0) v += worthOf('iv0');
@@ -5463,7 +5594,7 @@ function renderBoxWorth() {
     + `<p class="bw-top">Worth the most: ${w.top.map((x) => `<b>${esc(worthLabel(x.m))}</b> ~${roughMoney(x.v)}`).join(', ')}</p>`
     + '<p class="bs-note">A ballpark from GTL prices, not what anyone will pay. Prices move, and popular species sell for more.</p>';
 }
-$('bw-set').innerHTML = WORTH_FIELDS.map(([k, label, , unit]) => `<label class="f">${label} (${k === 'nat' ? 'times' : k === 'ha' ? '+%' : /^(x|zero)/.test(k) ? '$' : '+$'})<input type="number" min="0" step="${unit === '×' ? '0.1' : unit === '%' ? '5' : '1000'}" data-bw="${k}" value="${worthOf(k)}"></label>`).join('');
+$('bw-set').innerHTML = WORTH_FIELDS.map(([k, label, , unit]) => `<label class="f">${label} (${WORTH_UNIT[unit]})<input type="number" min="0" step="${unit === '×' ? '0.1' : unit === '%' ? '5' : '1000'}" data-bw="${k}" value="${worthOf(k)}"></label>`).join('');
 $('bw-set').addEventListener('input', (e) => {
   const k = e.target.dataset && e.target.dataset.bw;
   if (!k) return;
@@ -5520,7 +5651,7 @@ function boxPool(room) {
   const scored = [];
   for (const it of all) {
     const s = sp(it.mon.species);
-    if (!s || shinyOf(it.mon) !== !!t.shiny) continue;
+    if (!s || it.mon.egg || shinyOf(it.mon) !== !!t.shiny) continue; // an egg can't breed until it hatches
     if (t.alpha && !alphaOf(it.mon)) continue;
     if (costumeOf(it.mon) && costumeOf(it.mon) !== okCostume(t.species, t.costume)) continue;
     const line = dex.lineOf(s.n), L = dex.lines.get(line);
@@ -5680,7 +5811,7 @@ const BC_GTL_OPTS = { buy: true, buyIV: [1, 2, 3], buyNat: [1, 2, 3] };
 function bcMons() {
   const out = [];
   // shinies and costumed Pokémon stay out: they only breed for a shiny or costume goal, which suggestions never are
-  for (const b of box.boxes) for (const m of b.slots) if (m && !m.shiny && !m.costume && sp(m.species)) out.push({ species: sp(m.species).n, gender: m.gender, ivs: m.ivs.slice(), nature: m.nature, ability: m.ability, moves: (m.moves || []).slice(), boxId: m.id });
+  for (const b of box.boxes) for (const m of b.slots) if (m && !m.shiny && !m.costume && !m.egg && sp(m.species)) out.push({ species: sp(m.species).n, gender: m.gender, ivs: m.ivs.slice(), nature: m.nature, ability: m.ability, moves: (m.moves || []).slice(), boxId: m.id });
   return out;
 }
 const bcPrices = () => { const P = state.prices; return { ...P, haChance: (P.haChance || 0) / 100, abilityChance: (P.abilityChance || 0) / 100 }; };
@@ -6893,7 +7024,7 @@ renderEc();
 // ---------- backup file ----------
 // One file with everything this browser keeps: boxes (and the Pokémon ticked breeds took out), saved builds, the
 // planner's current setup and the settings. Loading one replaces what's here, after asking, with Undo right after.
-const BACKUP_PREFS = ['pokemmo-breeding-theme', 'pokemmo-breeding-view', 'pokemmo-breeding-build-center', 'pokemmo-breeding-box-sort', 'pokemmo-breeding-box-stats', 'pokemmo-breeding-box-worth', 'pokemmo-breeding-egg-calc'];
+const BACKUP_PREFS = ['pokemmo-breeding-theme', 'pokemmo-breeding-view', 'pokemmo-breeding-build-center', 'pokemmo-breeding-box-sort', 'pokemmo-breeding-box-stats', 'pokemmo-breeding-box-worth-v2', 'pokemmo-breeding-egg-calc'];
 function makeBackup() {
   const prefs = {};
   for (const k of BACKUP_PREFS) { try { const v = localStorage.getItem(k); if (v != null) prefs[k] = v; } catch (e) {} }
