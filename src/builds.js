@@ -81,7 +81,7 @@
       { label: '6×31', ivs: [31, 31, 31, 31, 31, 31] },
     ];
   }
-  const goalText = (g) => g.map((v, i) => (v == null ? null : `${v === 31 ? '' : v + '+ '}${LABEL[i]}`)).filter(Boolean).join(' / ');
+  const goalText = (g) => g.map((v, i) => (v == null ? null : `${v === 31 ? '' : v === 0 ? '0 ' : v + '+ '}${LABEL[i]}`)).filter(Boolean).join(' / ');
 
   // The box Pokémon that can take part in breeding this line, best for the goal first, at most 63.
   // mons: [{species, gender, ivs, nature, ability, moves, boxId}]; ability and moves are the goal's, if any.
@@ -97,7 +97,7 @@
       const same = ml === line;
       if (!ditto && !same && ![...M.groups].some((g) => L.groups.has(g))) continue;
       let score = same ? 3 : ditto ? 2 : 1, hits = 0;
-      m.ivs.forEach((v, i) => { if (goal[i] != null && v != null && v >= goal[i]) { hits++; score += 4; } });
+      m.ivs.forEach((v, i) => { if (Planner.meets(v, goal[i])) { hits++; score += 4; } });
       if (nature && m.nature === nature) { hits++; score += 6; } // worth more than one IV: only an owned one saves buying it
       // the goal's ability (from its own line) or egg moves: without them in the pool there's no plan at all
       if (ability && same && m.ability === ability) { hits++; score += 8; }
@@ -110,7 +110,7 @@
     // What each one brings, so a full box still gives the planner mothers, fathers and every stat the goal needs.
     const keysOf = ([, m]) => {
       const ditto = m.species === 'Ditto', who = ditto ? 'D' : (dex.lineOf(m.species) === line ? '' : 'x') + m.gender, out = [who];
-      m.ivs.forEach((v, i) => { if (goal[i] != null && v != null && v >= goal[i]) out.push(who + i); });
+      m.ivs.forEach((v, i) => { if (Planner.meets(v, goal[i])) out.push(who + i); });
       if (nature && m.nature === nature) out.push(who + 'n');
       return out;
     };
@@ -152,7 +152,7 @@
   // nature), and there's a Pokémon of the line itself. When buying is allowed a 1×31 fills any one gap.
   function missing(dex, line, goal, nature, pool, buy, ability, moves) {
     const gaps = [];
-    goal.forEach((v, i) => { if (v != null && !pool.some((p) => p.ivs[i] != null && p.ivs[i] >= v)) gaps.push(i); });
+    goal.forEach((v, i) => { if (v != null && !pool.some((p) => Planner.meets(p.ivs[i], v))) gaps.push(i); });
     const noNature = !!nature && !pool.some((p) => p.nature === nature);
     const noLine = !pool.some((p) => !p.isDitto && dex.lineOf(p.species) === line);
     // an ability or egg move can't be bought, so these block even with buying allowed

@@ -11,7 +11,18 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
 
 **Use it at [smearguru.org](https://smearguru.org).**
 
-![The planner with a 5×31 Torkoal plan: the goal on the left, the 15-breed plan and its cost on the right](docs/screenshot.png)
+![The planner with an Adamant 5×31 Shuppet opened from the Build center: the goal on the left, the 9-breed plan from the Pokémon in two boxes and its cost on the right](docs/screenshot.png)
+
+## A quick look
+
+| Start from a build: common builds | Start from a build: competitive sets |
+| --- | --- |
+| <img src="docs/screens/common-builds.webp" width="400" alt="Eight common builds as cards (Breloom, Smeargle, Typhlosion, Cloyster, Dusknoir, Persian, Meowth, Banette), with Catching Breloom open: Adamant, Poison Heal, Toxic Orb, Atk and Spe 31, False Swipe tagged egg or TM"> | <img src="docs/screens/competitive-sets.webp" width="400" alt="Competitive sets from the PokeMMO StratDex with OU, UU, NU and Doubles filters; Swords Dance Garchomp open with its nature, hidden ability, Leftovers, IVs, EVs and type-coloured moves"> |
+| **Events: Christmas raids** | **My box with IV stats** |
+| <img src="docs/screens/events.webp" width="400" alt="The Events tab: a Christmas event raids bar, a chip for each raid boss with its stars, and support and weather builds marked with how many raids use them"> | <img src="docs/screens/my-box.webp" width="400" alt="A 60-spot PC box with shiny stars, hidden-ability diamonds and 31 counts; the 3×31 bar of the IV stats chart is picked, so the twelve 3×31 Pokémon are lit up and the rest dimmed; rough worth below"> |
+
+![The Build center: one card per species line, best first, each with its goal, breeds, cost, the box Pokémon it uses and nature and ability dropdowns](docs/screens/build-center.webp)
+
 
 ## Features
 
@@ -52,20 +63,42 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
   "you hatched it" cards and the Pokémon used to breed them stay out). Undo above the plan, or Clear checkmarks,
   goes back.
 - **Egg moves and TMs.** It plans who has to know each egg move, or lets you teach it with a TM instead.
-- **Common builds.** Catching Breloom, Smeargle, gym re-run Typhlosion and Thief Dusknoir fill in the goal
-  in one click, from their own dropdown above the goal.
+- **Start from a build.** A folding panel above the goal with three tabs: Common builds, Competitive sets and Events.
+  Each build is a card (a stripe in its types' colours, nature and item chips, the IVs it needs); clicking one opens
+  its details underneath (nature, ability with the game's hidden ability mark, held item with its icon, IVs, EVs where
+  the set gives them, and moves coloured by type) and "Use this build" loads it. A move that has to be bred in is
+  tagged "egg move", or "egg or TM" when a TM can teach it instead.
+- **Common builds.** Catching Breloom (Toxic Orb) and Smeargle (Safety Goggles or Leftovers), gym re-run Typhlosion
+  (Choice Specs), trainer re-run Cloyster (Choice Band, Icicle Spear), fossil farming Dusknoir, Pay Day Persian
+  (Silk Scarf), Pickup Meowth and Amulet Coin Banette (Frisk and Thief). They live in `PRESETS` in `src/page.html`.
+- **Competitive sets.** Under "Start from a build", a searchable list of PokeMMO PvP sets (OU, UU, NU, Doubles), each
+  with its nature, ability (hidden ones marked), the IVs that must be 31 or 0, and the egg moves to breed in. Picking
+  one replaces the goal and keeps your Pokémon; the item goes into the costs when the planner knows it. Build
+  center cards list the sets for their line and open them in the planner with your box. The sets live in
+  `data/presets.json`, taken from the PokeMMO StratDex (mmoshowdown.com) in November 2026: each has a `source`
+  link and a `basis`, `set` for a set written there or `usage` for one put together from its PokeMMO usage stats
+  where no set is written yet (shown as "from usage", left `"verified": false`).
+- **0 IVs.** A goal stat can be 0 as well as 31 (the 0 button under each IV): 0 Spe for Trick Room or Gyro Ball, 0 Atk
+  for special attackers. A 0 is planned like a 31 (a parent with it holds the Power item, or both parents have it),
+  but it's never bought, so it has to come from your own Pokémon. With exact IV numbers, a goal of 0 means exactly 0.
+- **Event builds.** The Events tab holds raid builds for the Christmas event: a chip for each raid boss (its stars,
+  phases and the plan people used) and the builds for it, grouped by what they do, with a ⭐ on the ones that work in
+  five or more raids. See [Event builds](#event-builds).
 - **Saved builds.** Keep several setups, and move them to another device with a code.
 - **My box.** A second tab holds the Pokémon from your game in a PC box like PokeMMO's: box icons in a
-  10×6 grid of 60 spots like PokeMMO's (6 across on phones, so the icons stay readable), several named boxes (Delete this box asks first, then offers Undo), alphas drawn bigger with a red outline, the game's gold star on shinies and a blue diamond on hidden-ability Pokémon, drag to move. Hover over one to see its IVs, nature, ability and egg moves.
+  10×6 grid of 60 spots like PokeMMO's (6 across on phones, so the icons stay readable), several named boxes (Delete this box asks first, then offers Undo), alphas drawn bigger with a red outline, the game's gold star on shinies, its hidden ability mark on hidden-ability Pokémon, costumed icons with a hanger mark, and eggs drawn as an egg, drag to move. Hover over one to see its IVs, nature, ability and egg moves.
   Sort works like the game's sort menu: pick one or more of Level, Pokédex Number, 31 IV, Total IV, Gender, Egg group,
   Primary type, Catch Date and Name (the first picked decides the order, the next breaks ties, each can be flipped),
   then Sort this box or all of them, with Undo. Catch date is when a Pokémon went into the box on the site; level is
   optional (set in the editor, read off the game's panel or a "Level:" line, 1 for hatched Pokémon).
   Under the box, IV stats show the average IV total and how many Pokémon have 0×31 up to 6×31, for this box or all
-  of them; Copy stats puts that on the clipboard as a few lines of text to paste in Discord.
-  Below that is a rough Pokéyen worth: each Pokémon counts as what a similar one costs on the GTL (1×31 to 3×31 from
-  the planner's buy prices, natured when its nature suits the species; 0×31, 4-6×31, hidden ability, egg moves,
-  shiny, alpha and costume are editable guesses under "How this is counted"). It's labelled an estimate.
+  of them; Copy stats puts that on the clipboard as a few lines of text to paste in Discord. Hovering over a bar
+  lights up those Pokémon in the box and dims the rest; clicking (or tapping) it keeps them lit until you click it
+  again or press Esc, and the note says how many more are in your other boxes.
+  Below that is a rough Pokéyen worth: each Pokémon counts as about what a similar one sells for on the GTL
+  (shinies, alphas, hidden abilities, costumes, natures, strong species and 7:1 females each adjust it), labelled an
+  estimate, with every value editable under "How this is counted". The defaults come from GTL guides and player
+  reports; see [Box worth](#box-worth).
   Tick "Use the Pokémon in my box" and the planner breeds with them; ticking off breeds can take the parents
   out of the box and put the finished Pokémon in (unticking puts them back). The box is kept apart from saved
   builds and moves to another device with its own code. Box size is `BOX_COLS`/`BOX_ROWS` in `src/page.html`.
@@ -133,8 +166,14 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
   and go through the box a row at a time from its top-left spot. Each Pokémon is read off the box's side panel as
   the cursor reaches it (species, level, gender, IVs, nature, ability, egg moves) and lands in the same spot of
   the box on show if that box is empty (keeping any name you gave it), or else of a new box, after a check-over
-  list. Pokémon can also be pasted as text in the Showdown / PokePaste format (as in Showdown, an IV left out is a 31; `? Atk`
+  list. It also reads the game's name for the box (and names the new box after it), alphas, shinies, costumes and
+  eggs, and follows the cursor even while the game pulses it dim. Use the arrow keys rather than the mouse.
+  Pokémon can also be pasted as text in the Showdown / PokePaste format (as in Showdown, an IV left out is a 31; `? Atk`
   marks an unknown one). Rescan a box later to pick up what changed in the game. See [Importing from PokeMMO](#importing-from-pokemmo).
+- **The game's own icons.** Braces, Everstone and incenses are drawn with the Black/White item icons PokeMMO shows,
+  and hidden abilities with the game's small diamond from its box. The icons are snapped to whole screen pixels at
+  any zoom or Windows scaling, so they stay crisp, and get a thin light rim in the dark theme. Held items on builds
+  use the item sprites from PokeAPI.
 - **Works anywhere.** Phone-friendly, light and dark themes, and it can be added to your home screen like
   an app. Nothing to sign up for, and what you enter stays in your browser.
 
@@ -202,6 +241,11 @@ Every push to `main` builds the site and publishes it to GitHub Pages
 | `src/planner.js` | The breeding search. Also runs in Node: `require('./src/planner.js')`. |
 | `src/builds.js` | The Build center's goal ladders and suggestions, which call the planner. Also runs in Node. |
 | `test/planner.test.js` | Checks for the breeding search (`node test/planner.test.js`). |
+| `docs/screenshot.png`, `docs/screens/` | The screenshots in this README (taken from a local build in the dark theme). |
+| `data/presets.json` | The competitive sets, one per line, for editing by hand. Each set has its StratDex `source` and `basis`; `"verified": true` only for written StratDex sets. |
+| `test/presets.test.js` | Checks every competitive set against the species data (`node test/presets.test.js`). |
+| `data/events.json` | Seasonal event raid builds (Christmas), one per line: the event's text, its raid bosses and the builds for them. See [Event builds](#event-builds). |
+| `test/events.test.js` | Checks the event builds against the species data (`node test/events.test.js`). |
 | `test/builds.test.js`, `test/builds-bench.js` | Checks for the Build center, and a timing run on a made-up box (`node test/builds-bench.js 300`). |
 | `data/species.json` | Every species' types (Gen 5, so no Fairy), egg groups, gender ratio, abilities, egg moves and Gen 5 base stats. |
 | `data/tms.json` | Which species can learn each TM the page offers. |
@@ -210,7 +254,11 @@ Every push to `main` builds the site and publishes it to GitHub Pages
 | `data/logo.png` | The Smearguru logo, painted onto Smeargle's box icon by `src/build-logo.py`. |
 | `data/costume-reader.png` | Plain and costumed icons the screen import compares box spots with to see a costume. |
 | `data/unknown-icon.png` | The "?" icon shown for an unknown or empty species (the sheet's own "?" at the end is no longer used). |
-| `src/items.py` | The brace, Everstone and incense icons, drawn as SVG. |
+| `data/item-icons.png`, `data/item-icons.json` | Held item icons for builds (Choice Band, Leftovers, Toxic Orb…), from PokeAPI by `src/build-item-icons.py`. |
+| `data/move-types.json` | Each move's type, for the type-coloured move tags on build cards (from Pokémon Showdown). |
+| `data/costume-icons.png` | Costumed box icons, made by `src/build-costume-icons.py` (see the costume rule above). |
+| `data/breeding-items.png` | PokeMMO's brace, Everstone and incense icons (the Black/White item icons the game shows), taken from a ROM by `src/build-breeding-icons.py`. That script also prints the game's hidden ability mark used for `HA_ICON` in `src/page.html`. |
+| `src/items.py` | Puts the breeding item icons into the page, one SVG symbol per icon. |
 | `public/` | App icons, favicons, the link-preview image and the web app manifest (redrawn by `src/build-icons.py`), and the page's fonts (`public/fonts`, under the SIL Open Font License). |
 | `build.py` | Puts it all into `dist/`, along with `404.html`, `robots.txt` and `sitemap.xml`. Also writes `build/artifact.html`, a version for claude.ai. |
 | `site-url.txt` | The site's address, used for link previews and the sitemap. |
@@ -218,6 +266,18 @@ Every push to `main` builds the site and publishes it to GitHub Pages
 | `src/extract-species.js`, `src/extract-stats.js`, `src/extract-tms.js`, `src/extract-learners.js`, `src/build-sprites.py` | Regenerate the data from Pokémon Showdown and PokeAPI (run `extract-stats.js` after `extract-species.js`, which leaves the base stats out). |
 
 The scripts that redraw images need Pillow; everything else needs only Python 3's standard library.
+
+## Event builds
+
+Seasonal raid builds live in `data/events.json` (Christmas for now) and show as their own group under
+"Start from a build": a chip for each raid boss (its phases and the plan people used), and the builds used
+in it. Loading one works like a competitive set: the goal is replaced and your Pokémon stay.
+
+- **Hide it after the event:** set `"on": false` in `event`, then rebuild.
+- **Next event:** replace `event` (label, dates text, rules, sources), `raids` and `sets`. Sets are written
+  like the competitive sets plus `raids` (the raid keys they're used in); give keys the event's prefix (`xmas-`).
+- `node test/events.test.js` checks every build against the species data and every raid key.
+- The Christmas builds come from the 2024 and 2025 raid guides and are unverified until checked in game.
 
 ## Importing from PokeMMO
 
@@ -227,12 +287,20 @@ cursor. Each time the cursor settles on a new spot, a copy of the panel is read 
 [Tesseract.js](https://github.com/naptha/tesseract.js) (open-source text recognition, about 4 MB, loaded from
 jsDelivr the first time and run in the browser), and the text is matched against the site's species, natures,
 abilities and egg moves. The spot comes from where the cursor was, so the direction you go doesn't matter and a
-spot visited twice is just read again. The party column is left out.
+spot visited twice is just read again. The party column is left out. While the cursor moves, the game pulses it between a bright blue, rgb(0,190,253),
+and a dimmer rgb(66,168,204), so the reader tells it by its hue rather than its brightness (going by brightness lost
+it in about half the frames of a recorded run, and a spot it only stopped on while dim was never read).
+
+The game's name for the box ("B1", "SHITTOS"), centred above the box tabs, is read too: when the reader starts and
+whenever it changes. A new box made from the import is named after it (the name can still be changed before adding),
+the review says when you already have a box of that name (Rescan updates it instead), and warns when the reads came
+from more than one game box or, on a Rescan, from a game box with another name. Text recognition takes a 1 for an l
+now and then, so in a name that's capitals and digits apart from that, an l or | reads as 1 ("Bl" becomes "B1").
 
 The page asks you to start on the box's top-left spot and go a row at a time: → along the top row, ↓ at its
 end, ← back along the next row, and so on down the box, waiting for each Pokémon to show up on the page's map
-before moving on. That works whether or not the cursor wraps round at the end of a row, and never takes it into
-the party column. Holding a key down isn't recommended: the game's key repeat outruns the screen share and
+before moving on. In PokeMMO, → at the end of a row goes to the party column rather than the next row (Sean
+checked), so the snake never takes it there; a stray trip into the party column is ignored. Holding a key down isn't recommended: the game's key repeat outruns the screen share and
 Pokémon get skipped (in Chrome and Edge every frame of the shared window is looked at as it arrives; other
 browsers check about 40 times a second). The page tells filled spots from empty ones by their sprites and level
 numbers, marks the cursor's spot on its map, and outlines in red any Pokémon the cursor went past without a
@@ -245,6 +313,16 @@ before touching anything: a different Pokémon in a spot replaces the old one, a
 the same box is moved there (keeping its nickname and egg moves from the site), and a spot that's now empty in the
 game, with the cursor gone over it, is emptied. Untick any change that looks wrong, apply, and Undo puts it all back.
 
+Screen capture can catch the game half-way through redrawing the side panel, and a copy that mixes two Pokémon reads
+wrong. So each spot is read as soon as its panel changes, and that read only counts as sure once two looks at least
+50 ms apart see the same panel (if it changed in between, it's read again); a spot the cursor merely passed over keeps
+its first read, marked as glimpsed, and a glimpse never replaces a sure read. On a Rescan, a glimpsed spot that seems to
+hold a different Pokémon is listed unticked, and a Pokémon that matches the box in everything but one IV is taken as the
+same one (most likely a misread) with an unticked line offering the new number, in case the box is the one that's wrong.
+Once the panel has held steady with the cursor on a spot, a panel change while the cursor stays put is ignored: it's
+most likely the mouse pointer resting on another Pokémon. Clicking spots with the mouse didn't work well in Sean's tests
+(2026-11-21), so the steps and tips say to use the arrow keys.
+
 Nothing is saved or uploaded. Copies of the side panel stay in the browser's memory and are dropped when the
 player reads again or closes the page; "Save what was read" downloads them as a file for a bug report, and only
 when pressed. Reading text off the screen isn't perfect, so the check-over list matters, and interface mods,
@@ -256,7 +334,34 @@ interception and anything that automates input, so the import is built to stay c
 it with a macro or auto-clicker to step through the box.
 
 It is tuned to the default interface theme. Alphas are picked up from the red mark in the panel's corner, and shinies from the gold star in the same corner.
-Eggs are left out, since the panel shows ??? for their IVs, nature and ability until they hatch.
+Eggs are read too: the panel's title says what one hatches as ("Lv. ??? Togepi Egg") and its moves show, while
+Stats, IVs, nature and ability show ??? until it hatches. An egg goes in the box as that species with the egg flag
+(drawn as an egg with the species small in the corner, "Egg: Yes" in text, a trailing list in box codes); the
+planner, Build center, IV stats and box worth leave eggs out until the flag is unticked in the box editor or a
+Rescan reads the hatched Pokémon in its spot.
+
+## Box worth
+
+The My box worth estimate (`monWorth` in `src/page.html`) uses these defaults, researched 2026-11-22. GTL prices
+move and nobody publishes Pokémon sale data (price trackers like PokeMMO Hub and mmobreeder.com/market cover
+items only), so these are ballparks from guides and player reports:
+
+| What | Value | Where it comes from |
+| --- | --- | --- |
+| 0×31 | $1k, $3k with a good nature | Random Magikarp sell for ~600-1,300 ([GTL guide, forums 2026](https://forums.pokemmo.com/index.php?/topic/199224-pokemmo-ultimate-master-gtl-guide/)) |
+| 1-3×31 | the planner's buy prices | ~5k / ~20k / ~80k ([PikaMMO GTL guide](https://www.pikammo.fr/Pokemmo/en/money/gtl-trading)); natured 1×31 8-15k, 2×31 20-50k, 3×31 50-90k (forum guide) |
+| 4×31 | $150k, $300k good nature | PikaMMO average ~300k; brace cost alone 140k ([wiki](https://pokemmo.shoutwiki.com/wiki/Guide:Money_Making/Breeding_for_Profit)); a 4×31 male can turn up for ~80k ([forum, May 2026](https://forums.pokemmo.com/index.php?/topic/197806-how-do-people-breed-5x316x31-pok%C3%A9mon-cheaply/)) |
+| 5×31 | $400k, $900k good nature | 5×31 male breeder ~400k (same forum thread); natured 5×31 "1M+", costs ~935k to breed (PikaMMO, wiki) |
+| 6×31 | $700k, $1.5M good nature | ~885k to breed without a nature ([PikaMMO breeding tool](https://www.pikammo.fr/Pokemmo/en/tools/breeding)); egg-shiny hunters sell 5-6×31 leftovers at a loss, which keeps prices down |
+| Strong / weak species | ×1.5 / ×0.6 on 4-6×31 | line's best base stat total 580+ / under 450; "right nature and species" 5×31 sell for 1M+ (PikaMMO) |
+| Female of a 7:1 species | ×1.5 | females pass the species on and are scarce in starter lines (forum guide, wiki) |
+| Hidden ability | +50%, at least +$20k | HA Pokémon 50k-500k (PikaMMO) |
+| Shiny | +$2M | 200k to 10M+ (PikaMMO); common horde shinies 2-8M per a bot seller's guide (April 2026); a rare Kecleon went for 6-10M ([forum, 2023](https://forums.pokemmo.com/index.php?/topic/168304-people-how-much-could-this-shiny-cost/)); players say prices fell in 2026 |
+| Alpha | +$15k | alphas come with 2×31 and their hidden ability, which are counted already; unwanted alphas sell for $5-8k ([forum](https://forums.pokemmo.com/index.php?/topic/162612-alpha-trade-ins-or-other-way-to-remove-alphas-from-circulation/)) |
+| Costume | +$250k | a guess: no public prices found |
+| Egg move, 0 Atk/Spe | +$10k each | a guess |
+
+Not counted: secret shinies, event-only alphas (Kanto starters, Suicune, Articuno), which sell for far more.
 
 ## Credits
 

@@ -35,6 +35,10 @@
   // costume as its place in this list, so only ever add to the end.
   const COSTUMES = [['Royal', 'Charmander'], ['Ninja', 'Meowth'], ['Vampire', 'Sneasel'], ['Pirate', 'Gible'], ['Pharaoh', 'Riolu']];
 
+  // Whether an IV meets a goal: 0 means exactly 0 (a Trick Room 0 Spe, a special attacker's 0 Atk), any other
+  // number is a minimum. An unknown IV (null) never meets one.
+  function meets(v, want) { return v != null && want != null && (want === 0 ? v === 0 : v >= want); }
+
   function popcount(m) { let c = 0; while (m) { c += m & 1; m >>= 1; } return c; }
   function bitsOf(m) { const r = []; for (let i = 0; i < 6; i++) if (m & (1 << i)) r.push(i); return r; }
 
@@ -100,9 +104,9 @@
     if (dex.lines.get(tLine).groups.size === 0)
       return { error: `${target.species} can't breed (Undiscovered egg group), so it can't be bred for IVs.` };
 
-    const tIV = target.ivs; // per stat: required minimum, or null
-    let needAll = 0;
-    for (let i = 0; i < 6; i++) if (tIV[i] != null) needAll |= 1 << i;
+    const tIV = target.ivs; // per stat: required minimum, 0 for exactly 0, or null
+    let needAll = 0, zeros = 0;
+    for (let i = 0; i < 6; i++) if (tIV[i] != null) { needAll |= 1 << i; if (tIV[i] === 0) zeros |= 1 << i; }
     const tMoves = target.moves || [];
     // A baby goal that needs an incense: the last breed has a parent hold it, and the egg's gender
     // follows the baby's ratio.
@@ -115,7 +119,7 @@
       const line = p.isDitto ? 'Ditto' : dex.lineOf(p.species);
       const s = dex.byName.get(String(p.species).toLowerCase());
       let mask = 0;
-      for (let s = 0; s < 6; s++) if (tIV[s] != null && p.ivs[s] != null && p.ivs[s] >= tIV[s]) mask |= 1 << s;
+      for (let s = 0; s < 6; s++) if (meets(p.ivs[s], tIV[s])) mask |= 1 << s;
       return {
         i, src: p, line, isDitto: !!p.isDitto, gender: p.gender, mask, name: s ? s.n : '',
         // Pokémon that never breed (Nidorina, ...) only count if they already are the Pokémon you want.
@@ -250,7 +254,9 @@
     }
 
     // kind 'L' = must be this line (it passes on the species); 'C' = any line it can breed with.
+    // The GTL prices are for 31s, so a parent that has to have a 0 IV is never bought: it comes from your Pokémon.
     function buyLeaf(line, gender, need, nat, ditto, kind) {
+      if (need & zeros) return null;
       const o = offer(popcount(need), nat, ditto);
       if (!o) return null;
       const stats = bitsOf(need);
@@ -560,7 +566,7 @@
       const vals = [...odds.keys()];
       return { low: Math.min(...vals), high: Math.max(...vals), avg: avg(i), braced: braced.has(i), odds: new Map([...odds].sort((x, y) => x[0] - y[0])) };
     });
-    const chance = (want) => outcomes.reduce((t, [w, iv]) => (want.every((v, i) => v == null || iv[i] >= v) ? t + w : t), 0);
+    const chance = (want) => outcomes.reduce((t, [w, iv]) => (want.every((v, i) => v == null || meets(iv[i], v)) ? t + w : t), 0);
     return { stats, chance };
   }
 
@@ -585,7 +591,7 @@
     return list.filter((_, i) => chosen.has(i));
   }
 
-  const api = { STATS, BRACES, INCENSE, COSTUMES, buildDex, plan, popcount, bitsOf, eggOdds, pickDiverse };
+  const api = { STATS, BRACES, INCENSE, COSTUMES, buildDex, plan, meets, popcount, bitsOf, eggOdds, pickDiverse };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Planner = api;
 })(typeof window !== 'undefined' ? window : globalThis);
