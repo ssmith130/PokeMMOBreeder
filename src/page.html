@@ -203,6 +203,10 @@ ol.steps li { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10
 .g-pick { font-size: 1.12em; white-space: nowrap; } .g-pick .g-F, .g-pick .g-M { font-size: 1.16em; } .g-pick-F { color: var(--female); } .g-pick-M { color: var(--male); }
 .outcome b.ink { color: var(--ink); }
 .evo-note { font-size: 12px; color: var(--accent); }
+.iv.lost { text-decoration: line-through; opacity: .55; }
+.waste-note { font-size: 12.5px; color: var(--muted); margin: 0; border-left: 3px solid var(--cost, var(--accent-soft)); padding-left: 8px; }
+.waste-note b { color: var(--ink); font-weight: 600; }
+ol.steps li.is-done .waste-note { display: none; }
 /* Pokémon to take out of the box: a small map of each box laid out like the game's, with the spots to take
    marked by the breed they go to, then the same spots as a list in reading order */
 .pull { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--sunk); }
@@ -691,7 +695,7 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 /* Costume (Royal, Pirate, ...): the game's costumed icon, a purple tag with its name, and on box spots a small hanger
    under the corner diamond. */
 .tip-costume { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; background: #7b3fb8; border-radius: 4px; padding: 0 5px; white-space: nowrap; }
-.costume-mark { position: absolute; right: 4px; top: 16px; width: 13px; height: 11px; }
+.costume-mark { position: absolute; right: 4px; top: 16px; width: 13px; height: 11px; overflow: visible; } /* the hook's outline pokes above its box */
 .costume-pick select { padding: 4px 6px; }
 .slot .g { position: absolute; right: 5px; bottom: 1px; font-size: 12px; }
 .slot .egg-icon { width: 30px; height: 36px; }
@@ -709,6 +713,7 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .shiny-star { display: inline-block; width: 15px; height: 15px; vertical-align: -2px; flex: none; margin-right: 3px; }
 .slot .shiny-mark { position: absolute; left: 5px; top: 4px; width: 11px; height: 11px; }
 .slot.shiny .n31 { left: 19px; }
+.tip-ot { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.06em; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
 .tip-shiny { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: #4a3000; background: #f7c632; border-radius: 4px; padding: 0 5px; }
 .slot .lv { position: absolute; left: 3px; bottom: 2px; padding: 0 2px; border-radius: 3px; font-family: var(--f-mono); font-size: 9.5px; line-height: 1.25; color: var(--ink);
   background: color-mix(in srgb, var(--surface) 75%, transparent); }
@@ -935,6 +940,7 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
           <label class="f">Gender<select id="t-gender"><option value="A">Either</option><option value="F">♀ Female</option><option value="M">♂ Male</option></select></label>
         </div>
         <label class="check"><input type="checkbox" id="t-shiny"> <span id="t-shiny-l">Shiny</span></label>
+        <label class="check" id="t-ot-l" hidden title="Your OT only carries to the egg from a shiny you caught of the same species"><input type="checkbox" id="t-ot"> Keep my OT (breed from a shiny I caught)</label>
         <p class="small muted" id="t-shiny-note" hidden></p>
         <label class="check"><input type="checkbox" id="t-alpha"> <span id="t-alpha-l">Alpha</span></label>
         <p class="small muted" id="t-alpha-note" hidden></p>
@@ -1293,7 +1299,8 @@ const okCostume = (species, c) => (typeof c === 'string' && c && dex.costumesOf(
 const costumeOptions = (species, value, none) => [['', none], ...dex.costumesOf(species).map((c) => [c, `${c} ${sp(species) ? sp(species).n : ''}`.trim()])]
   .map(([v, l]) => `<option value="${esc(v)}"${v === (value || '') ? ' selected' : ''}>${esc(l)}</option>`).join('');
 const costumeTag = (c) => (c ? `<span class="tip-costume">${esc(c)}</span>` : '');
-const COSTUME_MARK = '<svg class="costume-mark" viewBox="0 0 13 11" aria-hidden="true"><path d="M6.5 1.2a1.3 1.3 0 1 1 1.3 1.3c-.7 0-1.3.5-1.3 1.2v.6L12 8.6c.6.4.3 1.4-.4 1.4H1.4c-.7 0-1-1-.4-1.4l5.5-4.3" fill="none" stroke="#2a1640" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 1.2a1.3 1.3 0 1 1 1.3 1.3c-.7 0-1.3.5-1.3 1.2v.6L12 8.6c.6.4.3 1.4-.4 1.4H1.4c-.7 0-1-1-.4-1.4l5.5-4.3" fill="none" stroke="#c99bff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+// a clothes hanger: a round hook over the middle on an S-bent neck, on a triangle
+const COSTUME_MARK = '<svg class="costume-mark" viewBox="0 0 13 11" aria-hidden="true"><path d="M5.4 2.9a1.15 1.15 0 1 1 2.2-.6c0 .9-1.1 1-1.1 1.9V4.5L12 8.7c.6.4.3 1.4-.4 1.4H1.4c-.7 0-1-1-.4-1.4l5.5-4.2" fill="none" stroke="#2a1640" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.4 2.9a1.15 1.15 0 1 1 2.2-.6c0 .9-1.1 1-1.1 1.9V4.5L12 8.7c.6.4.3 1.4-.4 1.4H1.4c-.7 0-1-1-.4-1.4l5.5-4.2" fill="none" stroke="#c99bff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 // What a first-time visitor sees: no goal and no Pokémon yet. "None, fill in my own" goes back to it too.
 function emptySetup() {
@@ -1309,9 +1316,9 @@ function normalizeData(d) {
   const t = d.target, P = d.prices && typeof d.prices === 'object' ? d.prices : {};
   return {
     target: { species: str(t.species), ivs: ivList(t.ivs), gender: t.gender === 'F' || t.gender === 'M' ? t.gender : 'A', nature: NATURES.includes(t.nature) ? t.nature : '',
-      ability: str(t.ability), wantMoves: !!t.wantMoves, moves: strs(t.moves), shiny: t.shiny === true, alpha: t.alpha === true, costume: okCostume(str(t.species), t.costume) },
+      ability: str(t.ability), wantMoves: !!t.wantMoves, moves: strs(t.moves), shiny: t.shiny === true, ot: t.ot === true, alpha: t.alpha === true, costume: okCostume(str(t.species), t.costume) },
     mons: d.mons.filter((m) => m && typeof m === 'object').slice(0, 63).map((m) => ({ species: str(m.species), gender: ['F', 'M', 'N'].includes(m.gender) ? m.gender : 'F',
-      ivs: ivList(m.ivs), nature: NATURES.includes(m.nature) ? m.nature : '', ability: str(m.ability), moves: strs(m.moves), qty: Math.max(1, Math.min(20, parseInt(m.qty, 10) || 1)), shiny: m.shiny === true, alpha: m.alpha === true, costume: okCostume(str(m.species), m.costume) })),
+      ivs: ivList(m.ivs), nature: NATURES.includes(m.nature) ? m.nature : '', ability: str(m.ability), moves: strs(m.moves), qty: Math.max(1, Math.min(20, parseInt(m.qty, 10) || 1)), shiny: m.shiny === true, ot: m.ot === true, alpha: m.alpha === true, costume: okCostume(str(m.species), m.costume) })),
     prices: Object.fromEntries(Object.entries(defaultPrices()).map(([k, v]) => [k, typeof P[k] === 'number' && isFinite(P[k]) ? P[k] : v])),
     extras: Array.isArray(d.extras) ? d.extras.filter((k, i, a) => EXTRA[k] && a.indexOf(k) === i) : [],
     mode: d.mode === 'cost' ? 'cost' : 'breeds', buys: normalizeBuys(d.buys, d.buy), exact: !!d.exact,
@@ -1334,7 +1341,7 @@ function cleanLuck(a) {
         rows: (Array.isArray(e.rows) ? e.rows : []).filter((x) => Array.isArray(x) && Number.isInteger(x[0]) && x[0] >= 0 && x[0] < 63).map((x) => [x[0], str(x[1])]).slice(0, 64),
         sigs: (Array.isArray(e.sigs) ? e.sigs : []).filter(sig).slice(0, 64),
         mon: { species: str(m.species), gender: ['F', 'M', 'N'].includes(m.gender) ? m.gender : 'F', ivs: ivList(m.ivs), nature: NATURES.includes(m.nature) ? m.nature : '',
-          ability: str(m.ability), moves: strs(m.moves), shiny: m.shiny === true, alpha: m.alpha === true, costume: str(m.costume) } };
+          ability: str(m.ability), moves: strs(m.moves), shiny: m.shiny === true, ot: m.ot === true, alpha: m.alpha === true, costume: str(m.costume) } };
     }),
   }));
 }
@@ -1444,6 +1451,12 @@ function renderShinyGoal() {
   $('t-shiny-note').textContent = t.shiny
     ? 'A shiny can only breed with another shiny, and two shinies always make a shiny egg. So this plan uses only your shiny Pokémon (and shiny Dittos), and buying parents is off.'
     : n ? `Your ${n === 1 ? 'shiny is' : `${n} shinies are`} left out: a shiny can only breed with another shiny. Tick Shiny to breed a shiny instead.` : '';
+  // OT: a shiny egg keeps your OT only when it's the same species as a shiny you caught (PokeMMO Wiki, Breeding:
+  // Maintaining Original Trainer). An OT female can take any shiny father; an OT male needs a shiny mother of his
+  // own species or a shiny Ditto. The planner treats a whole evolution line as one species.
+  $('t-ot-l').hidden = !t.shiny;
+  $('t-ot').checked = !!t.ot;
+  if (t.shiny && t.ot) $('t-shiny-note').textContent += ` Keeping your OT: every breed has one of your caught shinies of this line (ticked "Caught OT") as a parent, so the egg is its species. An OT female can take any shiny father; an OT male needs a shiny mother of his own line, or a shiny Ditto.`;
 }
 // Alpha goal. In PokeMMO an egg is only alpha when both parents are alpha (with Ditto, the Ditto must be alpha too;
 // MMOBreeder and the forum breeding guide). So an alpha goal breeds only from alpha parents, all the way down, and
@@ -1566,6 +1579,7 @@ function renderMons() {
         <div class="stats">${STAT_KEYS.map((_, i) => ivControl(m.ivs, i, 'm' + m.id, state.exact, '#' + (n + 1))).join('')}</div>
         <label class="check"><input type="checkbox" id="m${m.id}-all" data-all="1" ${m.ivs.every((v) => v === 31) ? 'checked' : ''}> All 31</label>
         <label class="check"><input type="checkbox" id="m${m.id}-shiny" data-shiny="1" ${m.shiny ? 'checked' : ''}> ${SHINY_STAR}Shiny</label>
+        <label class="check" title="You caught it yourself, so it has your OT"><input type="checkbox" id="m${m.id}-ot" data-ot="1" ${m.ot ? 'checked' : ''}> Caught OT</label>
         <label class="check"><input type="checkbox" id="m${m.id}-alpha" data-alpha="1" ${m.alpha ? 'checked' : ''}> ${ALPHA_MARK}Alpha</label>
         <label class="check costume-pick" id="m${m.id}-costume-l"${dex.costumesOf(m.species).length ? '' : ' hidden'}>Costume <select id="m${m.id}-costume" data-f="costume">${costumeOptions(m.species, m.costume, 'None')}</select></label>
       </div>
@@ -1619,6 +1633,7 @@ document.addEventListener('input', (e) => {
     if (el.dataset.iv != null) { m.ivs[+el.dataset.iv] = readIv(el); const all = card.querySelector('[data-all]'); all.checked = m.ivs.every((v) => v === 31); return changed(); }
     if (el.dataset.all) { m.ivs = m.ivs.map(() => (el.checked ? 31 : null)); renderMons(); return changed(); }
     if (el.dataset.shiny) { m.shiny = el.checked; renderShinyGoal(); return changed(); }
+    if (el.dataset.ot) { m.ot = el.checked; return changed(); }
     if (el.dataset.alpha) { m.alpha = el.checked; return changed(); }
     const f = el.dataset.f;
     if (f === 'qty') m.qty = Math.max(1, Math.min(20, parseInt(el.value, 10) || 1));
@@ -1633,6 +1648,7 @@ document.addEventListener('change', (e) => {
   if (el.id === 't-gender') { state.target.gender = el.value; return changed(); }
   if (el.id === 't-want-moves') { state.target.wantMoves = el.checked; renderTarget(); return changed(); }
   if (el.id === 't-shiny') { state.target.shiny = el.checked; renderShinyGoal(); return changed(); }
+  if (el.id === 't-ot') { state.target.ot = el.checked; renderShinyGoal(); return changed(); }
   if (el.id === 't-alpha') { state.target.alpha = el.checked; renderAlphaGoal(); return changed(); }
   if (el.id === 't-costume') { state.target.costume = el.value; renderCostumeGoal(); $('t-sprite').innerHTML = sprite(state.target.species, 1, state.target.costume); return changed(); }
   if (el.id === 'mode') { state.mode = el.value; return changed(); }
@@ -2525,7 +2541,7 @@ function buildInput() {
     if (e.gone || !s || !!m.shiny !== shiny || (alpha && !m.alpha) || (m.costume && m.costume !== costume)) continue;
     const mv = (m.moves || []).map((x) => x.toLowerCase());
     pool.push({ worth: 0, species: s.n, isDitto: false, gender: m.gender, ivs: m.ivs.slice(), nature: m.nature, ability: m.ability, moves: canonAll.filter((x) => mv.includes(x.toLowerCase())),
-      hatched: e.id, shiny, alpha: !!m.alpha, costume: m.costume || '' });
+      hatched: e.id, shiny, ot: !!m.ot, alpha: !!m.alpha, costume: m.costume || '' });
   }
   state.mons.forEach((m, n) => {
     const s = sp(m.species); if (boxOnly || !s || shinyOf(m) !== shiny) return;
@@ -2535,7 +2551,7 @@ function buildInput() {
     const canon = (sTarget && sp(sTarget.b || sTarget.n) && sp(sTarget.b || sTarget.n).m) || [];
     const known = canon.filter((mv) => moves.includes(mv.toLowerCase()));
     const worth = state.protect ? Math.round(monWorth(m) / 2) : 0;
-    for (let q = rowUse.get(n) || 0; q < m.qty; q++) pool.push({ worth, species: s.n, isDitto: s.n === 'Ditto', gender: s.n === 'Ditto' ? 'N' : m.gender, ivs: m.ivs.slice(), nature: m.nature, ability: m.ability, moves: known, row: n + 1, shiny, alpha: alphaOf(m), costume: costumeOf(m) });
+    for (let q = rowUse.get(n) || 0; q < m.qty; q++) pool.push({ worth, species: s.n, isDitto: s.n === 'Ditto', gender: s.n === 'Ditto' ? 'N' : m.gender, ivs: m.ivs.slice(), nature: m.nature, ability: m.ability, moves: known, row: n + 1, shiny, ot: !!m.ot, alpha: alphaOf(m), costume: costumeOf(m) });
   });
   // Pokémon from the box, the ones that can help most first; the planner takes up to 63 in all.
   boxUse = { used: 0, left: 0 };
@@ -2546,7 +2562,7 @@ function buildInput() {
     for (const b of picked.mons) {
       const s = sp(b.mon.species), moves = b.mon.moves.map((x) => x.toLowerCase());
       pool.push({ species: s.n, isDitto: s.n === 'Ditto', gender: s.n === 'Ditto' ? 'N' : b.mon.gender, ivs: b.mon.ivs.slice(), nature: b.mon.nature, ability: b.mon.ability,
-        moves: canon.filter((mv) => moves.includes(mv.toLowerCase())), boxId: b.mon.id, spent: b.spent, shiny, alpha: alphaOf(b.mon), costume: costumeOf(b.mon),
+        moves: canon.filter((mv) => moves.includes(mv.toLowerCase())), boxId: b.mon.id, spent: b.spent, shiny, ot: !!b.mon.ot, alpha: alphaOf(b.mon), costume: costumeOf(b.mon),
         // half its rough worth (about what selling it brings), when "Protect my valuable Pokémon" is on; a Pokémon
         // this plan already bred counts as free
         worth: state.protect && !b.spent ? Math.round(monWorth(b.mon) / 2) : 0 });
@@ -2555,7 +2571,7 @@ function buildInput() {
   const P = state.prices;
   return {
     target: { species: t.species, ivs: t.ivs.slice(), gender: t.gender, nature: t.nature, ability: t.ability,
-      abilityHidden: !!(sTarget && t.ability && sTarget.h === t.ability), moves: bredMoves(), costume },
+      abilityHidden: !!(sTarget && t.ability && sTarget.h === t.ability), moves: bredMoves(), costume, ot: shiny && !!t.ot },
     pool,
     prices: { ...P, haChance: (P.haChance || 0) / 100, abilityChance: (P.abilityChance || 0) / 100 },
     // shinies and alphas can't be bought as parents here: a shiny or alpha plan uses only the ones you have
@@ -2631,10 +2647,13 @@ if ('IntersectionObserver' in window) new IntersectionObserver((es) => { planInV
 let view = 'steps';
 function lineGroups(line) { const L = dex.lines.get(line); return L ? [...L.groups].join(' / ') : ''; }
 function gSym(g) { return g === 'F' ? '<span class="g-F" title="Female">♀</span>' : g === 'M' ? '<span class="g-M" title="Male">♂</span>' : ''; }
-function ivChips(iv, need) {
+function ivChips(iv, lost = []) {
   const t = state.target.ivs;
   const out = [];
-  iv.forEach((v, i) => { if (Planner.meets(v, t[i])) out.push(`<span class="iv s-${STAT_KEYS[i]}">${STAT_LABEL[i]} ${v}</span>`); });
+  iv.forEach((v, i) => {
+    if (!Planner.meets(v, t[i])) return;
+    out.push(lost.includes(i) ? `<span class="iv s-${STAT_KEYS[i]} lost" title="Not passed on in this breed">${STAT_LABEL[i]} ${v}</span>` : `<span class="iv s-${STAT_KEYS[i]}">${STAT_LABEL[i]} ${v}</span>`);
+  });
   return out.length ? `<div class="ivs">${out.join('')}</div>` : '<span class="muted small">No IVs needed</span>';
 }
 function itemFor(n, side) {
@@ -2644,7 +2663,7 @@ function itemFor(n, side) {
   if (b >= 0) return `holds ${itemIcon(b)}<b>${BRACE[b]}</b> (${STAT_LABEL[b]})`;
   return 'holds nothing';
 }
-function leafCard(r, hold) {
+function leafCard(r, hold, lost) {
   const n = r.node;
   if (n.t === 'own') {
     const p = n.p.src;
@@ -2656,7 +2675,7 @@ function leafCard(r, hold) {
     const at = p.boxId && !p.spent ? findMon(p.boxId) : null;
     const where = p.hatched ? 'you hatched it' : p.boxId ? (p.spent ? 'from your box, used' : at ? `in <button class="linkbtn" type="button" data-show-mon="${esc(p.boxId)}" title="Show it in My box">${esc(box.boxes[at.b].name)}, ${spotText(at.s, true)}</button>` : 'in your box') : `your #${p.row}`;
     const nick = p.boxId && boxNick(p.boxId);
-    return `<div class="card${fresh ? ' fresh' : ''}"><div class="who${p.alpha ? ' alpha' : ''}">${sprite(p.species, 2, p.costume)}<span class="name">${gSym(p.gender)} ${p.shiny ? SHINY_STAR : ''}${p.alpha ? ALPHA_MARK : ''}${p.costume ? `${costumeTag(p.costume)} ` : ''}${esc(p.species)}${nick ? ` “${esc(nick)}”` : ''} <span class="muted small nobr where"><span class="dot">· </span>${where}</span></span></div>${ivChips(r.iv)}${tags.length ? `<div class="tags">${tags.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}</div>` : ''}${hold || p.species !== state.target.species ? evolveNote(p.species) : ''}${hold ? `<span class="hold">${hold}</span>` : ''}</div>`;
+    return `<div class="card${fresh ? ' fresh' : ''}"><div class="who${p.alpha ? ' alpha' : ''}">${sprite(p.species, 2, p.costume)}<span class="name">${gSym(p.gender)} ${p.shiny ? SHINY_STAR : ''}${p.alpha ? ALPHA_MARK : ''}${p.costume ? `${costumeTag(p.costume)} ` : ''}${esc(p.species)}${nick ? ` “${esc(nick)}”` : ''}${p.ot && state.target.shiny && state.target.ot ? ' <span class="tip-ot" title="Caught by you: the egg keeps your OT">OT</span>' : ''} <span class="muted small nobr where"><span class="dot">· </span>${where}</span></span></div>${ivChips(r.iv, lost)}${tags.length ? `<div class="tags">${tags.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}</div>` : ''}${hold || p.species !== state.target.species ? evolveNote(p.species) : ''}${hold ? `<span class="hold">${hold}</span>` : ''}</div>`;
   }
   if (n.t === 'buy') {
     // a father ('C') can be any species that shares an egg group; a mother passes on her species
@@ -2736,14 +2755,43 @@ function childCard(r, isFinal, num, hold, check) {
   if (n.nat) tags.push(esc(state.target.nature));
   if (n.abil) tags.push(esc(state.target.ability));
   if (n.mv) tags.push(...bredMoves().map(esc));
-  return `<div class="card ${isFinal ? 'result' : ''}"><div class="who${state.target.alpha ? ' alpha' : ''}">${n.baby ? sprite(n.baby) : n.cos ? sprite(dex.hatchName(n.line, n.gender), 2, state.target.costume) : hatchSprite(n.line, n.gender)}<span class="name">${gSym(n.gender)} ${state.target.shiny ? SHINY_STAR : ''}${state.target.alpha ? ALPHA_MARK : ''}${n.cos ? `${costumeTag(state.target.costume)} ` : ''}${esc(n.baby || hatchLabel(n.line, n.gender))} <span class="muted small nobr">· breed ${num}</span></span></div>${ivChips(r.iv)}${tags.length ? `<div class="tags">${tags.map((x) => `<span class="tag">${x}</span>`).join('')}</div>` : ''}${isFinal ? '' : evolveNote(n.baby || dex.hatchName(n.line, n.gender))}${hold ? `<span class="hold">${hold}</span>` : ''}${check ? doneRow(num) : ''}</div>`;
+  return `<div class="card ${isFinal ? 'result' : ''}"><div class="who${state.target.alpha ? ' alpha' : ''}">${n.baby ? sprite(n.baby) : n.cos ? sprite(dex.hatchName(n.line, n.gender), 2, state.target.costume) : hatchSprite(n.line, n.gender)}<span class="name">${gSym(n.gender)} ${state.target.shiny ? SHINY_STAR : ''}${state.target.alpha ? ALPHA_MARK : ''}${n.cos ? `${costumeTag(state.target.costume)} ` : ''}${esc(n.baby || hatchLabel(n.line, n.gender))}${n.ot ? ' <span class="tip-ot" title="Keeps your OT">OT</span>' : ''} <span class="muted small nobr">· breed ${num}</span></span></div>${ivChips(r.iv)}${tags.length ? `<div class="tags">${tags.map((x) => `<span class="tag">${x}</span>`).join('')}</div>` : ''}${isFinal ? '' : evolveNote(n.baby || dex.hatchName(n.line, n.gender))}${hold ? `<span class="hold">${hold}</span>` : ''}${check ? doneRow(num) : ''}</div>`;
 }
 function numberBreeds(res) {
   const order = [];
   (function walk(r) { if (r.node.t !== 'breed') return; walk(r.node.a); walk(r.node.b); r.num = order.length + 1; order.push(r); })(res);
   return order;
 }
-function cardFor(r, hold, finalR) { return r.node.t === 'breed' ? childCard(r, r === finalR, r.num, hold) : leafCard(r, hold); }
+function cardFor(r, hold, finalR, lost) { return r.node.t === 'breed' ? childCard(r, r === finalR, r.num, hold) : leafCard(r, hold, lost); }
+// The goal's 31s a Pokémon you own brings into a breed that the egg doesn't get (no brace, and the other
+// parent doesn't share them): a parent that's only there for its species, gender or one stat.
+function lostStats(r, c) {
+  if (c.node.t !== 'own') return [];
+  const t = state.target.ivs;
+  return [0, 1, 2, 3, 4, 5].filter((i) => t[i] !== 0 && Planner.meets(c.iv[i], t[i]) && !Planner.meets(r.iv[i], t[i]));
+}
+// Every species of a line, in dex order: "Seedot, Nuzleaf or Shiftry".
+function lineMembers(line) {
+  const names = SPECIES.filter((s) => s.n !== 'Ditto' && dex.lineOf(s.n) === line && (!s.e.includes('Undiscovered') || dex.evolveInto(s.n))).map((s) => s.n);
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}` : names[0] || line;
+}
+// Under a breed: a parent you own loses 31s here. Says what else would do the same job, so you can keep it.
+function wasteNotes(r) {
+  const n = r.node, out = [];
+  for (const [c, slot] of [[n.a, n.slotA], [n.b, n.slotB]]) {
+    const lost = lostStats(r, c);
+    if (!lost.length || !slot) continue;
+    const p = c.node.p.src, stats = (list) => list.map((i) => STAT_LABEL[i]).join(', ');
+    const what = `${p.gender === 'F' || p.gender === 'M' ? gSym(p.gender) + ' ' : ''}${esc(p.species)}'s ${stats(lost)} 31${lost.length > 1 ? 's' : ''}`;
+    const need = Planner.bitsOf(slot.need), gWord = slot.gender === 'F' ? 'female ' : slot.gender === 'M' ? 'male ' : '';
+    const other = slot.ditto ? 'Ditto' : slot.kind === 'C' ? `${gWord}${esc(lineGroups(n.line).replace(/ \/ /g, ' or ') || lineMembers(n.line))} Pokémon` : `${gWord}${esc(lineMembers(n.line))}`;
+    const job = need.length ? `${other} with ${stats(need)} 31` : other;
+    out.push(`<p class="waste-note"><b>${what} ${lost.length > 1 ? "aren't" : "isn't"} passed on in this breed.</b> ${slot.extra
+      ? 'It is here for more than its IVs, so the planner had no plainer one to use.'
+      : `Any ${job} does the same job here, so if you have one with fewer 31s (or catch one), use it instead and keep this one.`}</p>`);
+  }
+  return out.join('');
+}
 
 function renderSteps(order, final) {
   return `<ol class="steps">${order.map((r) => {
@@ -2755,9 +2803,9 @@ function renderSteps(order, final) {
     const luck = r !== final && state.target.nature && !n.nat ? `<p class="luck-note" data-luck="${r.num}" hidden></p>` : '';
     return `<li data-breed="${r.num}"><span class="stepno">${r.num}</span><div class="stepbody">
       ${doneRow(r.num)}
-      <div class="pair">${cardFor(n.a, itemFor(n, 'a'), final)}<span class="x">×</span>${cardFor(n.b, itemFor(n, 'b'), final)}</div>
+      <div class="pair">${cardFor(n.a, itemFor(n, 'a'), final, lostStats(r, n.a))}<span class="x">×</span>${cardFor(n.b, itemFor(n, 'b'), final, lostStats(r, n.b))}</div>
       <div class="outcome">Hatches ${gSym(n.gender)} <b style="color:var(--ink)">${n.cos ? `${esc(state.target.costume)} ` : ''}${esc(n.baby || hatchLabel(n.line, n.gender))}</b> with ${r.iv.some((v, i) => Planner.meets(v, state.target.ivs[i])) ? STAT_LABEL.filter((_, i) => Planner.meets(r.iv[i], state.target.ivs[i])).map((l) => `<b class="ink">${state.target.ivs[STAT_LABEL.indexOf(l)] === 0 ? '0 ' : ''}${l}</b>`).join(', ') + ' locked' : 'no locked IVs'}${n.nat ? `, ${esc(state.target.nature)}` : ''}${n.abil ? `, ${esc(state.target.ability)} (chance)` : ''}. ${gPick ? gPick[0].toUpperCase() + gPick.slice(1) + '. ' : ''}${usedIn} <button class="linkbtn" type="button" data-egg-odds="${r.num}">Egg odds</button></div>
-      ${luck}
+      ${wasteNotes(r)}${luck}
     </div></li>`;
   }).join('')}</ol>`;
 }
@@ -2765,7 +2813,7 @@ function renderTreeWithHold(r, final, hold) {
   const n = r.node;
   const kids = [n.a, n.b].map((c, i) => {
     const side = i ? 'b' : 'a';
-    if (c.node.t !== 'breed') return `<div class="tk">${cardFor(c, itemFor(n, side), final)}</div>`;
+    if (c.node.t !== 'breed') return `<div class="tk">${cardFor(c, itemFor(n, side), final, lostStats(r, c))}</div>`;
     return `<div class="tk">${renderTreeWithHold(c, final, itemFor(n, side))}</div>`;
   });
   return `<div class="tn" data-breed="${r.num}"><div class="tn-kids">${kids.join('')}</div>${childCard(r, r === final, r.num, hold, true)}</div>`;
@@ -2811,6 +2859,7 @@ function showResult(out, retry) {
       const dittoNote = ts && ts.g === 'N' ? ` ${esc(ts.n)} is genderless, so it only breeds with Ditto or with Pokémon of its own line, and Ditto can't be bred.` : '';
       if (t.costume) why.unshift(`a ${esc(t.costume)} Pokémon of the ${esc(dex.lineOf(t.species))} line that can be the mother, or a father with a ${esc(dex.lineOf(t.species))} mother or a Ditto (a costume only passes to an egg of its own line)`);
       if (t.alpha) why.unshift('enough alpha parents (an egg is only alpha when both parents are alpha, so every parent in the plan has to be one of your alphas)');
+      if (t.shiny && t.ot) why.unshift(`a shiny of the ${esc(dex.lineOf(t.species))} line you caught yourself (ticked "Caught OT") that can be the mother, or a father with a shiny ${esc(dex.lineOf(t.species))} mother or a shiny Ditto (your OT only carries to an egg of its own species)`);
       if (t.shiny) why.unshift('enough shiny parents (a shiny only breeds with another shiny, so every parent in the plan has to be one of your shinies)');
       box.innerHTML = `<div class="notice"><strong>No plan found.</strong> ${why.length ? 'Check that you have ' + why.join('; ') + '.' : dittoNote ? '' : 'Check genders and egg groups: each breed needs a female and a male that share an egg group, or a Ditto.'}${dittoNote}${state.useBox && state.boxOnly ? ' "Only use Pokémon from my box" is ticked, so no plan that buys parents is offered.' : ''}${out.truncated ? ` The search also hit its limit${out.timedOut ? ' (this device ran out of time)' : ''}; try fewer Pokémon${deepBtn()}.` : ''}</div>`;
       return;
@@ -3085,7 +3134,7 @@ function applyLuck(num, form) {
       else if (p.row) e.rows.push([p.row - 1, p.species]);
     })(f);
     const hm = f === r ? got : hatchedMon(f);
-    e.mon = { species: hm.species, gender: hm.gender, ivs: hm.ivs.slice(), nature: hm.nature, ability: hm.ability, moves: hm.moves.slice(), shiny: !!hm.shiny, alpha: !!hm.alpha, costume: hm.costume || '' };
+    e.mon = { species: hm.species, gender: hm.gender, ivs: hm.ivs.slice(), nature: hm.nature, ability: hm.ability, moves: hm.moves.slice(), shiny: !!hm.shiny, ot: !!hm.ot, alpha: !!hm.alpha, costume: hm.costume || '' };
     return e;
   });
   const gone = new Set(entries.flatMap((e) => e.sigs));
@@ -3142,7 +3191,7 @@ function luckInput(input, r) {
   const t = state.target, m = hatchedMon(r), canon = (sp(t.species) && sp(sp(t.species).b || t.species) && sp(sp(t.species).b || t.species).m) || [];
   const mv = m.moves.map((x) => x.toLowerCase());
   const child = { worth: 0, species: m.species, isDitto: false, gender: m.gender, ivs: m.ivs.slice(), nature: t.nature, ability: m.ability, moves: canon.filter((x) => mv.includes(x.toLowerCase())),
-    shiny: !!m.shiny, alpha: !!m.alpha, costume: m.costume || '' };
+    shiny: !!m.shiny, ot: !!m.ot, alpha: !!m.alpha, costume: m.costume || '' };
   const pool = [child].concat(input.pool.filter((_, i) => !used.has(i))).slice(0, 63);
   return { target: input.target, pool, prices: input.prices, opts: { ...input.opts, work: LUCK_WORK, timeLimit: 8000 } };
 }
@@ -3423,7 +3472,7 @@ function cleanBoxMon(m) {
   if (!m || typeof m !== 'object' || !str(m.species).trim()) return null;
   const species = str(m.species).trim(), gs = genderChoices(species);
   return { id: okId(m.id) ? m.id : newPid(), species, nick: str(m.nick).trim().slice(0, 20), gender: gs.includes(m.gender) ? m.gender : gs[0],
-    ivs: ivList(m.ivs), nature: NATURES.includes(m.nature) ? m.nature : '', ability: str(m.ability), moves: strs(m.moves).slice(0, 8), from: okSig(m.from) ? m.from : '', alpha: m.alpha === true, shiny: m.shiny === true, level: okLevel(m.level), costume: okCostume(species, m.costume), egg: m.egg === true };
+    ivs: ivList(m.ivs), nature: NATURES.includes(m.nature) ? m.nature : '', ability: str(m.ability), moves: strs(m.moves).slice(0, 8), from: okSig(m.from) ? m.from : '', alpha: m.alpha === true, shiny: m.shiny === true, ot: m.ot === true, level: okLevel(m.level), costume: okCostume(species, m.costume), egg: m.egg === true };
 }
 function cleanBox(b, i) {
   const slots = Array.from({ length: BOX_SIZE }, (_, k) => cleanBoxMon(b && Array.isArray(b.slots) ? b.slots[k] : null));
@@ -3619,7 +3668,7 @@ function monSummary(m) {
     ['Egg moves', m.moves.length ? m.moves.map(esc).join(', ') : '<span class="muted">None</span>'],
   ];
   if (s) rows.push(['Egg group', esc(monGroups(s) || 'None')], ['Type', esc(s.t.join(' / '))]);
-  return `<div class="tip-head">${sprite(m.species, 1, m.costume)}<b>${gSym(m.gender)} ${m.alpha ? ALPHA_MARK : ''}${esc(m.nick || m.species)}</b>${m.nick ? `<span class="muted small">${esc(m.species)}</span>` : ''}${m.level ? `<span class="muted small">Lv. ${m.level}</span>` : ''}${m.shiny ? '<span class="tip-shiny">Shiny</span>' : ''}${m.alpha ? '<span class="tip-alpha">Alpha</span>' : ''}${costumeTag(m.costume)}</div>`
+  return `<div class="tip-head">${sprite(m.species, 1, m.costume)}<b>${gSym(m.gender)} ${m.alpha ? ALPHA_MARK : ''}${esc(m.nick || m.species)}</b>${m.nick ? `<span class="muted small">${esc(m.species)}</span>` : ''}${m.level ? `<span class="muted small">Lv. ${m.level}</span>` : ''}${m.shiny ? '<span class="tip-shiny">Shiny</span>' : ''}${m.ot ? '<span class="tip-ot" title="Caught by you">OT</span>' : ''}${m.alpha ? '<span class="tip-alpha">Alpha</span>' : ''}${costumeTag(m.costume)}</div>`
     + `<div class="tip-ivs">${ivs}</div>` + rows.map(([k, v]) => `<div class="tip-row"><span>${k}</span><span>${v}</span></div>`).join('');
 }
 const tip = $('box-tip');
@@ -3698,6 +3747,7 @@ function renderDraft() {
     <div class="row" style="align-items:end;gap:16px"><label class="f" style="max-width:110px">Level (optional)<input type="number" id="bx-level" min="1" max="100" inputmode="numeric" value="${m.level || ''}"></label>
       <label class="check" style="margin-bottom:8px"><input type="checkbox" id="bx-alpha" ${m.alpha ? 'checked' : ''}>${ALPHA_MARK}Alpha</label>
       <label class="check" style="margin-bottom:8px"><input type="checkbox" id="bx-shiny" ${m.shiny ? 'checked' : ''}>${SHINY_STAR}Shiny</label>
+      <label class="check" style="margin-bottom:8px" title="You caught it yourself, so it has your OT. A shiny egg keeps your OT when it's this Pokémon's species."><input type="checkbox" id="bx-ot" ${m.ot ? 'checked' : ''}>Caught OT</label>
       <label class="check" style="margin-bottom:8px" title="Not hatched yet: the planner leaves it out until you untick this and fill in its IVs"><input type="checkbox" id="bx-egg" ${m.egg ? 'checked' : ''}>Egg</label>
       <label class="f" id="bx-costume-l" style="max-width:190px"${dex.costumesOf(m.species).length ? '' : ' hidden'}>Costume<select id="bx-costume">${costumeOptions(m.species, m.costume, 'None')}</select></label></div>
     <div style="display:grid;gap:6px">
@@ -3814,6 +3864,7 @@ $('box-edit').addEventListener('change', (e) => {
   if (e.target.id === 'bx-gender') boxDraft.mon.gender = e.target.value;
   if (e.target.id === 'bx-ability') boxDraft.mon.ability = e.target.value;
   if (e.target.id === 'bx-alpha') boxDraft.mon.alpha = e.target.checked;
+  if (e.target.id === 'bx-ot') boxDraft.mon.ot = e.target.checked;
   if (e.target.id === 'bx-egg') boxDraft.mon.egg = e.target.checked;
   if (e.target.id === 'bx-shiny') boxDraft.mon.shiny = e.target.checked;
   if (e.target.id === 'bx-costume') { boxDraft.mon.costume = e.target.value; $('bx-spr').innerHTML = sprite(boxDraft.mon.species, 2, boxDraft.mon.costume); }
@@ -4100,11 +4151,13 @@ function packBoxes(boxes) {
         if (lv) w.put(lv - 1, 7);
       });
     });
-    putList(w, shinies);
-    // then the costumes (an empty shiny list writes nothing, so mark it first), then the eggs (likewise)
+    // then the costumes, the eggs and the caught-OT Pokémon, each a list after the one before. An empty list
+    // writes nothing, so one followed by a later list is marked with a 0 bit instead.
     const eggs = mons.map((m, k) => (m.egg ? k : -1)).filter((k) => k >= 0), dressed = mons.some((m) => COSTUME_NAMES.includes(m.costume));
-    if (dressed || eggs.length) { if (!shinies.length) w.bit(0); putCostumes(w, mons); }
-    if (eggs.length) { if (!dressed) w.bit(0); putList(w, eggs); }
+    const ots = mons.map((m, k) => (m.ot ? k : -1)).filter((k) => k >= 0);
+    const parts = [[shinies.length, () => putList(w, shinies)], [dressed, () => putCostumes(w, mons)], [eggs.length, () => putList(w, eggs)], [ots.length, () => putList(w, ots)]];
+    const last = parts.map((x) => !!x[0]).lastIndexOf(true);
+    parts.slice(0, last + 1).forEach(([has, put]) => (has ? put() : w.bit(0)));
   });
 }
 function unpackBoxes(bytes) {
@@ -4124,6 +4177,7 @@ function unpackBoxes(bytes) {
   for (const k of getList(r, all.length)) all[k].shiny = true;
   getCostumes(r, all);
   for (const k of getList(r, all.length)) all[k].egg = true;
+  for (const k of getList(r, all.length)) all[k].ot = true;
   return { boxes };
 }
 const makeBoxCode = (boxes) => codeText('PMBX', packBoxes(boxes));
@@ -4364,6 +4418,7 @@ function parseSet(lines) {
       if (n.score >= 0.8) mon.nature = n.name; else problems.push(`Unknown nature "${m[1]}".`);
     } else if ((m = /^alpha(?::\s*(\w+))?$/i.exec(l))) mon.alpha = !m[1] || /^(yes|true|y)$/i.test(m[1]);
     else if ((m = /^shiny(?::\s*(\w+))?$/i.exec(l))) mon.shiny = !m[1] || /^(yes|true|y)$/i.test(m[1]);
+    else if ((m = /^caught ot(?::\s*(\w+))?$/i.exec(l))) mon.ot = !m[1] || /^(yes|true|y)$/i.test(m[1]);
     else if ((m = /^egg(?::\s*(\w+))?$/i.exec(l))) mon.egg = !m[1] || /^(yes|true|y)$/i.test(m[1]);
     else if ((m = /^costume:\s*(.+)$/i.exec(l))) {
       const c = closest(m[1].trim(), COSTUME_NAMES);
@@ -4384,6 +4439,7 @@ function monText(m) {
   if (m.ability) lines.push(`Ability: ${m.ability}`);
   if (m.level) lines.push(`Level: ${m.level}`);
   if (m.shiny) lines.push('Shiny: Yes');
+  if (m.ot) lines.push('Caught OT: Yes');
   if (m.costume) lines.push(`Costume: ${m.costume}`);
   if (m.nature) lines.push(`${m.nature} Nature`);
   // a stat left out reads as 31 (as in Showdown), so unknown ones are written as "?"
@@ -4944,28 +5000,50 @@ function watchName(src, g) {
   const k = Math.min(4, Math.max(1, 90 / g.P)), c = inkCanvas(src, r.x, r.y, r.w, r.h, k, true);
   const entry = { name: null };
   imp.names.push(entry);
-  readBoxName(c, g.P * k).then((t) => { entry.name = t; if (t) imp.gameName = t; renderImp(); });
+  readBoxName(c).then((t) => { entry.name = t; if (t) imp.gameName = t; renderImp(); });
 }
-async function readBoxName(ink, rowPx) {
+async function readBoxName(ink) {
   // nothing written there: Tesseract would make something up out of a blank line
-  const d = ink.getContext('2d').getImageData(0, 0, ink.width, ink.height).data;
-  let dark = 0;
-  for (let i = 0; i < d.length; i += 4) if (d[i] < 128) dark++;
-  if (dark < d.length / 4 * 0.004) return '';
-  const pad = Math.round(rowPx * 0.3), c = document.createElement('canvas');
-  c.width = ink.width + pad * 2; c.height = ink.height + pad * 2;
-  const x = c.getContext('2d');
-  x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(ink, pad, pad);
-  try {
-    const data = await ocr(c, 'line');
-    const t = fixBoxName(data.text.replace(/\s+/g, ' ').replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9)!?.]+$/g, '').trim());
-    return data.confidence >= 55 && t.length <= 20 ? t : '';
-  } catch (e) { return ''; }
+  const w = ink.width, h = ink.height, d = ink.getContext('2d').getImageData(0, 0, w, h).data, cols = new Uint8Array(w);
+  let dark = 0, x0 = w, x1 = -1, y0 = h, y1 = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4] < 128) { dark++; cols[x] = 1; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  if (dark < w * h * 0.004) return '';
+  // Tesseract reads a short name best at about 48 pixels tall: at the size the reader grabs it, it dropped the thin
+  // I of "IV 4" and read "V4". The name is cut out tight and scaled to that size, then read again at other sizes if
+  // the letters read don't match the shapes in the ink (counted as runs of inked columns; letters in the game's bold
+  // font don't touch).
+  const runs = [];
+  for (let x = x0; x <= x1; x++) if (cols[x] && !cols[x - 1]) runs.push({ a: x, b: x }); else if (cols[x]) runs[runs.length - 1].b = x;
+  const shapes = runs.length;
+  let best = null;
+  for (const H of [48, 30, 60]) {
+    const s = H / (y1 - y0 + 1), pad = Math.round(H * 0.6), c = document.createElement('canvas');
+    c.width = Math.round((x1 - x0 + 1) * s) + pad * 2; c.height = H + pad * 2;
+    const x = c.getContext('2d');
+    x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.imageSmoothingQuality = 'high';
+    x.drawImage(ink, x0, y0, x1 - x0 + 1, y1 - y0 + 1, pad, pad, c.width - pad * 2, H);
+    try {
+      const data = await ocr(c, 'line');
+      const t = fixBoxName(data.text.replace(/\s+/g, ' ').replace(/^[^A-Za-z0-9|]+|[^A-Za-z0-9)!?.]+$/g, '').trim());
+      if (data.confidence < 55 || !t || t.length > 20) continue;
+      const fits = t.replace(/ /g, '').length === shapes;
+      if (fits) return t;
+      if (!best || data.confidence > best.conf) best = { t, conf: data.confidence };
+    } catch (e) { /* try the next size */ }
+  }
+  if (!best) return '';
+  // one letter short, and the first shape is a thin bar as tall as the text: the I (or 1) Tesseract missed
+  const r0 = runs[0], bar = r0 && r0.b - r0.a + 1 < (y1 - y0 + 1) * 0.3;
+  if (bar && best.t.replace(/ /g, '').length === shapes - 1 && !/^[Il1|]/.test(best.t)) return fixBoxName((/^\d/.test(best.t) ? '1' : 'I') + best.t);
+  return best.t;
 }
 // Box names are often a letter or two and a number ("B1", "IV 3"), where Tesseract takes a 1 for an l or I and a 0
 // for an O: "B1" came out as "Bl". In a word that's capitals and digits apart from that, they're read as digits.
 function fixBoxName(t) {
   return t.split(' ').map((w) => {
+    if (w === '|') return 'I';
+    if (/^[A-Z0-9|]+$/.test(w.replace(/[cosvwxz]/g, '')) && /[A-Z]/.test(w)) w = w.replace(/[cosvwxz]/g, (c) => c.toUpperCase());
+    if (/^\|[A-Z]/.test(w)) w = 'I' + w.slice(1);
     if (/^[A-Z0-9lI|Oo]+$/.test(w) && /[A-Z0-9]/.test(w) && /[lI|]/.test(w)) {
       // an l (or |) next to a capital or digit; an I only next to a digit, as IV and HA are real names
       w = w.replace(/[l|]/g, '1').replace(/(?<=\d)I|I(?=\d)/g, '1');
@@ -5198,6 +5276,14 @@ function finishRescan() {
   renderImp();
 }
 const cap = (t) => t[0].toUpperCase() + t.slice(1);
+// Whether the name read off the game screen is this box's name, allowing for what Tesseract gets wrong in a box name:
+// case, spaces, I / l / 1 and O / 0 mixed up, and a thin first letter missed ("IV 4" read as "V4"). B1 and B11 still
+// differ.
+function sameBoxName(game, mine) {
+  const n = (t) => String(t).toUpperCase().replace(/[^A-Z0-9|]/g, '').replace(/[IL|]/g, '1').replace(/O/g, '0');
+  const a = n(game), b = n(mine);
+  return a === b || (a.length >= 1 && b.length === a.length + 1 && b[0] === '1' && b.slice(1) === a);
+}
 // One line of what a Pokémon is: its IVs, nature, ability and egg moves.
 const monBits = (m) => m.egg ? `<span class="imp-ivs">Egg</span>${m.moves.length ? ` <span class="meta">${m.moves.map(esc).join(', ')}</span>` : ''}` : `<span class="imp-ivs">${m.ivs.map((v) => (v == null ? '–' : v)).join('/')}</span> <span class="meta">${[m.nature || 'no nature', m.ability || 'no ability', ...(m.moves.length ? [m.moves.join(', ')] : [])].map(esc).join(' · ')}</span>`;
 const monName = (m) => `${m.egg ? '' : gSym(m.gender) + ' '}${esc(m.nick || m.species)}${m.egg ? ' egg' : ''}${m.shiny ? ' <span class="tip-shiny">Shiny</span>' : ''}${m.costume ? ` ${costumeTag(m.costume)}` : ''}${m.alpha ? ' <span class="tip-alpha">Alpha</span>' : ''}${m.level ? ` <span class="muted small">Lv. ${m.level}</span>` : ''}`;
@@ -5228,7 +5314,7 @@ function renderRescan(rev) {
   const r = imp.rescan, on = imp.review.filter((x) => x.on).length, n = imp.review.filter((x) => !x.iv).length, ivs = imp.review.length - n;
   const missed = imp.missed.length ? ` ${cap(spotList(imp.missed))} couldn't be read, so ${imp.missed.length === 1 ? 'it stays' : 'they stay'} as before; rescan ${imp.missed.length === 1 ? 'it' : 'them'} after if need be.` : '';
   const eggs = imp.eggs.length ? ` ${cap(spotList(imp.eggs))} ${imp.eggs.length === 1 ? 'holds an egg' : 'hold eggs'} the reader couldn't make out; left as before.` : '';
-  const other = r.game.all.filter((n) => squash(n) !== squash(r.name));
+  const other = r.game.all.filter((n) => !sameBoxName(n, r.name));
   const game = !other.length ? '' : r.game.all.length > 1 ? ` <span class="mon-warn">You read more than one box in the game (${r.game.all.map((n) => `“${esc(n)}”`).join(', ')}), so check the changes closely.</span>`
     : ` <span class="mon-warn">The game's box is called “${esc(other[0])}”, not ${esc(r.name)}: check it's the right box.</span>`;
   rev.innerHTML = `<p>Rescanned ${esc(r.name)}: found ${n} change${n === 1 ? '' : 's'}${r.kept ? `, and ${r.kept} Pokémon ${r.kept === 1 ? 'is' : 'are'} still the same` : ''}.${ivs ? ` ${ivs === 1 ? 'One of those had an IV' : `${ivs} of those had an IV`} read differently from your box; ${ivs === 1 ? "it's" : "they're"} listed unticked, as it's most likely a misread.` : ''}${missed}${eggs} Untick anything that looks wrong. Spots you didn't go to stay as they are.${game}</p>`
@@ -5339,7 +5425,7 @@ function renderImp() {
     const to = screen && impTarget();
     const missed = screen && imp.missed && imp.missed.length ? ` ${spotList(imp.missed)[0].toUpperCase() + spotList(imp.missed).slice(1)} ${imp.missed.length === 1 ? 'wasn\'t' : 'weren\'t'} read; add ${imp.missed.length === 1 ? 'that one' : 'those'} by hand, or throw these away and read the box again.` : '';
     const eggs = screen && imp.eggs ? ` ${imp.eggs === 1 ? 'An egg was' : `${imp.eggs} eggs were`} left out, as the reader couldn't make out what ${imp.eggs === 1 ? 'it is' : 'they are'}.` : '';
-    const gm = screen && imp.game ? imp.game : { name: '', all: [] }, same = !gm.name ? -1 : box.boxes.findIndex((b, i) => i !== (to && to.reuse ? to.b : -1) && squash(b.name) === squash(gm.name));
+    const gm = screen && imp.game ? imp.game : { name: '', all: [] }, same = !gm.name ? -1 : box.boxes.findIndex((b, i) => i !== (to && to.reuse ? to.b : -1) && sameBoxName(gm.name, b.name));
     const games = gm.all.length > 1 ? ` <span class="mon-warn">You read more than one box in the game (${gm.all.map((n) => `“${esc(n)}”`).join(', ')}); a spot read in both holds the one read last.</span>` : '';
     const twin = same >= 0 ? ` You already have a box called “${esc(box.boxes[same].name)}”: to update that one instead, open it and use Rescan.` : '';
     rev.innerHTML = `<p>${screen ? 'Read' : 'Found'} ${imp.review.length} Pokémon${bad ? `; ${bad} need a look (their notes are in red)` : ''}.${missed}${eggs} Untick any you don't want${to ? `, then put them in ${to.reuse ? 'this box, which is empty,' : 'a new box'} in the same spots as in the game` : ''}. You can fix anything later by clicking it in the box.${games}${twin}</p>`
@@ -5678,7 +5764,8 @@ function boxPool(room) {
     if (t.nature && it.mon.nature === t.nature) score += 3;
     if (t.ability && it.mon.ability === t.ability) score += 3;
     if (moves.length && moves.every((mv) => it.mon.moves.some((x) => x.toLowerCase() === mv))) score += 5;
-    if (costumeOf(it.mon) && line === tLine) score += 20; // the costume goal can't do without it
+    // the costume goal can't do without the costumed ones of its line, so they always go in, like spent ones
+    if (costumeOf(it.mon) && line === tLine) { score += 1000; it.cos = true; }
     if (it.spent) score += 1000;
     if (score > 0) scored.push([score, it]);
   }
@@ -5686,13 +5773,40 @@ function boxPool(room) {
   // Two of each thing the goal needs first (mothers, fathers, each of its stats), then the top scores, so a
   // box of one species with lots of 1x31s doesn't hand the planner nothing but males. Spent ones always go in.
   const keysOf = ([, it], i) => {
-    if (it.spent) return ['spent' + i];
+    if (it.spent || it.cos) return ['must' + i];
     const s = sp(it.mon.species), who = s.n === 'Ditto' ? 'D' : (dex.lineOf(s.n) === tLine ? '' : 'x') + it.mon.gender, out = [who];
     it.mon.ivs.forEach((v, j) => { if (Planner.meets(v, t.ivs[j])) out.push(who + j); });
     if (t.nature && it.mon.nature === t.nature) out.push(who + 'n');
+    // and two of each that has the goal's ability or knows its egg moves (a big box of good 31s crowded them out)
+    if (t.ability && it.mon.ability === t.ability) out.push(who + 'a');
+    if (moves.length && moves.some((mv) => it.mon.moves.some((x) => x.toLowerCase() === mv))) out.push(who + 'm');
     return out;
   };
-  const mons = Planner.pickDiverse(scored, Math.max(0, room), keysOf, 1).map((x) => x[1]).sort((a, b) => a.pos - b.pos);
+  // A few with none of the goal's 31s go in too, when the box has more than fit. Some breeds only need a
+  // parent for its species or gender (a female to hatch the right species, a male or a Ditto to breed with), and
+  // without these the planner had to use up a Pokémon with 31s there, which then aren't passed on. One each:
+  // a female and a male of the goal's line, a male of another line, a Ditto, and a female of each of the three
+  // other lines with the most useful Pokémon in the box (the ones a plan is likeliest to hatch on the way).
+  const fill = [];
+  if (scored.length > room && room > 20) {
+    const useful = new Map();
+    for (const [, it] of scored) {
+      const s = sp(it.mon.species), line = dex.lineOf(s.n);
+      if (s.n !== 'Ditto' && line !== tLine && it.mon.ivs.some((v, j) => Planner.meets(v, t.ivs[j]))) useful.set(line, (useful.get(line) || 0) + 1);
+    }
+    const topLines = [...useful].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([l]) => l);
+    const taken = new Set();
+    for (const x of scored) {
+      const it = x[1], m = it.mon;
+      if (it.spent || it.cos || m.ivs.some((v) => v === 31) || (t.nature && m.nature === t.nature)) continue;
+      const s = sp(m.species), line = dex.lineOf(s.n);
+      const key = s.n === 'Ditto' ? 'D' : line === tLine ? m.gender : m.gender === 'M' ? 'xM' : m.gender === 'F' && topLines.includes(line) ? 'xF' + line : '';
+      if (!key || taken.has(key)) continue;
+      taken.add(key); fill.push(x);
+    }
+  }
+  const rest = fill.length ? scored.filter((x) => !fill.includes(x)) : scored;
+  const mons = [...Planner.pickDiverse(rest, Math.max(0, room - fill.length), keysOf, 1), ...fill].map((x) => x[1]).sort((a, b) => a.pos - b.pos);
   return { mons, left: scored.length - mons.length };
 }
 function renderUseBox() {
@@ -5718,7 +5832,7 @@ $('box-only-on').addEventListener('change', (e) => { state.boxOnly = e.target.ch
 function hatchedMon(r) {
   const n = r.node, t = state.target, species = n.baby || dex.hatchName(n.line, n.gender);
   return { species, gender: n.gender === 'F' || n.gender === 'M' ? n.gender : genderChoices(species)[0], ivs: r.iv.map((v, i) => (Planner.meets(v, t.ivs[i]) ? v : null)),
-    nature: n.nat ? t.nature : '', ability: n.abil ? t.ability : '', moves: n.mv ? bredMoves() : [], from: r.sig, level: 1, shiny: !!t.shiny, alpha: !!t.alpha, costume: n.cos ? okCostume(species, t.costume) : '' };
+    nature: n.nat ? t.nature : '', ability: n.abil ? t.ability : '', moves: n.mv ? bredMoves() : [], from: r.sig, level: 1, shiny: !!t.shiny, ot: !!(t.shiny && n.ot), alpha: !!t.alpha, costume: n.cos ? okCostume(species, t.costume) : '' };
 }
 const monLabel = (m) => `${m.gender === 'F' ? '♀ ' : m.gender === 'M' ? '♂ ' : ''}${m.nick || m.species}`;
 // Ticking breeds takes their parents out of the box (kept aside so unticking puts them back), and the
@@ -6786,20 +6900,24 @@ function packBuilds(builds) {
     const legacy = (b) => JSON.stringify(b) === JSON.stringify(normalizeBuys(null, anyBuy(b)));
     // Alphas (below) always write the ticks, so a reader finds at least 7 bits left where the ticks start.
     const alphas = builds.flatMap(({ data: d }) => [d.target, ...d.mons]).map((m, k) => (m.alpha ? k : -1)).filter((k) => k >= 0);
-    const plainBuys = !alphas.length && builds.every(({ data: d }) => legacy(buysOf(d)));
+    // and caught-OT goals and rows after the alphas, numbered the same way
+    const ots = builds.flatMap(({ data: d }) => [d.target, ...d.mons]).map((m, k) => (m.ot ? k : -1)).filter((k) => k >= 0);
+    const later = alphas.length || ots.length;
+    const plainBuys = !later && builds.every(({ data: d }) => legacy(buysOf(d)));
     // Costumes after that (goals and rows, numbered like the shinies). With them, the buying ticks get a 0 bit
     // when there are none.
     const mons = builds.flatMap(({ data: d }) => [d.target, ...d.mons]), costumes = mons.some((m) => COSTUME_NAMES.includes(m.costume));
     // Alphas came last: a list of places like the shiny one, after the costumes (an empty costume list writes
     // nothing, so mark it with a 0 bit when there are alphas but no costumes).
-    if (plainBuys && !costumes && !alphas.length) return;
+    if (plainBuys && !costumes && !later) return;
     if (!shinies.length) w.bit(0); // an empty shiny list writes nothing, so mark it here
     w.bit(!plainBuys);
     if (!plainBuys) for (const { data: d } of builds) for (const side of ['p', 'n']) for (const on of buysOf(d)[side]) w.bit(on);
     if (costumes) putCostumes(w, mons);
-    if (!alphas.length) return;
+    if (!later) return;
     if (!costumes) w.bit(0);
-    putList(w, alphas);
+    if (alphas.length) putList(w, alphas); else w.bit(0);
+    putList(w, ots);
   });
 }
 function unpackBuilds(bytes) {
@@ -6820,6 +6938,7 @@ function unpackBuilds(bytes) {
   if (r.left() >= 7 && r.bit()) for (const b of builds) b.data.buys = { p: [r.bit(), r.bit(), r.bit()].map(Boolean), n: [r.bit(), r.bit(), r.bit()].map(Boolean) };
   getCostumes(r, all);
   for (const k of getList(r, all.length)) all[k].alpha = true;
+  for (const k of getList(r, all.length)) all[k].ot = true;
   return builds;
 }
 const makeCode = (builds) => codeText('PMB', packBuilds(builds.map((b) => ({ name: b.name, data: b.data }))));

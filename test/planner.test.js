@@ -253,6 +253,36 @@ test('a costumed father of another line can not pass his costume on', () => {
   assert.strictEqual(r.breeds, 1);
   assert.strictEqual(r.node.pairing, 'ditto');
 });
+// OT shinies (PokeMMO Wiki, Maintaining Original Trainer): the egg keeps your OT when a parent of its own line is one you caught.
+test('an OT goal keeps the caught shiny as a parent of the line at every breed', () => {
+  const pool = [mon('Gible', 'M', [31, 0, 0, 0, 0, 0], { ot: true }), mon('Gible', 'F', [0, 31, 0, 0, 0, 0]), mon('Charmander', 'F', [0, 31, 0, 0, 0, 0])];
+  const r = run({ species: 'Gible', ivs: [31, 31, null, null, null, null], ot: true }, pool);
+  assert.strictEqual(r.breeds, 1);
+  assert.ok(r.node.ot);
+  assert.ok(owned(r).some((p) => p.ot));
+  assert.ok(owned(r).every((p) => p.species === 'Gible'));
+  // without the caught one there is no plan
+  const out = Planner.plan({ dex, prices, target: { species: 'Gible', ivs: [31, 31, null, null, null, null], moves: [], ot: true }, pool: pool.slice(1).concat(mon('Gible', 'M', [31, 0, 0, 0, 0, 0])), opts: { mode: 'breeds', buy: true } });
+  assert.strictEqual(out.result, null);
+});
+test('an OT father with a mother of another line loses the OT, so it takes Ditto', () => {
+  const r = run({ species: 'Gible', ivs: [31, 31, null, null, null, null], ot: true },
+    [mon('Gible', 'M', [31, 0, 0, 0, 0, 0], { ot: true }), mon('Charmander', 'F', [0, 31, 0, 0, 0, 0]), mon('Ditto', 'N', [0, 31, 0, 0, 0, 0], { isDitto: true })]);
+  assert.strictEqual(r.node.pairing, 'ditto');
+});
+test('an OT mother can take any father of her egg group', () => {
+  const r = run({ species: 'Gible', ivs: [31, 31, null, null, null, null], ot: true },
+    [mon('Gible', 'F', [31, 0, 0, 0, 0, 0], { ot: true }), mon('Charmander', 'M', [0, 31, 0, 0, 0, 0])]);
+  assert.strictEqual(r.breeds, 1);
+});
+test('an OT chain carries the OT through each breed', () => {
+  const r = run({ species: 'Gible', ivs: [31, 31, 31, null, null, null], ot: true },
+    [mon('Gible', 'F', [31, 0, 0, 0, 0, 0], { ot: true }), mon('Charmander', 'M', [0, 31, 0, 0, 0, 0]), mon('Charmander', 'M', [0, 0, 31, 0, 0, 0]), mon('Charmander', 'F', [0, 0, 31, 0, 0, 0])]);
+  // the OT has to reach the top: every breed on the way down to the caught Gible is a Gible egg with the OT
+  let n = r.node, steps = 0;
+  while (n.t === 'breed') { assert.ok(n.ot); assert.strictEqual(n.line, 'Gible'); const next = [n.a, n.b].find((c) => (c.node.t === 'breed' ? c.node.ot : c.node.t === 'own' && c.node.p.src.ot)); assert.ok(next); n = next.node; steps++; }
+  assert.ok(n.p.src.ot && steps >= 2);
+});
 test('ties use up the parent with fewer 31s, and Protect spares a valuable one', () => {
   const goal = { species: 'Charmander', ivs: [31, 31, null, null, null, null] };
   const dam = mon('Charmander', 'F', [31, 0, 0, 0, 0, 0]);
@@ -380,6 +410,35 @@ test('egg odds: a want of 0 means exactly 0', () => {
   // Spe: lower parent 25%, average (15) 50%, higher 25%
   assert.ok(Math.abs(p - 0.25) < 1e-9, String(p));
   assert.ok(Math.abs(Planner.eggOdds([0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]).chance([0, 0, 0, 0, 0, 0]) - 1) < 1e-9);
+});
+
+// Sean's two wasted breeds (2026-11-22): a parent that's only there for its gender or species was a Pokémon with
+// 31s, which the egg didn't get. With a plain one in the pool the planner uses that, and the breed says what
+// each spot needed so a card can say what else would do.
+const ownOf = (r) => r.node.t === 'own' && r.node.p.src;
+test('a parent only needed for its gender is one with no 31s', () => {
+  const r = run({ species: 'Seviper', ivs: [null, 31, 31, null, null, null] },
+    [mon('Seviper', 'F', [0, 31, 0, 0, 0, 0]), mon('Torkoal', 'F', [0, 0, 31, 0, 0, 0]), mon('Torkoal', 'M', [0, 31, 0, 0, 0, 0]), mon('Torkoal', 'M', [3, 4, 5, 6, 7, 8])]);
+  assert.strictEqual(r.breeds, 2);
+  const swap = r.node.b.node; // the breed that turns the female's Def 31 into a male's
+  assert.strictEqual(swap.t, 'breed');
+  assert.deepStrictEqual(ownOf(swap.b).ivs, [3, 4, 5, 6, 7, 8]);
+  assert.deepStrictEqual(swap.slotB, { need: 0, kind: 'C', gender: 'M', extra: false });
+});
+test('a mother only needed for her species is one with no 31s', () => {
+  const r = run({ species: 'Seedot', ivs: [null, null, null, null, 31, null], gender: 'F' },
+    [mon('Nuzleaf', 'F', [31, 0, 0, 0, 0, 0]), mon('Seedot', 'F', [0, 0, 0, 0, 0, 0]), mon('Ditto', 'N', [0, 0, 0, 0, 31, 0], { isDitto: true })]);
+  assert.strictEqual(r.breeds, 1);
+  assert.strictEqual(ownOf(r.node.a).species, 'Seedot');
+  assert.strictEqual(r.node.slotA.need, 0);
+  assert.strictEqual(r.node.slotB.ditto, true);
+});
+test('with no plain one, the one used is still a single breed and the spot says it needs nothing', () => {
+  const r = run({ species: 'Seedot', ivs: [null, null, null, null, 31, null], gender: 'F' },
+    [mon('Nuzleaf', 'F', [31, 0, 0, 0, 0, 0]), mon('Ditto', 'N', [0, 0, 0, 0, 31, 0], { isDitto: true })]);
+  assert.strictEqual(r.breeds, 1);
+  assert.strictEqual(ownOf(r.node.a).species, 'Nuzleaf');
+  assert.deepStrictEqual(r.node.slotA, { need: 0, kind: 'L', gender: 'A', extra: false }); // with a Ditto, either gender
 });
 
 let failed = 0;
