@@ -202,6 +202,12 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
   (PokeMMO Wiki). So a plan is all shiny or all normal: tick Shiny on the goal and it breeds only from your
   shinies, with buying off; leave it off and your shinies are left out, so none get used up. Shiny breeds also
   pass IVs a little better than normal ones, which the planner doesn't count on.
+- OT shinies: a shiny egg keeps your Original Trainer only when it's the same species as a shiny you caught
+  yourself (PokeMMO Wiki, Breeding: Maintaining Original Trainer). An OT female can breed with any shiny father,
+  even a bought one; an OT male needs a shiny mother of his own species or a shiny Ditto. Tick "Caught OT" on the
+  shinies you caught, and "Keep my OT" under a shiny goal: every breed then has one of them (or the egg bred from
+  one) as a parent of the goal's line. The planner counts a whole evolution line as one species, which the wiki
+  doesn't settle.
 - Costumes (Royal Charmander line from Shiny Wars 2026; Ninja Meowth, Vampire Sneasel, Pirate Gible and Pharaoh
   Riolu lines from Halloween 2026) pass to an egg of the costumed parent's own line: from the mother, the
   non-Ditto parent, or a father of the same line. Two different costumes can't breed together. It passes on

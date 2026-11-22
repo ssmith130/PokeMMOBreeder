@@ -17,6 +17,9 @@
 //  - a costume (Royal Charizard, Pirate Gible, ...) passes to the egg when the egg is the costumed parent's
 //    own line (so from the mother, the non-Ditto parent, or a father of the same line); two different
 //    costumes can't breed together. It passes on every breed (Sean, from players in game, 2026-11-20).
+//  - your OT on a shiny you caught (target.ot, pool p.ot) carries to the egg the same way: when the egg is that
+//    shiny's species, so from an OT mother or non-Ditto parent, or an OT father with a mother of his line
+//    (PokeMMO Wiki, Breeding: Maintaining Original Trainer). The planner treats the whole line as one species.
 (function (root) {
   const STATS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
   const BRACES = ['Power Weight', 'Power Bracer', 'Power Belt', 'Power Lens', 'Power Band', 'Power Anklet'];
@@ -132,6 +135,8 @@
         moves: tMoves.length > 0 && tMoves.every((m) => (p.moves || []).includes(m)),
         // wears the goal's costume (only its own line can pass it on)
         cos: !!tCostume && p.costume === tCostume && line === tLine,
+        // a shiny you caught yourself, of the goal's line: an OT shiny goal keeps your OT only through one of these
+        ot: !!target.ot && !!p.ot && line === tLine,
       };
     // Other costumes stay out: two different costumes can't breed together, and a plain goal shouldn't use one up.
     }).filter((p) => p.line && (!p.src.costume || p.cos));
@@ -143,7 +148,7 @@
     for (const p of pool) {
       // Only the IVs that meet the goal show in the plan, so the others don't split kinds.
       const ivs = p.iv.map((v, s) => (p.mask & (1 << s) ? v : '')).join(',');
-      const sig = [p.line, p.gender, p.mask, p.natured, p.abil, p.moves, p.cos, ivs, p.baby || p.evolve ? p.name : ''].join('|');
+      const sig = [p.line, p.gender, p.mask, p.natured, p.abil, p.moves, p.cos, p.ot, ivs, p.baby || p.evolve ? p.name : ''].join('|');
       let c = bySig.get(sig);
       if (!c) { c = { ...p, members: [], shift: BigInt(kinds.length * 7) }; c.bit = 1n << c.shift; bySig.set(sig, c); kinds.push(c); }
       c.members.push(p);
@@ -203,9 +208,9 @@
     // incense, so anything without one is smaller than it. Dropping the egg moves (the mother's side)
     // or the ability (the father's side) also counts, so a parent can carry the goal's one IV.
     function size(req) {
-      return (req.incense ? 1e6 : 0) + ((popcount(req.need) * 2 + (req.nat ? 1 : 0)) * 8 + (req.mv ? 4 : 0) + (req.cos ? 2 : 0) + (req.abil ? 1 : 0)) * 8 + rank(req);
+      return (req.incense ? 1e6 : 0) + ((popcount(req.need) * 2 + (req.nat ? 1 : 0)) * 16 + (req.mv ? 8 : 0) + (req.cos ? 4 : 0) + (req.ot ? 2 : 0) + (req.abil ? 1 : 0)) * 8 + rank(req);
     }
-    function key(req) { return `${req.kind}${req.line}|${req.gender}|${req.need}|${+req.nat}|${+req.abil}|${+req.mv}|${+!!req.cos}|${req.incense || ''}|${+!!req.top}`; }
+    function key(req) { return `${req.kind}${req.line}|${req.gender}|${req.need}|${+req.nat}|${+req.abil}|${+req.mv}|${+!!req.cos}|${+!!req.ot}|${req.incense || ''}|${+!!req.top}`; }
 
     let calls = 0, truncated = false, work = 0, timedOut = false;
     const LIMIT = opts.limit || 600000;
@@ -325,6 +330,7 @@
         if (req.abil && !p.abil) continue;
         if (req.mv && !p.moves) continue;
         if (req.cos && !p.cos) continue;
+        if (req.ot && !p.ot) continue;
         if (p.baby && !req.top) continue;
         if (req.incense && p.name !== tSpecies.n) continue;
         best = pick(best, leafOwned(p, avail));
@@ -332,7 +338,7 @@
       if (best) return best;
 
       // 2. Buy one off the GTL to fill a gap (1x31, or 2x31 and 3x31 when those are ticked).
-      if (popcount(req.need) <= (req.nat ? maxNat : Math.max(maxPlain, maxNat)) && !req.abil && !req.mv && !req.cos && !req.incense) {
+      if (popcount(req.need) <= (req.nat ? maxNat : Math.max(maxPlain, maxNat)) && !req.abil && !req.mv && !req.cos && !req.ot && !req.incense) {
         const L = lineInfo(req.line);
         const g = req.gender;
         if (L && L.groups.size && (g === 'A' || (g === 'M' ? hasMales(L.ratio) : hasFemales(L.ratio))))
@@ -379,13 +385,16 @@
           const mvSides = !req.mv || pairing === 'ditto' ? ['A'] : ['B', 'A'];
           // Which parent wears the costume: the one of this line (A), or a father of this line too (B).
           const cosSides = !req.cos || pairing === 'ditto' ? ['A'] : ['B', 'A'];
-          for (const [bA, bB, holder, inc, fewer] of combos) for (const mvSide of mvSides) for (const cosSide of cosSides) {
+          // Your OT carries on the same way (PokeMMO Wiki, Maintaining Original Trainer): from your caught shiny
+          // when the egg is its species, so from the parent of this line (A), or a father of this line (B).
+          const otSides = !req.ot || pairing === 'ditto' ? ['A'] : ['B', 'A'];
+          for (const [bA, bB, holder, inc, fewer] of combos) for (const mvSide of mvSides) for (const cosSide of cosSides) for (const otSide of otSides) {
             if (++work > WORK) { calls = LIMIT + 1; truncated = true; }
             if (calls > LIMIT) break search;
             const needA = req.need & ~(bB >= 0 ? 1 << bB : 0);
             const needB = req.need & ~(bA >= 0 ? 1 << bA : 0);
             const reqA = { kind: 'L', line: m, gender: pairing === 'mf' ? 'F' : 'A',
-              need: needA, nat: holder === 'A', abil: req.abil, mv: req.mv && mvSide === 'A', cos: req.cos && cosSide === 'A' };
+              need: needA, nat: holder === 'A', abil: req.abil, mv: req.mv && mvSide === 'A', cos: req.cos && cosSide === 'A', ot: req.ot && otSide === 'A' };
             // A parent that must be as good as this request can't be bred for it (the search would never
             // end). With fewer braces it can still be one you own or buy: two 6x31 parents need no brace.
             // With opts.swap (a second run, when the first finds no plan) a one-stat parent can also come from
@@ -397,9 +406,9 @@
             let reqB = null, leafB = false;
             if (pairing !== 'ditto') {
               // a father wearing the costume has to be of this line to pass it on
-              const cosB = req.cos && cosSide === 'B';
-              reqB = { kind: pairing === 'mf' && !cosB ? 'C' : 'L', line: m, gender: pairing === 'mf' ? 'M' : 'A',
-                need: needB, nat: holder === 'B', abil: false, mv: req.mv && mvSide === 'B', cos: cosB };
+              const cosB = req.cos && cosSide === 'B', otB = req.ot && otSide === 'B';
+              reqB = { kind: pairing === 'mf' && !cosB && !otB ? 'C' : 'L', line: m, gender: pairing === 'mf' ? 'M' : 'A',
+                need: needB, nat: holder === 'B', abil: false, mv: req.mv && mvSide === 'B', cos: cosB, ot: otB };
               leafB = asLeaf(reqB);
               if (leafB && !fewer && (!opts.swap || R.length > 1 || !leaf(reqB, avail))) continue;
             }
@@ -431,7 +440,12 @@
                 breeds: a.breeds + b.breeds + 1, cost: a.cost + b.cost + stepCost, worth: (a.worth || 0) + (b.worth || 0), value: a.value + b.value,
                 used: a.used + b.used, chance: a.chance * (req.abil ? abilityChance : 1), iv,
                 node: { t: 'breed', line: m, gender: req.gender, pairing, a, b, bA, bB, holder,
-                  stepCost, gCost, nat: req.nat, abil: req.abil, mv: req.mv, cos: !!req.cos,
+                  stepCost, gCost, nat: req.nat, abil: req.abil, mv: req.mv, cos: !!req.cos, ot: !!req.ot,
+                  // what each parent's spot asks for, so a card can say what else would do there (a parent whose
+                  // 31s aren't passed on is only there as a mother, a father or a Ditto)
+                  slotA: { need: needA, kind: 'L', gender: reqA.gender, extra: holder === 'A' || reqA.abil || reqA.mv || reqA.cos || reqA.ot },
+                  slotB: reqB ? { need: needB, kind: reqB.kind, gender: reqB.gender, extra: holder === 'B' || reqB.mv || reqB.cos || reqB.ot }
+                    : { need: needB, kind: 'L', gender: 'N', ditto: true, extra: holder === 'B' },
                   inc: inc || null, incense: inc ? req.incense : null, baby: inc ? tSpecies.n : null },
               };
               best = pick(best, res);
@@ -481,7 +495,7 @@
     // A Pokémon that only exists as one gender (Vespiquen, Gallade, Nidoking, ...) has to hatch as that gender.
     const fixedGender = !tSpecies ? null : tSpecies.g === 'M' || tSpecies.g === 'F' ? tSpecies.g : tSpecies.g === 'N' ? 'A' : null;
     const topReq = { kind: 'L', line: tLine, gender: fixedGender || target.gender || 'A', need: needAll,
-      nat: !!target.nature, abil: !!target.ability, mv: tMoves.length > 0, cos: !!tCostume, incense, top: true };
+      nat: !!target.nature, abil: !!target.ability, mv: tMoves.length > 0, cos: !!tCostume, ot: !!target.ot, incense, top: true };
     let full = 0n;
     for (const c of kinds) full += BigInt(c.members.length) << c.shift;
     let result = solve(topReq, full);
