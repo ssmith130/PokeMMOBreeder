@@ -183,7 +183,8 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
   over. Other IVs are averaged, so the planner doesn't count on them.
 - An Everstone passes the holder's nature and takes its item slot. Both parents are used up.
 - The egg is the mother's species, or the non-Ditto parent's. The ability comes from that parent by chance
-  (80%, or about 60% for a hidden ability; a male or genderless parent only passes it with Ditto). Egg moves
+  (80%, or about 60% for a hidden ability). A hidden ability also passes from a father of the egg's own
+  line, since PokeMMO checks species for it; any other ability only passes from a male or genderless parent with Ditto. Egg moves
   pass from either parent, as long as the egg's species can learn them.
 - Incense babies (Azurill, Wynaut, Munchlax, Mime Jr., Bonsly, Budew, Chingling, Happiny, Mantyke) only
   hatch when a parent holds their incense, which takes that parent's item slot. Otherwise the egg is the
@@ -253,14 +254,15 @@ Every push to `main` builds the site and publishes it to GitHub Pages
 | `data/events.json` | Seasonal event raid builds (Christmas), one per line: the event's text, its raid bosses and the builds for them. See [Event builds](#event-builds). |
 | `test/events.test.js` | Checks the event builds against the species data (`node test/events.test.js`). |
 | `test/builds.test.js`, `test/builds-bench.js` | Checks for the Build center, and a timing run on a made-up box (`node test/builds-bench.js 300`). |
-| `data/species.json` | Every species' types (Gen 5, so no Fairy), egg groups, gender ratio, abilities, egg moves and Gen 5 base stats. |
+| `data/species.json` | Every species' types (Gen 5, so no Fairy), egg groups, gender ratio, abilities, egg moves and Gen 5 base stats. Egg moves are PokeMMO's own (see the next row); Shedinja is marked as unable to breed, as in PokeMMO. |
+| `data/egg-moves-pokemmo.json` | PokeMMO's egg moves per line, copied from MMOBreeder's egg move page (taken from the game client) on 2026-11-24. PokeMMO teaches many main-game egg moves with tutors, so these lists are about a third as long. `src/extract-species.js` uses it. |
 | `data/tms.json` | Which species can learn each TM the page offers. |
 | `data/learners.json` | Which species learn each egg move by level-up, TM or tutor, for the egg move finder. |
 | `data/box-icons.png` | Box icons for all 649 species, 25 per row in dex order. |
 | `data/logo.png` | The Smearguru logo, painted onto Smeargle's box icon by `src/build-logo.py`. |
 | `data/costume-reader.png` | Plain and costumed icons the screen import compares box spots with to see a costume. |
 | `data/unknown-icon.png` | The "?" icon shown for an unknown or empty species (the sheet's own "?" at the end is no longer used). |
-| `data/item-icons.png`, `data/item-icons.json` | Held item icons for builds (Choice Band, Leftovers, Toxic Orb…), from PokeAPI by `src/build-item-icons.py`. |
+| `data/item-icons.png`, `data/item-icons.json` | Held item icons for builds (Choice Band, Leftovers, Toxic Orb…), every item a preset or event set names. `src/build-item-icons.py` takes the Gen 1-5 ones from the Black/White ROM like the breeding items, and later items from PokeAPI. Rerun it with the ROM after adding a set with a new item. |
 | `data/move-types.json` | Each move's type, for the type-coloured move tags on build cards (from Pokémon Showdown). |
 | `data/costume-icons.png` | Costumed box icons, made by `src/build-costume-icons.py` (see the costume rule above). |
 | `data/breeding-items.png` | PokeMMO's brace, Everstone and incense icons (the Black/White item icons the game shows), taken from a ROM by `src/build-breeding-icons.py`. That script also prints the game's hidden ability mark used for `HA_ICON` in `src/page.html`. |

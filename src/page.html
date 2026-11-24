@@ -342,7 +342,8 @@ span.pull-cell .spr { opacity: 0.3; filter: grayscale(1); }
 .bcard { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "spr t use" "chips chips chips" "ivs ivs ivs";
   gap: 6px 8px; align-items: center; text-align: left; cursor: pointer; padding: 8px 10px 9px 14px; border-radius: 8px; color: var(--ink); font: inherit; font-size: 13px;
   border: 1px solid var(--line); background: linear-gradient(100deg, color-mix(in srgb, var(--tc) 13%, var(--surface)), var(--surface) 60%); overflow: hidden; }
-.bcard::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: linear-gradient(var(--tc), var(--tc2)); }
+/* the type stripe sits inside the card as a rounded bar, so it never fights the card's rounded corners */
+.bcard::before { content: ""; position: absolute; inset: 7px auto 7px 5px; width: 4px; border-radius: 999px; background: linear-gradient(var(--tc), var(--tc2)); }
 .bcard:hover { border-color: var(--line-strong); }
 .bcard[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .bcard .bc-spr { grid-area: spr; display: flex; }
@@ -353,15 +354,19 @@ span.pull-cell .spr { opacity: 0.3; filter: grayscale(1); }
 .bcard .ivpills { grid-area: ivs; }
 .inuse { font-size: 11px; font-weight: 600; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 0 7px; white-space: nowrap; }
 .inuse.big { font-size: 13px; padding: 3px 10px; }
-.bc-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.bc-chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .chip2 { --cc: var(--line-strong); display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; line-height: 18px; padding: 0 7px; border-radius: 999px; white-space: nowrap;
   border: 1px solid color-mix(in srgb, var(--cc) 60%, transparent); background: color-mix(in srgb, var(--cc) 16%, transparent); color: var(--ink); }
 .chip2.tier { font-weight: 600; }
 .chip2.nat { --cc: var(--accent); }
 .chip2.item { padding-left: 3px; }
 .chip2.muted { color: var(--muted); background: none; }
-.iic { --i: 0; display: inline-block; flex: none; width: var(--s); height: var(--s); vertical-align: middle; background-image: url(/*ITEM_ICONS*/);
-  background-size: auto var(--s); background-position: calc(var(--i) * var(--s) * -1) 0; background-repeat: no-repeat; }
+/* held items: the same crisp 24x24 icons as the braces (.item-ic). Pixel art can't shrink to the 18px chip cleanly,
+   so an item chip grows to fit its icon instead; the chips beside it stay centred on it. */
+.chip2.item { padding: 1px 8px 1px 3px; }
+.chip2 .item-ic { margin: 0; }
+/* on a card every chip in the row is as tall as the item chip (icon + 1px padding + border) */
+.bc-chips .chip2 { min-height: calc(24 * var(--px, 1px) + 4px); }
 .iic.none { width: 8px; height: 8px; margin: 0 3px; border-radius: 50%; background: var(--line-strong); }
 .ab-ic { width: 12px; height: 12px; margin-right: 4px; vertical-align: -1px; }
 .ivpills { display: flex; gap: 3px; flex-wrap: wrap; }
@@ -383,6 +388,7 @@ span.pull-cell .spr { opacity: 0.3; filter: grayscale(1); }
 .bp-detail dt { color: var(--muted); font-size: 12.5px; }
 .bp-detail dd { margin: 0; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .bp-detail dd .iic { margin-right: 4px; }
+.bp-detail dd .item-ic { margin-right: 3px; }
 .bp-detail .seg button { padding: 3px 9px; font-size: 12.5px; }
 .bp-detail ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; color: var(--muted); font-size: 13px; }
 .bp-detail .ha { width: calc(11 * var(--px, 1px)); height: calc(9 * var(--px, 1px)); margin-right: 4px; vertical-align: -1px; }
@@ -473,10 +479,11 @@ body.popped { overflow: hidden; }
    otherwise draw some sprite pixels 1 screen pixel wide and others 2, which looks like a rough outline). */
 .item-ic { display: inline-block; width: calc(24 * var(--px, 1px)); height: calc(24 * var(--px, 1px)); margin: calc(-6 * var(--px, 1px)) 2px calc(-6 * var(--px, 1px)) -1px; vertical-align: middle; flex: none; overflow: visible; }
 /* Dark theme: the sprites' own dark outlines vanish into the dark page, so they get a one-sprite-pixel light rim
-   (the game shows them on a light bag panel). Light theme draws them as they are. */
+   (the game shows them on a light bag panel); src/items.py draws it into each icon in this colour. Light theme
+   draws them as they are. */
 :root { --sprite-rim: transparent; }
-.item-ic { filter: drop-shadow(var(--px, 1px) 0 0 var(--sprite-rim)) drop-shadow(calc(-1 * var(--px, 1px)) 0 0 var(--sprite-rim))
-  drop-shadow(0 var(--px, 1px) 0 var(--sprite-rim)) drop-shadow(0 calc(-1 * var(--px, 1px)) 0 var(--sprite-rim)); }
+.item-ic { shape-rendering: crispEdges; }
+.soft-px .item-ic { shape-rendering: geometricPrecision; }
 .item-fan { display: inline-flex; vertical-align: middle; margin-right: 2px; }
 .item-fan .item-ic { margin: calc(-6 * var(--px, 1px)) 0; }
 .item-fan .item-ic + .item-ic { margin-left: calc(-13 * var(--px, 1px)); }
@@ -487,6 +494,17 @@ body.popped { overflow: hidden; }
 .spr.unk { background-image: var(--unknown-icon); background-size: 100% 100%; background-position: 0 0; }
 /* costumed icons: their own small sheet (data/costume-icons.png), one 40x30 cell each in COSTUME_ICONS order */
 .spr.cos { background-image: var(--costume-icons); background-size: calc(480px * var(--s)) calc(30px * var(--s)); }
+/* Hover hop: like the game's PC box, the Pokémon you point at flips between two frames, down and 2 sprite pixels up
+   (rounded to whole screen pixels), with nothing in between, for as long as it is hovered.
+   Only for a real mouse (no stuck bob after a tap) and never with reduced motion; box spots also bob on keyboard focus. */
+@keyframes spr-bob { 0% { transform: translateY(var(--bob)); } 50% { transform: none; } }
+.spr { --bob: calc(var(--s) * -2px); }
+@supports (top: round(1.5px, 1px)) { .spr { --bob: round(calc(var(--s) * -2px), 1px); } }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .slot:not(.egg):hover > .spr, .card:hover > .who > .spr, .bc-card:hover .bc-top > .spr, .mon-top:hover .mon-idx > .spr,
+  .bcard:hover .bc-spr > .spr, li.build:hover > .spr, .ev-chip:hover > .spr, .panel-head .who:hover #t-sprite > .spr { animation: spr-bob 0.5s steps(1, end) infinite; }
+}
+@media (prefers-reduced-motion: no-preference) { .slot:not(.egg):focus-visible > .spr { animation: spr-bob 0.5s steps(1, end) infinite; } }
 .who { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .who .name { min-width: 0; }
 .card.buy .who .spr { opacity: 0.55; }
@@ -532,6 +550,11 @@ textarea.code:focus-visible { outline: 2px solid var(--accent); outline-offset: 
 .lk-ivs { display: flex; flex-wrap: wrap; gap: 6px; }
 .lk-iv { display: grid; gap: 2px; font-size: 12px; justify-items: center; }
 .lk-iv input { width: 46px; padding: 4px 5px; text-align: center; }
+.closest { margin-top: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+.closest-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.closest ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.closest li { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.closest p { margin: 8px 0 0; font-size: 13px; }
 .luck-note { font-size: 12.5px; color: var(--muted); margin: 0; border-left: 3px solid var(--accent-soft); padding-left: 8px; }
 .luck-note b { color: var(--accent); }
 ol.steps li.is-done .luck-note { display: none; }
@@ -602,6 +625,7 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .bc-group > h3 .small { font-family: var(--f-body); font-weight: 400; }
 /* the Nature and Open in planner row sits at the bottom of every card, so the buttons in a row of cards line up */
 .bc-card { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: var(--sunk); display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.bc-card.bc-costume { border-color: #7b3fb8; box-shadow: inset 3px 0 0 #7b3fb8; }
 /* the cards in a row are one height: the picks and Open in planner sit at the bottom under a divider, so a
    shorter card's spare room reads as space at the end of its text rather than a gap in the middle */
 .bc-card > .bc-act { margin-top: auto; border-top: 1px solid var(--line); padding-top: 10px; }
@@ -618,6 +642,7 @@ header.top p.alpha-note { color: var(--ink); font-size: 13.5px; }
 .bc-uses { display: grid; gap: 2px; font-size: 12.5px; color: var(--muted); }
 .bc-uses .icons { display: flex; flex-wrap: wrap; align-items: center; gap: 0 2px; }
 .bc-uses .u { display: inline-flex; align-items: center; margin-right: 4px; font-family: var(--f-mono); font-size: 11.5px; }
+.bc-uses .u.alpha .spr { --s: 1.35 !important; margin: -3px 1px; filter: drop-shadow(1px 0 0 #d4202a) drop-shadow(-1px 0 0 #d4202a) drop-shadow(0 1px 0 #d4202a) drop-shadow(0 -1px 0 #d4202a); }
 .bc-next { font-size: 12.5px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 6px; }
 /* the same build with parents bought on the GTL, next to the box-only one */
 .bc-gtl { display: grid; gap: 3px; font-size: 13px; border-top: 1px dashed var(--line); padding-top: 6px; }
@@ -1014,19 +1039,19 @@ try { const t = localStorage.getItem('pokemmo-breeding-theme'); if (t === 'light
     <h2 id="h-rules">PokeMMO breeding rules this planner follows</h2>
     <ul>
       <li><b>Both parents are consumed.</b> The Daycare keeps both parents and any items they hold, so every parent in the tree is used up.</li>
-      <li><b>Compatibility.</b> Parents must be opposite genders and share an egg group. Ditto breeds with anything that can breed (not with another Ditto). Pokémon in the Undiscovered group can't breed. Babies like Pichu, Riolu and Happiny can once they evolve, so the plan uses them and says to evolve them first. Genderless Pokémon breed with Ditto or with another Pokémon of their own line, such as Beldum with Metang.</li>
+      <li><b>Compatibility.</b> Parents must be opposite genders and share an egg group. Ditto breeds with anything that can breed (not with another Ditto). Pokémon in the Undiscovered group can't breed, and in PokeMMO neither can Shedinja. Babies like Pichu, Riolu and Happiny can once they evolve, so the plan uses them and says to evolve them first. Genderless Pokémon breed with Ditto or with another Pokémon of their own line, such as Beldum with Metang.</li>
       <li><b>Species.</b> The egg is the mother's species at its first evolution stage. With Ditto, it is the other parent's species. Nidoran and Volbeat/Illumise are the exception: their eggs hatch as Nidoran♀ or Nidoran♂, Illumise or Volbeat, depending on the egg's gender, so a male egg from a Nidoran♀ is a Nidoran♂.</li>
       <li><b>Incense babies.</b> These babies only hatch when a parent holds the matching incense: <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-sea"/></svg>Sea Incense, Azurill</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-lax"/></svg>Lax Incense, Wynaut</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-full"/></svg>Full Incense, Munchlax</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-odd"/></svg>Odd Incense, Mime Jr.</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-rock"/></svg>Rock Incense, Bonsly</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-rose"/></svg>Rose Incense, Budew</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-pure"/></svg>Pure Incense, Chingling</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-luck"/></svg>Luck Incense, Happiny</span>; <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-in-wave"/></svg>Wave Incense, Mantyke</span>. Without it the egg is the next stage (Marill, Wobbuffet, Snorlax and so on). The incense uses that parent's item slot. When your goal is one of these babies, the plan puts the incense in the last breed. Each incense costs $9,600 at the mart.</li>
       <li><b>One item per parent.</b> A Power item (brace) guarantees that parent's IV in its stat: <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-0"/></svg>Power Weight HP</span>, <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-1"/></svg>Power Bracer Attack</span>, <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-2"/></svg>Power Belt Defense</span>, <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-3"/></svg>Power Lens Sp. Atk</span>, <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-4"/></svg>Power Band Sp. Def</span>, <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-5"/></svg>Power Anklet Speed</span>. Two parents can lock two different stats.</li>
       <li><b>Shared stats carry over.</b> The egg copies three IVs from its parents (braced stats count among them) and each other IV becomes the parents' average, rounded down, so a stat never lands below the lower parent. So a stat where both parents are 31 is always 31, and one where both have 25 or more is always 25+ (see Egg IV odds). That is why every breed in the plan pairs parents that share all but one stat each, and why each extra 31 doubles the number of parents.</li>
       <li><b>Nature.</b> A parent holding an <span class="nobr"><svg class="item-ic" aria-hidden="true"><use href="#it-6"/></svg>Everstone</span> passes its nature. It can't hold a brace in the same breed, which is why a fixed nature roughly doubles the parents needed.</li>
-      <li><b>Ability.</b> The ability comes from the mother, or from the non-Ditto parent when breeding with Ditto. Hidden abilities pass about 60% of the time. A male or genderless Pokémon only passes its ability when bred with Ditto. Other abilities pass 80% of the time. The planner keeps the parent with your ability on the mother's side and shows the overall chance.</li>
+      <li><b>Ability.</b> The ability comes from the mother, or from the non-Ditto parent when breeding with Ditto. Hidden abilities pass about 60% of the time. A hidden ability also passes from a father of the egg's own line (a male Lucario with a female Lucario), because PokeMMO checks the species for it, not the gender. Otherwise a male or genderless Pokémon only passes its ability when bred with Ditto. Other abilities pass 80% of the time. The planner keeps the parent with your ability on the mother's side and shows the overall chance.</li>
       <li><b>Egg moves.</b> The egg gets every egg move either parent knows, as long as its species can learn it. The planner puts a parent who knows your egg moves in the final breed, and can chain them through other species that also have the move as an egg move (those come in as the father, since the mother sets the species).</li>
       <li><b>Gender selection.</b> You can pay the Daycare to choose the egg's gender. The common gender costs $5,000, the same as either gender of a 1:1 species; the rare gender costs $10,000 for 3:1 species and $25,000 for 7:1 (a female Charmander, say). The plan picks a gender whenever the child is used as a parent later, and for the final egg when the Pokémon you want only comes in one gender (Vespiquen, Gallade, Froslass, Nidoking and so on).</li>
       <li><b>Alphas.</b> An egg is only alpha when both parents are alpha (with Ditto, an alpha Ditto). Tick Alpha on your goal to breed one: the plan then uses only your alphas. With a normal goal an alpha can still be a parent, and its card shows the alpha mark.</li>
       <li><b>What the planner counts as guaranteed.</b> Only braced stats and stats both parents share. Any extra 31s from the random third inherited IV are luck and not counted.</li>
     </ul>
-    <p class="muted small">Sources: <a href="https://pokemmo.shoutwiki.com/wiki/Breeding" target="_blank" rel="noopener">PokeMMO Wiki: Breeding</a>, <a href="https://pokemmo.fandom.com/wiki/Breeding" target="_blank" rel="noopener">the older PokeMMO Fandom wiki</a> and <a href="https://www.pikammo.fr/Pokemmo/en/tools/breeding" target="_blank" rel="noopener">PikaMMO breeding guide</a>. Species, egg groups, gender ratios, abilities, egg moves and who can learn each TM come from Pokémon Showdown's data, which can differ from PokeMMO in places; if you spot a mistake, <a href="https://github.com/ssmith130/PokeMMOBreeder/issues/new" target="_blank" rel="noopener">report it</a>. TM prices are mart prices from the PokeMMO Wiki; held item prices are guesses. Box icons, item icons and the Smeargle box icon behind the Smearguru logo are from or based on <a href="https://github.com/PokeAPI/sprites" target="_blank" rel="noopener">PokeAPI/sprites</a>. Unofficial fan tool, not affiliated with PokeMMO; Pokémon © Nintendo, Game Freak and The Pokémon Company.</p>
+    <p class="muted small">Sources: <a href="https://pokemmo.shoutwiki.com/wiki/Breeding" target="_blank" rel="noopener">PokeMMO Wiki: Breeding</a>, <a href="https://pokemmo.fandom.com/wiki/Breeding" target="_blank" rel="noopener">the older PokeMMO Fandom wiki</a> and <a href="https://www.pikammo.fr/Pokemmo/en/tools/breeding" target="_blank" rel="noopener">PikaMMO breeding guide</a>. Egg moves are PokeMMO's own lists, from the game client via <a href="https://mmobreeder.com/egg-moves" target="_blank" rel="noopener">MMOBreeder's egg move page</a> (PokeMMO teaches many main-game egg moves with tutors instead). Species, egg groups, gender ratios, abilities and who can learn each TM come from Pokémon Showdown's data, which can differ from PokeMMO in places; if you spot a mistake, <a href="https://github.com/ssmith130/PokeMMOBreeder/issues/new" target="_blank" rel="noopener">report it</a>. TM prices are mart prices from the PokeMMO Wiki; held item prices are guesses. Box icons, item icons and the Smeargle box icon behind the Smearguru logo are from or based on <a href="https://github.com/PokeAPI/sprites" target="_blank" rel="noopener">PokeAPI/sprites</a>. Unofficial fan tool, not affiliated with PokeMMO; Pokémon © Nintendo, Game Freak and The Pokémon Company.</p>
   </section>
   </div>
 
@@ -1189,9 +1214,16 @@ const BRACE = ['Power Weight', 'Power Bracer', 'Power Belt', 'Power Lens', 'Powe
 const EVERSTONE = 6; // its icon number, after the six braces
 // Pixel art only looks clean when each sprite pixel covers a whole number of screen pixels. Pick that number (k) so
 // the icons come out close to their normal size, and redo it when the zoom or screen changes.
+// An element drawn with CSS zoom (the full-screen plan's tree) needs its own value, worked out for screen pixels
+// times that zoom, or its icons come out at odd sizes and look splotchy.
+// Zoomed far out (under 70% of a screen pixel per CSS pixel), whole pixels would make the icons too big for the
+// text, so they shrink with it and are drawn smooth instead (.soft-px).
+const pxFor = (scale) => { const s = (window.devicePixelRatio || 1) * scale; return s < 0.7 ? '0.92px' : `${Math.max(1, Math.round(s * 0.92)) / s}px`; };
 function snapPixels() {
-  const d = window.devicePixelRatio || 1, k = Math.max(1, Math.round(d * 0.92));
-  document.documentElement.style.setProperty('--px', `${k / d}px`);
+  const d = window.devicePixelRatio || 1;
+  document.documentElement.style.setProperty('--px', pxFor(1));
+  const pt = document.getElementById('pop-tree');
+  if (pt && pt.style.zoom) { pt.style.setProperty('--px', pxFor(+pt.style.zoom || 1)); pt.classList.toggle('soft-px', d * (+pt.style.zoom || 1) < 0.7); }
   try { matchMedia(`(resolution: ${d}dppx)`).addEventListener('change', snapPixels, { once: true }); } catch { /* old browser: keep it */ }
 }
 snapPixels();
@@ -1388,6 +1420,8 @@ function ivControl(ivs, idx, prefix, exact, labelPrefix) {
   if (prefix !== 't') return chip;
   return `<span class="goal-iv s-${k}">${chip}<button type="button" class="iv31 iv0" data-zero="${idx}" aria-pressed="${v === 0}" aria-label="${STAT_LABEL[idx]} must be 0" title="${STAT_LABEL[idx]} must be 0${idx === 5 ? ' (Trick Room, Gyro Ball)' : idx === 1 ? ' (a special attacker: less damage from confusion and Foul Play)' : ''}">0</button></span>`;
 }
+// In exact numbers, a goal IV's 31 button shows whether that box says 31.
+function syncGoal31(i) { const b = document.querySelector(`#t-ivs [data-goal31="${i}"]`); if (b) b.setAttribute('aria-pressed', String(state.target.ivs[i] === 31)); }
 // The goal's 0 buttons follow its IVs (a chip ticked to 31 turns its 0 off).
 function syncGoalZeros() {
   document.querySelectorAll('#t-ivs [data-zero]').forEach((b) => {
@@ -1406,7 +1440,10 @@ function renderTarget() {
   $('t-species').value = t.species;
   $('t-nature').value = t.nature;
   $('t-ivs-label').textContent = state.exact ? 'Minimum IVs you want (blank = don\'t care, 0 = must be 0)' : 'IVs that must be 31 (or 0)';
-  $('t-ivs').innerHTML = STAT_KEYS.map((_, i) => ivControl(t.ivs, i, 't', state.exact, 'Target')).join('');
+  // exact numbers get a 31 button under each box (like the box editor's), so a stat goes to 31 in one press
+  $('t-ivs').innerHTML = STAT_KEYS.map((k, i) => (state.exact
+    ? `<span class="iv-cell s-${k}">${ivControl(t.ivs, i, 't', true, 'Target')}<button type="button" class="iv31" data-goal31="${i}" aria-pressed="${t.ivs[i] === 31}" aria-label="Goal ${STAT_LABEL[i]} must be 31" title="${STAT_LABEL[i]} must be 31 (press again to clear)">31</button></span>`
+    : ivControl(t.ivs, i, 't', false, 'Target'))).join('');
   const set = t.ivs.filter((v) => v != null);
   $('t-25').checked = state.exact && set.some((v) => v === 25) && set.every((v) => v === 25 || v === 0);
   renderTargetSpecies();
@@ -1623,7 +1660,7 @@ document.addEventListener('input', (e) => {
   if (el.dataset.combo) return;
   if (el.closest('#ec')) return ecInput(el);
   if (el.id === 'build-name') return syncBuildUi();
-  if (el.closest('#t-ivs')) { state.target.ivs[+el.dataset.iv] = readIv(el); syncGoalZeros(); return changed(); }
+  if (el.closest('#t-ivs')) { const i = +el.dataset.iv; state.target.ivs[i] = readIv(el); syncGoalZeros(); syncGoal31(i); return changed(); }
   if (el.dataset.move) { const t = state.target; t.moves = t.moves.filter((x) => x !== el.dataset.move); if (el.checked) t.moves.push(el.dataset.move); renderTmHint(); renderExtras(); return changed(); }
   if (el.dataset.tm) return setExtra(el.dataset.tm, el.checked);
   if (el.dataset.p) { state.prices[el.dataset.p] = parseFloat(el.value) || 0; if (EXTRA[el.dataset.p]) renderTmHint(); try { renderBoxWorth(); } catch (e) {} return changed(); }
@@ -1669,6 +1706,14 @@ document.addEventListener('change', (e) => {
 });
 function focusField(id, f) { const el = $(`m${id}-${f}`); if (el) { el.focus(); const n = el.value.length; try { el.setSelectionRange(n, n); } catch (e) {} } }
 document.addEventListener('click', (e) => {
+  const g31 = e.target.closest('#t-ivs [data-goal31]');
+  if (g31) {
+    const i = +g31.dataset.goal31, t = state.target;
+    t.ivs[i] = t.ivs[i] === 31 ? null : 31;
+    const box = $('t-iv' + i);
+    if (box) box.value = t.ivs[i] == null ? '' : t.ivs[i];
+    syncGoal31(i); changed(); return;
+  }
   const z = e.target.closest('#t-ivs [data-zero]');
   if (z) {
     const i = +z.dataset.zero, t = state.target;
@@ -1761,10 +1806,11 @@ const typeColor = (t) => TYPE_COLORS[t] || 'var(--line-strong)';
 const moveType = (m) => MOVE_TYPES[m] || (/^Hidden Power (\w+)/.test(m) ? m.split(' ')[2] : '');
 const TIER_COLORS = { OU: '#d9534f', UU: '#3f7fd9', NU: '#3a9d5d', Doubles: '#8a5cd6' };
 const ABILITY_ICON = '<svg class="ab-ic" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .8l1.5 3.3 3.6.4-2.7 2.4.8 3.6L6 8.7l-3.2 1.8.8-3.6L.9 4.5l3.6-.4z" fill="#f5c542" stroke="#a5781a" stroke-width=".8" stroke-linejoin="round"/></svg>';
-function itemIc(name, size = 20) {
+// A held item's icon (src/items.py draws #hi-N from data/item-icons.png); a plain dot when it has none
+function itemIc(name) {
   const i = ITEM_ICONS.indexOf(name);
-  if (i < 0) return `<span class="iic none" style="--s:${size}px" aria-hidden="true"></span>`;
-  return `<span class="iic" style="--s:${size}px;--i:${i}" aria-hidden="true"></span>`;
+  if (i < 0) return '<span class="iic none" aria-hidden="true"></span>';
+  return `<svg class="item-ic" aria-hidden="true"><use href="#hi-${i}"/></svg>`;
 }
 const natureHint = (n) => (NATURE_FX[n] ? `+${STAT_LABEL[NATURE_FX[n][0]]} −${STAT_LABEL[NATURE_FX[n][1]]}` : 'neutral');
 // The six IVs as pills: 31 filled, 0 dashed, – for "doesn't matter".
@@ -1788,7 +1834,7 @@ function bpCommon(p, setIdx = 0) {
 }
 function bpComp(p) {
   const ha = sp(p.species).h === p.ability;
-  const notes = [ha ? `${p.ability} is ${p.species}'s hidden ability, so it comes from the mother's side (or a Ditto's partner).` : '',
+  const notes = [ha ? `${p.ability} is ${p.species}'s hidden ability, so it comes from a parent of its own line: the mother, a father of the same line, or a Ditto's partner.` : '',
     p.eggMoves.length ? `${andList(p.eggMoves)} ${p.eggMoves.length > 1 ? 'are egg moves' : 'is an egg move'}, so the plan needs a parent that knows ${p.eggMoves.length > 1 ? 'them' : 'it'}. The other moves are learned another way.` : 'None of the moves need breeding in.',
     STAT_LABEL.some((_, i) => compIvs(p)[i] === 0) ? 'A 0 IV is planned like a 31: a parent with it holds the Power item, or both parents have it. 0s are never bought, so they come from your own Pokémon.' : '',
     p.notes, p.basis === 'usage' ? 'No set is written for it on the StratDex yet, so this one is put together from its PokeMMO usage stats (the most used nature, ability, item and moves).' : '',
@@ -1806,7 +1852,7 @@ function bpCard(b, selected) {
   const inUse = bpInUse(b) || (b.kind === 'common' && presetOf(state.target) === b.src);
   const chips = [b.tier ? chip(esc(b.tier), 'tier', `${b.tier} tier`, TIER_COLORS[b.tier]) : '',
     b.nature ? chip(esc(b.nature), 'nat', natureHint(b.nature)) : '',
-    ...b.items.slice(0, 1).map((it) => chip(itemIc(it, 18) + esc(it), 'item', b.items.join(' or '))),
+    ...b.items.slice(0, 1).map((it) => chip(itemIc(it) + esc(it), 'item', b.items.join(' or '))),
     b.usage ? chip('from usage', 'muted', 'Built from PokeMMO usage stats, no written set yet') : ''].filter(Boolean).join('');
   return `<button type="button" class="bcard" role="listitem" data-bp-card="${esc(b.kind)}:${esc(b.key)}" aria-pressed="${selected}" style="--tc:${typeColor(t[0])};--tc2:${typeColor(t[1] || t[0])}">`
     + `<span class="bc-spr">${sprite(b.species, 1)}</span><span class="bc-t"><b>${esc(b.title)}</b> <span>${esc(b.kind === 'comp' ? b.name : b.sub)}</span></span>`
@@ -1820,7 +1866,7 @@ function bpDetail(b) {
   const facts = [
     ['Nature', b.nature ? `${esc(b.nature)} <span class="muted">${esc(natureHint(b.nature))}</span>` : ''],
     ['Ability', b.ability ? `${ha ? HA_ICON : ABILITY_ICON}${esc(b.ability)}${ha ? ' <span class="muted">hidden</span>' : ''}` : 'Any'],
-    ['Item', b.items.map((it) => `<span class="nobr">${itemIc(it, 24)}${esc(it)}</span>`).join(' or ')],
+    ['Item', b.items.map((it) => `<span class="nobr">${itemIc(it)}${esc(it)}</span>`).join(' or ')],
     ['IVs', ivPills(b.ivs) + ver],
     ['EVs', esc(b.evs || '')],
     ...b.facts.map(([k, v]) => [k, esc(v)]),
@@ -2017,7 +2063,7 @@ function evOf(t) {
 }
 function evCard(p, selected) {
   const t = sp(p.species).t, inUse = evOf(state.target) === p;
-  const chips = [chip(esc(p.role), 'muted'), chip(esc(p.nature), 'nat', natureHint(p.nature)), p.item ? chip(itemIc(p.item, 18) + esc(p.item), 'item', p.item) : ''].join('');
+  const chips = [chip(esc(p.role), 'muted'), chip(esc(p.nature), 'nat', natureHint(p.nature)), p.item ? chip(itemIc(p.item) + esc(p.item), 'item', p.item) : ''].join('');
   return `<button type="button" class="bcard" role="listitem" data-ev-card="${esc(p.key)}" aria-pressed="${selected}" style="--tc:${typeColor(t[0])};--tc2:${typeColor(t[1] || t[0])}"`
     + ` title="${esc(`Used in: ${p.raids.map((k) => evRaid(k)?.name).filter(Boolean).join(', ')}`)}">`
     + `<span class="bc-spr">${sprite(p.species, 1)}</span><span class="bc-t"><b>${esc(p.species)}</b> <span>${esc(p.name)}</span></span>`
@@ -2026,14 +2072,14 @@ function evCard(p, selected) {
 }
 function evDetail(p) {
   const t = sp(p.species).t, ha = p.ability && sp(p.species).h === p.ability, inUse = evOf(state.target) === p;
-  const notes = [ha ? `${p.ability} is ${p.species}'s hidden ability, so it comes from the mother's side (or a Ditto's partner).` : '',
+  const notes = [ha ? `${p.ability} is ${p.species}'s hidden ability, so it comes from a parent of its own line: the mother, a father of the same line, or a Ditto's partner.` : '',
     p.eggMoves.length ? `${andList(p.eggMoves)} ${p.eggMoves.length > 1 ? 'are egg moves' : 'is an egg move'}, so the plan needs a parent that knows ${p.eggMoves.length > 1 ? 'them' : 'it'}. The other moves are learned another way.` : 'None of the moves need breeding in.',
     STAT_LABEL.some((_, i) => compIvs(p)[i] === 0) ? 'A 0 IV is planned like a 31: a parent with it holds the Power item, or both parents have it. 0s are never bought, so they come from your own Pokémon.' : '',
     p.notes, EVENT.event.caveat].filter(Boolean);
   const facts = [
     ['Nature', `${esc(p.nature)} <span class="muted">${esc(natureHint(p.nature))}</span>`],
     ['Ability', p.ability ? `${ha ? HA_ICON : ABILITY_ICON}${esc(p.ability)}${ha ? ' <span class="muted">hidden</span>' : ''}` : 'Any'],
-    ['Item', p.item ? `<span class="nobr">${itemIc(p.item, 24)}${esc(p.item)}</span>` : ''],
+    ['Item', p.item ? `<span class="nobr">${itemIc(p.item)}${esc(p.item)}</span>` : ''],
     ['IVs', ivPills(compIvs(p))],
     ['EVs', esc(p.evs || '')],
     ['Raids', p.raids.map((k) => evRaid(k)).filter(Boolean).map((r) => `<button type="button" class="ev-chip" data-ev-raid="${esc(r.key)}">${sprite(r.name, 1)}${esc(r.name)} <span class="st">${r.stars}★</span></button>`).join('')],
@@ -2496,6 +2542,19 @@ window.addEventListener('scroll', placeCombo, true);
 // A plan that is still running when the inputs change is thrown away: the worker is replaced
 // rather than left to finish a search nobody will see.
 let worker = null, workerUrl = null, busy = false, jobId = 0, timer = null;
+// A big box can make the search run out of steps before it finds any plan, even when a plan exists: the
+// Build center, which hands the planner only the best 24 of your Pokémon, can then find one the planner can't
+// (and a deeper check isn't remembered). So when the whole-box search ends cut short with nothing, it looks
+// again among the best 24 (input.small, indices into input.pool), and a plan from there is shown as cut short.
+const SMALL_POOL = 24;
+function planNarrowed(Planner, dex, input, out) {
+  if (out.error || out.result || !out.truncated || !input.small || !input.small.length) return out;
+  const idx = input.small, again = Planner.plan({ ...input, pool: idx.map((i) => input.pool[i]), dex });
+  if (!again.result) return out;
+  // the plan's Pokémon point at the smaller list: point them back at the whole one
+  (function fix(r) { const n = r.node; if (n.t === 'breed') { fix(n.a); fix(n.b); } else if (n.t === 'own' && n.p && Number.isInteger(n.p.i)) n.p = { ...n.p, i: idx[n.p.i] }; })(again.result);
+  return { ...again, truncated: true, timedOut: out.timedOut || again.timedOut, narrowed: true, calls: out.calls + again.calls };
+}
 function startWorker() {
   worker = new Worker(workerUrl);
   worker.onmessage = (e) => { busy = false; if (e.data.id === jobId) showResult(e.data.out, e.data.retry); };
@@ -2506,12 +2565,13 @@ try {
     const dex = Planner.buildDex(${JSON.stringify(SPECIES)});
     onmessage = (e) => {
       const d = e.data;
-      const out = Planner.plan({ ...d.input, dex });
+      const out = planNarrowed(Planner, dex, d.input, Planner.plan({ ...d.input, dex }));
       let retry = null;
       if (!d.noRetry && !out.error && !out.result && !d.input.opts.buy && !d.input.opts.noBuy) retry = Planner.plan({ ...d.input, dex, opts: { ...d.input.opts, buy: true, buyIV: [1], buyNat: [1] } });
       postMessage({ id: d.id, out: strip(out), retry: retry && strip(retry) });
     };
-    function strip(o) { return { error: o.error, result: o.result, truncated: o.truncated, timedOut: o.timedOut, calls: o.calls, tLine: o.tLine }; }`;
+    function strip(o) { return { error: o.error, result: o.result, truncated: o.truncated, timedOut: o.timedOut, narrowed: o.narrowed, calls: o.calls, tLine: o.tLine }; }
+    ${planNarrowed.toString()}`;
   workerUrl = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
   startWorker();
 } catch (e) { worker = null; }
@@ -2521,9 +2581,18 @@ try {
 // only stops a search that is taking far too long on a slow device.
 const PLAN_WORK = 50000000, PLAN_CLOCK = 40000;
 // "Check deeper" under a plan that was cut short: each press searches 4 times as far for these same Pokémon and
-// goal (up to 3 presses), with more time on the clock too. Changing anything goes back to the normal search.
+// goal (up to 3 presses), with more time on the clock too. Changing anything goes back to the normal search,
+// but the depth is remembered in this browser for these exact Pokémon and goal (the last 20), so loading a saved
+// build again or reloading the page searches as deep as before instead of losing the plan it found.
 let deep = { level: 0, key: '' };
-const DEEP_MAX = 3;
+const DEEP_MAX = 3, DEEP_KEY = 'pokemmo-breeding-deep';
+let deepCarry = false; // set by ticking a breed: the next search keeps the current depth
+function deepMemo() { try { const o = JSON.parse(localStorage.getItem(DEEP_KEY)); if (o && typeof o === 'object' && !Array.isArray(o)) return o; } catch (e) {} return {}; }
+function rememberDeep(key, level) {
+  const o = deepMemo(); delete o[key]; o[key] = level;
+  const keys = Object.keys(o); for (const k of keys.slice(0, Math.max(0, keys.length - 20))) delete o[k];
+  try { localStorage.setItem(DEEP_KEY, JSON.stringify(o)); } catch (e) {}
+}
 let planInput = null; // what the plan on screen was made from
 function buildInput() {
   const t = state.target;
@@ -2555,9 +2624,10 @@ function buildInput() {
   });
   // Pokémon from the box, the ones that can help most first; the planner takes up to 63 in all.
   boxUse = { used: 0, left: 0 };
+  let small = null;
   if (state.useBox) {
     const canon = (sTarget && sp(sTarget.b || sTarget.n) && sp(sTarget.b || sTarget.n).m) || [];
-    const picked = boxPool(63 - pool.length);
+    const rows = pool.length, picked = boxPool(63 - rows);
     boxUse = { used: picked.mons.filter((b) => !b.spent).length, left: picked.left };
     for (const b of picked.mons) {
       const s = sp(b.mon.species), moves = b.mon.moves.map((x) => x.toLowerCase());
@@ -2566,6 +2636,11 @@ function buildInput() {
         // half its rough worth (about what selling it brings), when "Protect my valuable Pokémon" is on; a Pokémon
         // this plan already bred counts as free
         worth: state.protect && !b.spent ? Math.round(monWorth(b.mon) / 2) : 0 });
+    }
+    // the best 24 (your own rows always in), for a second look when the whole box runs the search out (planNarrowed)
+    if (pool.length > SMALL_POOL && rows < SMALL_POOL - 4) {
+      const few = new Set(boxPool(SMALL_POOL - rows).mons.map((b) => b.mon.id));
+      small = pool.map((p, i) => (i < rows || few.has(p.boxId) ? i : -1)).filter((i) => i >= 0);
     }
   }
   const P = state.prices;
@@ -2577,13 +2652,22 @@ function buildInput() {
     // shinies and alphas can't be bought as parents here: a shiny or alpha plan uses only the ones you have
     opts: { mode: state.mode, buy: anyBuy(state.buys) && !shiny && !alpha && !boxOnly, buyIV: countsOf(state.buys.p), buyNat: countsOf(state.buys.n), noBuy: shiny || alpha || boxOnly,
       work: PLAN_WORK, timeLimit: PLAN_CLOCK, protect: !!state.protect },
+    small,
   };
 }
 // The same Pokémon, goal, prices and options give the same key, so a deeper search stays on only for them.
 const planKey = (input) => hashStr(JSON.stringify([input.target, input.pool, input.prices, input.opts]));
 function deepen(input) {
-  const level = deep.key === planKey(input) ? deep.level : 0, f = 4 ** level;
-  if (!level) deep = { level: 0, key: '' };
+  const key = planKey(input);
+  if (deep.key !== key) {
+    const m = deepMemo()[key];
+    if (Number.isInteger(m) && m >= 1 && m <= DEEP_MAX) deep = { level: m, key };
+    // a tick (or a lucky roll) only moves Pokémon in or out of the plan's own breeds, so the plan keeps its depth
+    else if (deepCarry && deep.level) { deep = { level: deep.level, key }; rememberDeep(key, deep.level); }
+    else deep = { level: 0, key: '' };
+  }
+  deepCarry = false;
+  const level = deep.level, f = 4 ** level;
   return { ...input, opts: { ...input.opts, work: PLAN_WORK * f, timeLimit: Math.min(PLAN_CLOCK * f, 300000) }, deepLevel: level };
 }
 
@@ -2609,7 +2693,7 @@ function run() {
   if (worker && busy) { worker.terminate(); try { startWorker(); } catch (e) { worker = null; } }
   if (worker) { busy = true; worker.postMessage({ id: jobId, input }); }
   else setTimeout(() => {
-    const out = Planner.plan({ ...input, dex });
+    const out = planNarrowed(Planner, dex, input, Planner.plan({ ...input, dex }));
     const retry = !out.error && !out.result && !input.opts.buy && !input.opts.noBuy ? Planner.plan({ ...input, dex, opts: { ...input.opts, buy: true, buyIV: [1], buyNat: [1] } }) : null;
     showResult(out, retry);
   }, 0);
@@ -2623,6 +2707,7 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('#plan-deeper')) return;
   const key = planKey(buildInput());
   deep = { level: deep.key === key ? Math.min(DEEP_MAX, deep.level + 1) : 1, key };
+  rememberDeep(key, deep.level);
   run();
 });
 function showMessage(msg) { stopLuck(); jobId++; $('plan-status').textContent = ''; $('results').innerHTML = `<div class="empty">${esc(msg)}</div>`; }
@@ -2634,7 +2719,9 @@ let planInView = false;
 function syncToPlan() {
   const breeds = $('results').querySelector('.summary b');
   toPlan.textContent = breeds ? `See the plan · ${breeds.textContent} breed${breeds.textContent === '1' ? '' : 's'}` : 'See the plan';
-  toPlan.hidden = planInView || typing || pageView !== 'planner';
+  // only when there's a plan (or one is being worked out) to jump to, not over an empty "Add your Pokémon"
+  const something = breeds || $('results').querySelector('.closest, .notice') || $('plan-status').textContent.trim();
+  toPlan.hidden = !something || planInView || typing || pageView !== 'planner';
 }
 // ...but not while you're typing in a field, where it would sit over the field or its suggestions
 let typing = false;
@@ -2861,12 +2948,15 @@ function showResult(out, retry) {
       if (t.alpha) why.unshift('enough alpha parents (an egg is only alpha when both parents are alpha, so every parent in the plan has to be one of your alphas)');
       if (t.shiny && t.ot) why.unshift(`a shiny of the ${esc(dex.lineOf(t.species))} line you caught yourself (ticked "Caught OT") that can be the mother, or a father with a shiny ${esc(dex.lineOf(t.species))} mother or a shiny Ditto (your OT only carries to an egg of its own species)`);
       if (t.shiny) why.unshift('enough shiny parents (a shiny only breeds with another shiny, so every parent in the plan has to be one of your shinies)');
-      box.innerHTML = `<div class="notice"><strong>No plan found.</strong> ${why.length ? 'Check that you have ' + why.join('; ') + '.' : dittoNote ? '' : 'Check genders and egg groups: each breed needs a female and a male that share an egg group, or a Ditto.'}${dittoNote}${state.useBox && state.boxOnly ? ' "Only use Pokémon from my box" is ticked, so no plan that buys parents is offered.' : ''}${out.truncated ? ` The search also hit its limit${out.timedOut ? ' (this device ran out of time)' : ''}; try fewer Pokémon${deepBtn()}.` : ''}</div>`;
+      box.innerHTML = `<div class="notice"><strong>No plan found.</strong> ${why.length ? 'Check that you have ' + why.join('; ') + '.' : dittoNote ? '' : 'Check genders and egg groups: each breed needs a female and a male that share an egg group, or a Ditto.'}${dittoNote}${state.useBox && state.boxOnly ? ' "Only use Pokémon from my box" is ticked, so no plan that buys parents is offered.' : ''}${out.truncated ? ` The search also hit its limit${out.timedOut ? ' (this device ran out of time)' : ''}; try fewer Pokémon${deepBtn()}.` : ''}</div><div class="closest" id="closest" hidden></div>`;
+      closestChecks(planInput);
       return;
     }
   } else if (out.truncated) {
     head = out.timedOut
       ? `<div class="notice"><strong>${deep.level ? 'Deeper check cut short too' : 'Search cut short'}.</strong> This plan works, but this device ran out of time before the search finished, so a shorter one may exist and another computer may show a different plan. Removing Pokémon you don't need speeds it up${deepBtn()}.</div>`
+      : out.narrowed
+      ? `<div class="notice"><strong>${deep.level ? 'Deeper check cut short too' : 'Search cut short'}.</strong> The search over your whole box ran out of steps before it found any plan, so this one comes from a second look at your best ${SMALL_POOL} Pokémon. It works and you get it every time, but a shorter one may exist. Removing Pokémon you don't need lets it look further${deepBtn()}.</div>`
       : `<div class="notice"><strong>${deep.level ? 'Deeper check cut short too' : 'Search cut short'}.</strong> This plan works, but the search reached its step limit, so a shorter one may exist. You get this same plan every time for these Pokémon. Removing Pokémon you don't need lets it look further${deepBtn()}.</div>`;
   } else if (deep.level) {
     head = `<div class="notice ok"><strong>Deeper check finished.</strong> The search ran to the end, so no plan with fewer breeds exists for these Pokémon.</div>`;
@@ -2996,6 +3086,7 @@ function setDone(num, on) {
   if (on) (function down(x) { set.add(x.sig); x.kids.forEach(down); })(r);
   else for (let x = r; x; x = x.parent) set.delete(x.sig);
   state.done = [...set].slice(-300);
+  deepCarry = true;
   save(); syncDone(); queueProgressSave();
   boxFollowDone(before, new Set(state.done));
 }
@@ -3014,6 +3105,7 @@ document.addEventListener('click', (e) => {
   if (!btn.dataset.armed) { btn.dataset.armed = '1'; btn.textContent = 'Press again to clear all checkmarks'; return; }
   const mine = new Set(curOrder.map((r) => r.sig)), before = new Set(state.done);
   state.done = state.done.filter((x) => !mine.has(x));
+  deepCarry = true;
   if ((state.luck || []).length) { // a fresh start: the hatched Pokémon go, and the plan goes back to the start
     const old = luckEntries().flatMap((e) => e.sigs);
     state.luck = [];
@@ -3141,6 +3233,7 @@ function applyLuck(num, form) {
   state.done = state.done.filter((x) => !gone.has(x)); // so a new breed that looks the same doesn't show as done
   const who = `${got.gender === 'F' ? '♀ ' : got.gender === 'M' ? '♂ ' : ''}${m.species}`;
   state.luck = (state.luck || []).concat([{ id: gid, note: `Breed ${num} hatched ${who} with ${andList(diff)}.`, entries }]).slice(-20);
+  deepCarry = true;
   queueProgressSave();
   changed();
 }
@@ -3152,6 +3245,7 @@ function undoLuck(gid) {
   luckEntries().forEach((e) => { if (e.gone === gid) e.gone = ''; });
   const back = g.entries.flatMap((e) => e.sigs);
   state.done = [...new Set(state.done.concat(back))].slice(-300);
+  deepCarry = true;
   queueProgressSave();
   changed();
 }
@@ -3180,11 +3274,107 @@ document.addEventListener('keydown', (e) => {
   if (f) { e.preventDefault(); f.querySelector('[data-luck-cancel]').click(); }
 });
 
+// Closest goal: when there's no plan, the planner tries the goal with one thing left out (one IV, the nature, the
+// ability, one egg move, the egg's gender), each in a short search of its own in a worker, and lists the ones your
+// Pokémon can make, fewest breeds first, with a button to switch to it. Nothing works with one thing out: two.
+// Shiny, alpha and costume stay: they're what the Pokémon is, not a part of the build to trade away.
+let closeWorker = null, closeJob = 0;
+const CLOSE_WORK = 6000000, CLOSE_MAX = 24, CLOSE_SHOW = 4;
+function stopClosest() { closeJob++; if (closeWorker) { closeWorker.terminate(); closeWorker = null; } }
+// The single things a goal could do without: { key, text } (text reads "without the …")
+function goalParts(t) {
+  const parts = [];
+  t.ivs.forEach((v, i) => { if (v != null) parts.push({ key: 'iv' + i, text: `${v === 31 ? '31' : v === 0 ? '0' : v + '+'} ${STAT_LABEL[i]}` }); });
+  if (t.nature) parts.push({ key: 'nat', text: `${t.nature} nature` });
+  if (t.ability) parts.push({ key: 'abil', text: t.ability });
+  t.moves.forEach((mv) => parts.push({ key: 'mv:' + mv, text: mv }));
+  if (t.gender === 'F' || t.gender === 'M') parts.push({ key: 'gender', text: t.gender === 'F' ? 'female egg' : 'male egg' });
+  return parts;
+}
+// The goal without the given parts. Works on the planner's target and on state.target alike.
+function dropParts(t, keys) {
+  const out = { ...t, ivs: t.ivs.slice(), moves: t.moves.slice() };
+  for (const k of keys) {
+    if (k.startsWith('iv')) out.ivs[+k.slice(2)] = null;
+    else if (k === 'nat') out.nature = '';
+    else if (k === 'abil') { out.ability = ''; if ('abilityHidden' in out) out.abilityHidden = false; }
+    else if (k === 'gender') out.gender = 'A';
+    else if (k.startsWith('mv:')) out.moves = out.moves.filter((mv) => mv !== k.slice(3));
+  }
+  return out;
+}
+function closestChecks(input) {
+  stopClosest();
+  const el = $('closest');
+  if (!el || !workerUrl || !input) return;
+  const parts = goalParts(input.target);
+  // a goal of one thing has nothing left to keep
+  if (parts.length < 2) return;
+  const ones = parts.map((p) => [p]), twos = [];
+  if (parts.length > 2) for (let i = 0; i < parts.length; i++) for (let j = i + 1; j < parts.length; j++) twos.push([parts[i], parts[j]]);
+  const job = closeJob, found = [];
+  try { closeWorker = new Worker(workerUrl); } catch (e) { closeWorker = null; return; }
+  closeWorker.onerror = () => stopClosest();
+  let list = ones, k = 0, tried = 0, level = 1;
+  el.hidden = false;
+  // what renderClosest needs to say why nothing worked: were all the twos tried, and what always stays in
+  const kept = [state.target.shiny && 'shiny', state.target.alpha && 'alpha', state.target.costume && `${state.target.costume} costume`].filter(Boolean);
+  const show = (busy) => renderClosest(el, found, busy, level, tried, { all: level === 1 ? k >= ones.length : k >= twos.length, pairs: level === 2 ? k : 0, of: twos.length, kept });
+  show(true);
+  const next = () => {
+    if (job !== closeJob) return;
+    if (k >= list.length || tried >= CLOSE_MAX) {
+      if (!found.length && list === ones && twos.length && tried < CLOSE_MAX) { list = twos; k = 0; level = 2; show(true); return next(); }
+      show(false); closeWorker.terminate(); closeWorker = null; return;
+    }
+    const drop = list[k++];
+    tried++;
+    closeWorker.onmessage = (e) => {
+      if (job !== closeJob) return;
+      const r = e.data.out && e.data.out.result;
+      if (r) { found.push({ drop, breeds: r.breeds, cost: r.cost, chance: r.chance }); found.sort((a, b) => a.breeds - b.breeds || a.cost - b.cost); }
+      show(true);
+      next();
+    };
+    closeWorker.postMessage({ id: 0, noRetry: true, input: { ...input, target: dropParts(input.target, drop.map((p) => p.key)), opts: { ...input.opts, work: CLOSE_WORK, timeLimit: 8000 } } });
+  };
+  next();
+}
+function renderClosest(el, found, busy, level, tried, info = {}) {
+  const join = (d) => d.map((p) => esc(p.text)).join(' and the ');
+  const rows = found.slice(0, CLOSE_SHOW).map((f, i) => `<li><span>Without the <b>${join(f.drop)}</b>: ${f.breeds ? `${f.breeds} breed${f.breeds === 1 ? '' : 's'}, ${money(f.cost)}` : 'you already have it'}</span>
+    <button class="btn mini" type="button" data-closest="${i}">Use this goal</button></li>`).join('');
+  el._found = found;
+  el.innerHTML = `<div class="closest-head"><strong>Closest goals you can make</strong>${busy ? `<span class="spin"></span><span class="muted">Checking${level === 2 ? ' with two things left out' : ''}…</span>` : ''}</div>
+    ${rows ? `<ul>${rows}</ul>` : busy ? '' : `<p class="muted">${closestNone(level, info)}</p>`}
+    ${!busy && found.length ? `<p class="muted">Each one is a quick search, so the planner may find fewer breeds once you switch.</p>` : ''}`;
+}
+// Why the list is empty. With many parts there are too many pairs to try them all, so say so rather than
+// claim none works; and shiny, alpha and a costume are never left out, so a shortage of those can't be helped here.
+function closestNone(level, info) {
+  const two = level === 2 ? (info.all ? ', even leaving two things out' : `, leaving out any one thing or ${info.pairs} of the ${info.of} pairs of two (too many to try them all)`) : '';
+  const kept = info.kept && info.kept.length ? ` ${info.kept.join(', ').replace(/^./, (c) => c.toUpperCase())} always stay${info.kept.length === 1 ? 's' : ''} in the goal, so if that's what's short, no smaller goal can help: you need more ${info.kept.length === 1 && info.kept[0] === 'shiny' ? 'shiny' : 'of those'} parents.` : '';
+  return `Nothing close works${two}.${kept} Check the list above for what's missing.`;
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-closest]');
+  if (!b) return;
+  const f = ($('closest') && $('closest')._found || [])[+b.dataset.closest];
+  if (!f) return;
+  const prev = { data: buildData(), buildId: state.buildId, name: $('build-name').value };
+  const keys = f.drop.map((p) => p.key);
+  const t = dropParts(state.target, keys);
+  if (!t.moves.length) t.wantMoves = false;
+  state.target = t;
+  renderAll(); save(); syncBuildUi();
+  say(`Goal changed: left out the ${f.drop.map((p) => p.text).join(' and the ')}.`, () => restoreSetup(prev, 'Back to your previous goal.'));
+});
+
 // The notes: for each breed that isn't bred for the nature, the planner checks (in its own worker, after the plan
 // shows) what the rest of the plan would be if that egg hatched with your nature by chance. Only a real saving gets
 // a note; the plan itself stays the guaranteed one.
 let luckWorker = null, luckJob = 0;
-function stopLuck() { luckJob++; if (luckWorker) { luckWorker.terminate(); luckWorker = null; } }
+function stopLuck() { luckJob++; if (luckWorker) { luckWorker.terminate(); luckWorker = null; } stopClosest(); }
 function luckInput(input, r) {
   const used = new Set();
   (function walk(x) { const nd = x.node; if (nd.t === 'breed') { walk(nd.a); walk(nd.b); } else if (nd.t === 'own' && nd.p && Number.isInteger(nd.p.i)) used.add(nd.p.i); })(r);
@@ -3371,6 +3561,8 @@ function setZoom(z) {
   const cy = (body.scrollTop + body.clientHeight / 2) / body.scrollHeight;
   zoom = Math.min(2, Math.max(0.2, Math.round(z * 20) / 20));
   $('pop-tree').style.zoom = zoom;
+  $('pop-tree').style.setProperty('--px', pxFor(zoom));
+  $('pop-tree').classList.toggle('soft-px', (window.devicePixelRatio || 1) * zoom < 0.7);
   $('zoom-label').textContent = Math.round(zoom * 100) + '%';
   body.scrollLeft = cx * body.scrollWidth - body.clientWidth / 2;
   body.scrollTop = cy * body.scrollHeight - body.clientHeight / 2;
@@ -5941,24 +6133,27 @@ const BC_GTL_OPTS = { buy: true, buyIV: [1, 2, 3], buyNat: [1, 2, 3] };
 // The Pokémon in the boxes right now (not the ones ticked breeds took out).
 function bcMons() {
   const out = [];
-  // shinies and costumed Pokémon stay out: they only breed for a shiny or costume goal, which suggestions never are
-  for (const b of box.boxes) for (const m of b.slots) if (m && !m.shiny && !m.costume && !m.egg && sp(m.species)) out.push({ species: sp(m.species).n, gender: m.gender, ivs: m.ivs.slice(), nature: m.nature, ability: m.ability, moves: (m.moves || []).slice(), boxId: m.id });
+  // shinies stay out: they only breed for a shiny goal, which suggestions never are. A costumed Pokémon only
+  // takes part in the builds of its line in its costume (bcPoolFor).
+  for (const b of box.boxes) for (const m of b.slots) if (m && !m.shiny && !m.egg && sp(m.species)) out.push({ species: sp(m.species).n, gender: m.gender, ivs: m.ivs.slice(), nature: m.nature, ability: m.ability, moves: (m.moves || []).slice(), costume: okCostume(m.species, m.costume), boxId: m.id });
   return out;
 }
 const bcPrices = () => { const P = state.prices; return { ...P, haChance: (P.haChance || 0) / 100, abilityChance: (P.abilityChance || 0) / 100 }; };
 // The Pokémon that could breed with a line (its own, Ditto, the ones sharing an egg group), as text:
 // when it changes, the line is checked again.
-function bcPoolFor(line, mons) {
-  const L = dex.lines.get(line);
+// A costume build ("Riolu@Pharaoh") also takes the line's Pokémon wearing that costume; no other build takes a costumed one.
+function bcPoolFor(key, mons) {
+  const [line, cos] = Builds.lineKey(key), L = dex.lines.get(line);
   return mons.filter((m) => {
     if (m.species === 'Ditto') return true;
     const s = sp(m.species), ml = dex.lineOf(s.n), M = dex.lines.get(ml);
+    if (m.costume && !(cos && m.costume === cos && ml === line)) return false;
     return M && (!s.e.includes('Undiscovered') || dex.evolveInto(s.n)) && (ml === line || [...M.groups].some((g) => L.groups.has(g)));
   });
 }
 // It's kept short (two hashes) because it's stored with every remembered answer.
 const bcSig = (pool) => { const j = JSON.stringify([Builds.VERSION, ['brace', 'everstone', 'gender11', 'gender31', 'gender71', 'buy', 'buyNatured', 'buyDitto', 'buy2', 'buy3', 'buyNatured2', 'buyNatured3', 'buyDitto2', 'buyDitto3'].map((k) => state.prices[k]),
-  pool.map((m) => [m.boxId, m.species, m.gender, m.ivs.join(), m.nature, m.ability, m.moves.join('+')])]); return hashStr(j) + hashStr('~' + j); };
+  pool.map((m) => [m.boxId, m.species, m.gender, m.ivs.join(), m.nature, m.ability, m.moves.join('+'), m.costume || ''])]); return hashStr(j) + hashStr('~' + j); };
 
 // The answers are remembered in this browser, so opening the Build center again shows them at once, and only
 // the species whose Pokémon changed since (or every one, after an update to how builds are checked) are checked
@@ -6023,6 +6218,9 @@ function bcPump() {
   // Only your own Pokémon: with buying allowed every line reaches 6×31 by buying dozens of 1×31s, so
   // buying is left to the planner tab (a nature pick can still buy one parent with that nature).
   const opts = { mode: 'breeds' }, prices = bcPrices();
+  // Workers only start with a scan, so when every answer came from this browser's memory, a card's nature check
+  // would otherwise run right on the page and freeze it for seconds: start them for that check too.
+  if (!bc.workers.length && bc.queue.length && !bc.busy.size && !bc.noWorkers) { bcStartWorkers(); if (!bc.workers.length) bc.noWorkers = true; }
   if (!bc.workers.length) {
     // No workers (an old browser): one line at a time on the page, with a break between lines.
     if (bc.queue.length && !bc.busy.size) {
@@ -6048,7 +6246,11 @@ function bcPump() {
 }
 // Check the lines whose Pokémon changed (or every line, when asked to check again).
 function bcScan(all) {
-  const mons = bcMons(), lines = Builds.linesIn(dex, mons);
+  const mons = bcMons(), lines = Builds.linesIn(dex, mons.filter((m) => !m.costume));
+  // a build in each costume worn in the boxes ("Riolu@Pharaoh"), checked first: those cards go at the top
+  const dressed = [...new Set(mons.filter((m) => m.costume).map((m) => `${dex.lineOf(m.species)}@${m.costume}`))]
+    .filter((k) => Builds.linesIn(dex, [{ species: Builds.lineKey(k)[0] }]).length);
+  lines.unshift(...dressed);
   bc.want = new Map();
   const jobs = [];
   for (const line of lines) {
@@ -6080,9 +6282,14 @@ function bcSyncControls() {
   document.querySelectorAll('[data-bc-by]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.bcBy === bc.by)));
   $('bc-gtl').checked = !!bc.gtl;
 }
-const bcGroups = (line) => [...dex.lines.get(line).groups];
+const bcGroups = (line) => [...dex.lines.get(Builds.lineKey(line)[0]).groups];
+// A card's line itself (Riolu for "Riolu@Pharaoh"), and the name it shows ("Pharaoh Riolu").
+const bcBase = (s) => s.base || Builds.lineKey(s.line)[0];
+// The costumed Pokémon in the boxes a costume card breeds from ("Pharaoh Lucario").
+const bcWearer = (s) => { const m = bcPoolFor(s.line, bcMons()).find((x) => x.costume === s.costume); return `${s.costume} ${m ? m.species : bcBase(s)}`; };
+const bcName = (s) => (s.costume ? `${s.costume} ${bcBase(s)}` : bcBase(s));
 // Does a Pokémon of this line in the boxes have the ability the build is about (Huge Power, say)?
-const bcHasAbility = (s) => !!s.ability && bcMons().some((m) => m.ability === s.ability && m.species !== 'Ditto' && dex.lineOf(m.species) === s.line);
+const bcHasAbility = (s) => !!s.ability && bcPoolFor(s.line, bcMons()).some((m) => m.ability === s.ability && m.species !== 'Ditto' && dex.lineOf(m.species) === bcBase(s));
 function bcChips(ivs) {
   return `<div class="ivs">${ivs.map((v, i) => (v == null ? '' : `<span class="iv s-${STAT_KEYS[i]}">${STAT_LABEL[i]} ${v === 31 ? 31 : v + '+'}</span>`)).join('')}</div>`;
 }
@@ -6091,7 +6298,7 @@ function bcNextText(n) {
   if (n.slow) return 'too big to check here, so it might be possible.';
   return 'needs more Pokémon with the right IVs. The planner can fill the gaps with parents bought on the GTL.';
 }
-const bcFor = (s) => { const f = s.forSpecies.filter((n) => n !== s.line); return f.length ? ` <span class="for">→ ${esc(f.join(', '))}</span>` : ''; };
+const bcFor = (s) => { const f = s.forSpecies.filter((n) => n !== bcBase(s)).map((n) => (s.costume ? `${s.costume} ${n}` : n)); return f.length ? ` <span class="for">→ ${esc(f.join(', '))}</span>` : ''; };
 // What a build is set to: the nature, ability and egg move picked in its dropdowns, else the version the scan
 // found that adds the most (a nature you own, the hidden ability, an egg move your box can pass on).
 const bcVkey = (p) => `${p.nat}|${p.abil}|${p.move}`;
@@ -6121,7 +6328,7 @@ function bcRecState(s) {
 const BC_STEPS_DOWN = 2;
 function bcLower(s, pick) {
   if (!pick.nat || !(s.rung > 0)) return null;
-  const rungs = Builds.ladder(dex, s.line, s.role);
+  const rungs = Builds.ladder(dex, bcBase(s), s.role);
   for (let k = s.rung - 1; k >= Math.max(0, s.rung - BC_STEPS_DOWN); k--) {
     const ck = bcCkey({ ...s, rung: k }, pick, true);
     let r = bc.checks.get(ck);
@@ -6161,7 +6368,7 @@ function bcRecNote(s) {
 // The recommended nature that suits the card's role, or '' (a build with no nature to give, like an IV-only goal).
 function bcRecNature(s) {
   const fits = Builds.ROLE_NATURES[s.role] || [];
-  return Builds.recommendNatures(dex, (s.forSpecies && s.forSpecies[0]) || s.line).find((n) => fits.includes(n)) || '';
+  return Builds.recommendNatures(dex, (s.forSpecies && s.forSpecies[0]) || bcBase(s)).find((n) => fits.includes(n)) || '';
 }
 const bcNatOf = (s) => bcPickOf(s).nat;
 // the rung is part of it: a deeper scan can move the card to another goal
@@ -6269,21 +6476,21 @@ function bcNatSelect(s, nat) {
   const pool = bcPoolFor(s.line, bcMons()), owned = new Set(pool.map((m) => m.nature).filter(Boolean));
   const roleFits = Builds.ROLE_NATURES[s.role] || [];
   // the natures the planner recommends for this build's Pokémon first (Jolly before Adamant for a fast one)
-  const rec = Builds.recommendNatures(dex, s.forSpecies[0] || s.line).filter((n) => roleFits.includes(n));
+  const rec = Builds.recommendNatures(dex, s.forSpecies[0] || bcBase(s)).filter((n) => roleFits.includes(n));
   const fits = roleFits.filter((n) => !rec.includes(n));
   const opt = (n) => `<option value="${n}"${n === nat ? ' selected' : ''}>${n} (${NATURE_FX[n] ? `+${STAT_LABEL[NATURE_FX[n][0]]} −${STAT_LABEL[NATURE_FX[n][1]]}` : 'neutral'})${owned.has(n) ? ' ✓' : ''}</option>`;
   const others = NATURES.filter((n) => !fits.includes(n) && !rec.includes(n)).sort((a, b) => (owned.has(b) - owned.has(a)) || a.localeCompare(b));
   return `<label class="bc-nat">Nature <select data-bc-pick="nat" data-bc-key="${esc(s.key)}">
     <option value=""${nat ? '' : ' selected'}>Any nature (random)</option>
-    ${rec.length ? `<optgroup label="Recommended for ${esc(s.forSpecies[0] || s.line)} (✓ = in your box)">${rec.map(opt).join('')}</optgroup>` : ''}
+    ${rec.length ? `<optgroup label="Recommended for ${esc(s.forSpecies[0] || bcBase(s))} (✓ = in your box)">${rec.map(opt).join('')}</optgroup>` : ''}
     ${fits.length ? `<optgroup label="${rec.length ? 'Also suits' : 'Suits'} a ${esc(s.role === 'wall' ? 'defensive Pokémon' : s.role === 'spec' ? 'special attacker' : 'physical attacker')}${rec.length ? '' : ' (✓ = in your box)'}">${fits.map(opt).join('')}</optgroup>` : ''}
     <optgroup label="Others">${others.map(opt).join('')}</optgroup></select></label>`;
 }
 // The line's abilities, the hidden one marked; ✓ = a Pokémon of the line in your box has it (only those can work).
 function bcAbilSelect(s, abil) {
-  const base = sp(s.line);
+  const base = sp(bcBase(s));
   if (!base) return '';
-  const owned = new Set(bcMons().filter((m) => m.species !== 'Ditto' && dex.lineOf(m.species) === s.line).map((m) => m.ability).filter(Boolean));
+  const owned = new Set(bcPoolFor(s.line, bcMons()).filter((m) => m.species !== 'Ditto' && dex.lineOf(m.species) === bcBase(s)).map((m) => m.ability).filter(Boolean));
   const list = [...new Set([...(base.a || []), base.h].filter(Boolean))];
   if (!list.some((a) => owned.has(a)) && !abil) return '';
   return `<label class="bc-nat">Ability <select data-bc-pick="abil" data-bc-key="${esc(s.key)}">
@@ -6312,24 +6519,30 @@ function bcCard(card) {
     meta = `<div class="bc-meta"><span${s.rough ? ' title="The check stopped before trying everything, so the planner may find a shorter plan"' : ''}>${s.rough ? 'up to ' : ''}<b>${s.breeds}</b> breed${s.breeds === 1 ? '' : 's'}</span><span><span class="money">${money(s.cost)}</span> in items and fees</span>${buys}${chance}</div>`
       + (s.bought ? `<div class="bc-sub">${s.boxSlow ? 'The check with only your own Pokémon ran too long' : "Your box can't make this on its own"}, so this is the cheapest plan that buys parents off the GTL.</div>` : '');
   }
+  // the box Pokémon the plan uses, an alpha drawn like the box draws it (bigger, red outline) and counted apart
   const uses = new Map();
-  for (const id of s.uses || []) { const at = findMon(id); if (at) uses.set(at.mon.species, (uses.get(at.mon.species) || 0) + 1); }
-  const usesHtml = [...uses].map(([n, c]) => `<span class="u" title="${esc(n)}">${sprite(n, 1)}${c > 1 ? `×${c}` : ''}</span>`).join('');
+  for (const id of s.uses || []) {
+    const at = findMon(id); if (!at) continue;
+    const k = `${at.mon.alpha ? 'A' : ''}|${okCostume(at.mon.species, at.mon.costume)}|${at.mon.species}`;
+    uses.set(k, (uses.get(k) || 0) + 1);
+  }
+  const usesHtml = [...uses].map(([k, c]) => { const [f, cos, n] = k.split('|'), a = f === 'A'; return `<span class="u${a ? ' alpha' : ''}" title="${a ? 'Alpha ' : ''}${esc(cos ? `${cos} ${n}` : n)}">${sprite(n, 1, cos)}${c > 1 ? `×${c}` : ''}</span>`; }).join('');
   const showUses = !s.pending && s.ok !== false && s.uses && s.uses.length;
   const tabs = roles.length > 1
-    ? `<div class="seg bc-roles" role="group" aria-label="Builds for ${esc(card.line)}">${roles.map((r) => `<button type="button" data-bc-role="${esc(r.key)}" aria-pressed="${r === s0}">${esc(r.roleLabel)}</button>`).join('')}</div>` : '';
-  const ha = s.abil && sp(s.line) && sp(s.line).h === s.abil;
-  return `<article class="bc-card" data-bc-card="${esc(s0.key)}">
-    <div class="bc-top">${sprite(s.line)}<div class="bc-name">${esc(s.line)}${bcFor(s)}</div><div class="bc-sub">${roles.length > 1 ? '' : `${esc(s.roleLabel)}${s.ability ? ` with ${esc(s.ability)}` : ''} · `}${esc(bcGroups(s.line).join(' / '))}</div></div>
+    ? `<div class="seg bc-roles" role="group" aria-label="Builds for ${esc(bcName(s0))}">${roles.map((r) => `<button type="button" data-bc-role="${esc(r.key)}" aria-pressed="${r === s0}">${esc(r.roleLabel)}</button>`).join('')}</div>` : '';
+  const ha = s.abil && sp(bcBase(s)) && sp(bcBase(s)).h === s.abil;
+  return `<article class="bc-card${s.costume ? ' bc-costume' : ''}" data-bc-card="${esc(s0.key)}">
+    <div class="bc-top">${sprite(bcBase(s), 2, s.costume)}<div class="bc-name">${esc(bcName(s))}${bcFor(s)}</div><div class="bc-sub">${roles.length > 1 ? '' : `${esc(s.roleLabel)}${s.ability ? ` with ${esc(s.ability)}` : ''} · `}${esc(bcGroups(s.line).join(' / '))}</div></div>
     ${tabs}
     <div class="bc-goal">${esc(s.label)}${s.nature ? ` <span class="nat">${esc(s.nature)}</span>` : ''}${s.abil ? ` <span class="tag"${ha ? ' title="Hidden ability"' : ''}>${ha ? HA_ICON : ''}${esc(s.abil)}</span>` : ''}${s.move ? ` <span class="tag mv">${esc(s.move)}</span>` : ''}</div>
     ${roles.length > 1 && s.ability ? `<div class="bc-sub">Physical with ${esc(s.ability)}</div>` : ''}
     ${bcChips(s.ivs)}
-    ${bcCompHtml(card.line)}
+    ${s.costume ? `<div class="bc-sub">${costumeTag(s.costume)} Bred from your ${esc(bcWearer(s))}, so the eggs hatch wearing it.</div>` : ''}
+    ${bcCompHtml(bcBase(s0))}
     ${meta}
     ${showUses ? `<div class="bc-uses"><span>Uses ${s.uses.length} of your Pokémon</span><span class="icons">${usesHtml}</span></div>` : ''}
     ${bcGtlHtml(s)}
-    ${s.ability && !bcHasAbility(s) ? `<div class="bc-next">None of your ${esc(s.line)} have ${esc(s.ability)} yet, and this build is only worth it with that ability.</div>` : ''}
+    ${s.ability && !bcHasAbility(s) ? `<div class="bc-next">None of your ${esc(bcName(s))} have ${esc(s.ability)} yet, and this build is only worth it with that ability.</div>` : ''}
     ${s.lowered ? `<div class="bc-sub">${esc(s.lowered.label)} with ${esc(s.nature)} ${s.lowered.slow ? 'is too big to check' : 'takes more breeds than your boxes can cover'}, so this is the step below it. Pick Any nature to see the ${esc(s.lowered.label)}.</div>` : ''}
     ${bcRecNote(s0)}
     ${bcDeepHtml(s, s0)}
@@ -6351,8 +6564,8 @@ function bcLineMembers(line) {
 }
 function bcMatches(s, q) {
   if (!q) return true;
-  const text = [s.line, ...s.forSpecies, ...bcLineMembers(s.line), ...bcGroups(s.line), s.label || '', s.goalText || '', bcNatOf(s), s.roleLabel, s.ability || '',
-    ...compForLine(s.line).map((p) => `${p.name} ${p.tier}`)].join(' ').toLowerCase().replace(/x/g, '×');
+  const text = [bcBase(s), s.costume || '', s.costume ? 'costume' : '', ...s.forSpecies, ...bcLineMembers(bcBase(s)), ...bcGroups(s.line), s.label || '', s.goalText || '', bcNatOf(s), s.roleLabel, s.ability || '',
+    ...compForLine(bcBase(s)).map((p) => `${p.name} ${p.tier}`)].join(' ').toLowerCase().replace(/x/g, '×');
   return q.toLowerCase().replace(/x/g, '×').split(/\s+/).filter(Boolean).every((w) => text.includes(w));
 }
 function bcRender() {
@@ -6394,15 +6607,16 @@ function bcRender() {
   const rk = (a, b) => Builds.rank(a.best, b.best);
   if (!bc.order && !running && cards.length && bc.want.size) bc.order = new Map([...cards].sort(rk).map((c, i) => [c.line, i]));
   const pos = (c) => bc.order && bc.order.has(c.line) ? bc.order.get(c.line) : Infinity;
-  const ok = cards.sort((a, b) => (pos(a) - pos(b)) || rk(a, b));
+  // builds in a costume you own first (Sean, 2026-11-23)
+  const ok = cards.sort((a, b) => (!!b.best.costume - !!a.best.costume) || (pos(a) - pos(b)) || rk(a, b));
   // the lines whose shown card a quick check cut short ("Check deeper" on each, or all at once below)
   bc.cutLines = ok.filter((c) => { const s0 = c.roles.find((r) => r.role === bc.role.get(c.line)) || c.roles[0], v = bc.checks.get(bcCkey(s0, bcPickOf(s0)));
     return bcCut(v && !v.pending ? { ...s0, ...v } : s0, s0); }).map((c) => c.line);
   const cutN = bc.cutLines.length;
-  const lines = bc.want.size;
+  const lines = [...bc.want.keys()].filter((k) => !k.includes('@')).length;
   st.innerHTML = running
     ? `<span class="spin"></span><span>Checking ${bc.total} species… ${bc.total - running} done</span><span class="bc-prog"><i style="width:${Math.round(100 * (bc.total - running) / Math.max(1, bc.total))}%"></i></span>`
-    : `<span>Builds for ${ok.length} of the ${lines} species in your box${bc.took ? `, checked in ${(bc.took / 1000).toFixed(1)}s` : ''}.${bc.filter ? ` Showing the ones that match "${esc(bc.filter)}".` : ''}${cutN ? ` <span title="A quick check was cut short on ${cutN}">${cutN === 1 ? 'One build' : 'Some builds'} might go higher.</span> <button class="linkbtn" type="button" data-bc-deep="*">Check ${cutN === 1 ? 'it' : 'them'} deeper</button>` : ''}</span>`;
+    : `<span>Builds for ${new Set(ok.map((c) => bcBase(c.best))).size} of the ${lines} species in your box${ok.some((c) => c.best.costume) ? ', costumes first' : ''}${bc.took ? `, checked in ${(bc.took / 1000).toFixed(1)}s` : ''}.${bc.filter ? ` Showing the ones that match "${esc(bc.filter)}".` : ''}${cutN ? ` <span title="A quick check was cut short on ${cutN}">${cutN === 1 ? 'One build' : 'Some builds'} might go higher.</span> <button class="linkbtn" type="button" data-bc-deep="*">Check ${cutN === 1 ? 'it' : 'them'} deeper</button>` : ''}</span>`;
   let h = '';
   if (!ok.length && !running) h += `<div class="empty">${bc.filter ? 'No builds match that filter.' : 'Nothing your box can make yet. The list below says what each species is missing.'}</div>`;
   if (bc.by === 'group') {
@@ -6415,7 +6629,7 @@ function bcRender() {
   } else if (ok.length) h += `<div class="bc-grid">${ok.map(bcCard).join('')}</div>`;
   if (not.length) {
     h += `<details class="bc-none"><summary>${not.length} species can't make a build yet</summary><ul>${not.sort((a, b) => a.line.localeCompare(b.line)).map((s) =>
-      `<li><b>${esc(s.line)}</b>: ${esc(s.next.label)} ${esc(bcNextText(s.next))}</li>`).join('')}</ul></details>`;
+      `<li><b>${esc(bcName(s))}</b>: ${esc(s.next.label)} ${esc(bcNextText(s.next))}</li>`).join('')}</ul></details>`;
   }
   const out = $('bc-out'), open = out.querySelector('details.bc-none[open]');
   out.innerHTML = h;
@@ -6444,8 +6658,8 @@ function bcOpen(key, next, gtl) {
   // a plan that buys, or the GTL version: every row of the buy grid ticked, as in the card's check
   if (gtl || (!next && s.bought)) state.buys = { p: [true, true, true], n: [true, true, true] };
   // The ability the build is about goes into the goal when a Pokémon in the boxes can pass it on.
-  startGoal({ species: s.line, ivs, gender: 'A', nature: next ? '' : s.nature, ability: abil, wantMoves: !!move, moves: move ? [move] : [] }, [], [],
-    `Loaded ${[next ? '' : s.nature, s.line, label].filter(Boolean).join(' ')}${[abil, move].filter(Boolean).length ? ` with ${[abil, move].filter(Boolean).join(' and ')}` : ''} from the Build center. The plan uses the Pokémon in your box${gtl ? ' and buys parents on the GTL where that saves a breed (the ticks under Buy parents on the GTL)' : ''}.`);
+  startGoal({ species: bcBase(s), ivs, gender: 'A', nature: next ? '' : s.nature, ability: abil, wantMoves: !!move, moves: move ? [move] : [], costume: s.costume || '' }, [], [],
+    `Loaded ${[next ? '' : s.nature, bcName(s), label].filter(Boolean).join(' ')}${[abil, move].filter(Boolean).length ? ` with ${[abil, move].filter(Boolean).join(' and ')}` : ''} from the Build center. The plan uses the Pokémon in your box${gtl ? ' and buys parents on the GTL where that saves a breed (the ticks under Buy parents on the GTL)' : ''}.`);
   const undo = undoFn;
   undoFn = undo && (() => { state.useBox = wasUseBox; state.buys = wasBuys; undo(); renderUseBox(); renderMons(); });
   renderUseBox(); renderMons(); renderPrices(); changed();

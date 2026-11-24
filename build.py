@@ -63,7 +63,7 @@ def site_address():
 
 
 today = datetime.date.today()
-page = read('src/page.html').replace('/*BUILT*/', f"{today.day} {today.strftime('%b %Y')}")
+page = read('src/page.html').replace('/*BUILT*/', f"{today.strftime('%b')} {today.day}, {today.year}")
 def png(path):
     return 'data:image/png;base64,' + base64.b64encode(read(path, 'rb')).decode()
 
@@ -78,7 +78,6 @@ page = (page.replace('/*PLANNER*/', read('src/planner.js'))
             .replace("/*EVENTS*/{ event: { on: false }, raids: [], sets: [] }", read('data/events.json'))  # seasonal event builds
             .replace('/*MOVE_TYPES*/{}', read('data/move-types.json'))  # move -> type, for the move tags
             .replace('/*ITEM_ICON_NAMES*/[]', read('data/item-icons.json'))  # cell order of the item icon sheet
-            .replace('/*ITEM_ICONS*/', png('data/item-icons.png'))  # held items, made by src/build-item-icons.py
             .replace('/*SHEET*/', sheet)
             .replace('<!--ITEM-ICONS-->', items.symbols())
             .replace('/*LOGO*/', png('data/logo.png'))
