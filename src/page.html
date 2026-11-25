@@ -148,6 +148,11 @@ details.prices-wrap > .extras { margin-top: 22px; }
 .buy-grid { display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)); gap: 6px 10px; align-items: center; }
 .buy-grid.off { opacity: .55; }
 #buy-off { margin: 6px 0 0; }
+.alts-need { display: block; margin-top: 4px; }
+details.alts { margin-top: 4px; font-size: 12.5px; }
+details.alts summary { cursor: pointer; color: var(--accent, inherit); }
+details.alts ul { list-style: none; margin: 6px 0 0; padding: 0; max-height: 220px; overflow: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 2px 8px; }
+details.alts li { display: flex; align-items: center; gap: 4px; }
 .buy-grid .bh { font-size: 12px; color: var(--muted); }
 .buy-grid .iv { font-family: var(--f-mono); font-size: 13px; }
 .buy-cell { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -3254,6 +3259,66 @@ toPlan.addEventListener('click', () => $('results-panel').scrollIntoView({ block
 new MutationObserver(syncToPlan).observe($('results'), { childList: true });
 if ('IntersectionObserver' in window) new IntersectionObserver((es) => { planInView = es[0].isIntersecting; syncToPlan(); }).observe($('results-panel'));
 let view = 'steps';
+// ---------- other Pokémon for a "Buy or catch" step ----------
+// A bought mother passes her species on to the egg, so whatever stands in for her has to breed with her partner
+// here and, as long as the eggs keep hatching as her species, with each later partner too (the egg groups it
+// needs). A bought father only has to share an egg group with the mother. If the chain of eggs ends at the goal,
+// or one of those breeds passes on an ability, egg move, costume or incense, it has to be the species shown.
+const leafUp = new WeakMap(), breedUp = new WeakMap();
+function markUps(root) {
+  (function walk(r) {
+    const n = r.node; if (!n || n.t !== 'breed') return;
+    for (const [c, side] of [[n.a, 'A'], [n.b, 'B']]) { (c.node.t === 'breed' ? breedUp : leafUp).set(c, { r, side }); walk(c); }
+  })(root);
+}
+// The egg groups of a plan card's Pokémon (null: a Ditto, which breeds with anything)
+function cardGroups(c) {
+  const n = c.node;
+  const line = n.t === 'own' ? (n.p.src.species === 'Ditto' ? null : dex.lineOf(n.p.src.species)) : n.ditto ? null : n.line;
+  const L = line && dex.lines.get(line);
+  return L ? { groups: L.groups, name: n.t === 'own' ? n.p.src.species : hatchLabel(line, n.t === 'breed' ? n.gender : n.gender) } : null;
+}
+const genderOk = (ratio, g) => (g === 'F' ? ratio !== 'M' && ratio !== 'N' : g === 'M' ? ratio !== 'F' && ratio !== 'N' : true);
+function buyNeeds(leafR) {
+  const n = leafR.node; if (n.t !== 'buy' || n.ditto) return null;
+  const up = leafUp.get(leafR); if (!up) return null;
+  const needs = [], genders = [n.gender];
+  let cur = up;
+  for (;;) {
+    const b = cur.r.node, other = cur.side === 'A' ? b.b : b.a;
+    if (b.pairing === 'gl' || (cur.side === 'B' && n.kind === 'L' && cur === up)) return { fixed: true };
+    const o = cardGroups(other);
+    if (o) needs.push({ groups: [...o.groups], name: o.name, step: cur.r.num });
+    if (cur.side === 'B') break; // a father: the egg hatches as the mother's species
+    if (b.abil || b.mv || b.cos || b.ot || b.inc || b.baby) return { fixed: true };
+    genders.push(b.gender);
+    const nx = breedUp.get(cur.r);
+    if (!nx) return { fixed: true }; // it would hatch as the goal itself
+    cur = nx;
+  }
+  const alts = [];
+  for (const L of dex.lines.values()) {
+    if (L.name === n.line || !L.groups.size || L.name === 'Ditto') continue;
+    if (!genders.every((g) => genderOk(L.ratio, g))) continue;
+    if (!needs.every((q) => q.groups.some((g) => L.groups.has(g)))) continue;
+    alts.push(L.name);
+  }
+  alts.sort((a, b) => ((sp(a) || {}).i || 0) - ((sp(b) || {}).i || 0));
+  return { needs, alts, egg: up.side === 'A' };
+}
+function buyAltsHtml(leafR) {
+  const info = buyNeeds(leafR);
+  if (!info) return '';
+  if (info.fixed) return `<span class="small muted alts-need">Has to be this species: its eggs lead to your goal or pass on something only it has.</span>`;
+  // the same groups twice (two partners of one egg group) are shown once
+  const sets = new Map();
+  for (const q of info.needs) { const k = q.groups.slice().sort().join(' or '); if (!sets.has(k)) sets.set(k, []); sets.get(k).push(q); }
+  const need = [...sets.keys()].map((k) => `<b>${esc(k)}</b>`).join(', and ');
+  const why = info.needs.map((q) => `${esc(q.name)} in step ${q.step}`).join(', then ');
+  const list = info.alts.map((a) => `<li>${sprite(a, 1)}${esc(a)}${dex.evolveInto(a) ? ' <span class="muted">(evolve first)</span>' : ''}</li>`).join('');
+  return `<span class="small alts-need">Egg group: ${need || 'any'} <span class="muted">(to breed with ${why})</span></span>`
+    + (info.alts.length ? `<details class="alts"><summary>${info.alts.length} other Pokémon work here</summary><p class="small muted">Same IVs${leafR.node.nat ? ' and nature' : ''}, any of these${info.egg ? `. The egg in step ${info.needs[0] ? info.needs[0].step : ''} then hatches as that Pokémon, and the gender pick can cost more or less` : ''}. The GTL price is the planner's price for this many 31s, not one for each species.</p><ul>${list}</ul></details>` : '');
+}
 function lineGroups(line) { const L = dex.lines.get(line); return L ? [...L.groups].join(' / ') : ''; }
 function gSym(g) { return g === 'F' ? '<span class="g-F" title="Female">♀</span>' : g === 'M' ? '<span class="g-M" title="Male">♂</span>' : ''; }
 function ivChips(iv, lost = []) {
@@ -3291,7 +3356,7 @@ function leafCard(r, hold, lost) {
     // a father ('C') can be any species that shares an egg group; a mother passes on her species
     const what = n.ditto ? 'Ditto' : `${esc(hatchLabel(n.line, n.gender))}${n.kind === 'C' && lineGroups(n.line) ? ` <span class="muted small">or any ${esc(lineGroups(n.line))} Pokémon</span>` : ''}`;
     const leaf = { line: n.line, gender: n.gender, stat: n.stat, stats: n.stats, count: n.count, nat: !!n.nat, ditto: !!n.ditto, kind: n.kind || 'C' };
-    return `<div class="card buy" data-leaf="${esc(JSON.stringify(leaf))}"><div class="who">${n.ditto ? sprite('Ditto') : hatchSprite(n.line, n.gender)}<span class="name">Buy or catch ${gSym(n.gender)} ${what}</span></div><span class="small">${leafStats(leaf)} · <span style="color:var(--cost)">${money(r.cost)}</span> on the GTL</span>${n.ditto ? '' : evolveNote(dex.hatchName(n.line, n.gender))}${hold ? `<span class="hold">${hold}</span>` : ''}${OBTAIN_BTN}</div>`;
+    return `<div class="card buy" data-leaf="${esc(JSON.stringify(leaf))}"><div class="who">${n.ditto ? sprite('Ditto') : hatchSprite(n.line, n.gender)}<span class="name">Buy or catch ${gSym(n.gender)} ${what}</span></div><span class="small">${leafStats(leaf)} · <span style="color:var(--cost)">${money(r.cost)}</span> on the GTL</span>${n.ditto ? '' : evolveNote(dex.hatchName(n.line, n.gender))}${hold ? `<span class="hold">${hold}</span>` : ''}${n.ditto ? '' : buyAltsHtml(r)}${OBTAIN_BTN}</div>`;
   }
   return '';
 }
@@ -3497,6 +3562,7 @@ function showResult(out, retry) {
   const order = numberBreeds(res);
   planOrder = order;
   assignSigs(order);
+  markUps(res);
   const t = tally(res);
   // GTL buys ticked (and allowed) but the plan buys nothing: say so, so it doesn't look like the ticks were ignored
   if (planInput && planInput.opts && planInput.opts.buy && !t.buys.length)
