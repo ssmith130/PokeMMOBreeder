@@ -11,7 +11,10 @@
 //  - Nidoran♀/Nidoran♂ and Illumise/Volbeat eggs hatch as either species, decided by the egg's gender
 //  - genderless Pokémon breed with Ditto or with any Pokémon of their own line (Beldum x Metang),
 //    and Ditto can't be bred
-//  - abilities pass from the mother (or the non-Ditto parent) with a chance
+//  - abilities pass from the mother (or the non-Ditto parent) with a chance; a hidden ability also passes from a
+//    father of the egg's own line, since PokeMMO checks the species for it, not the gender (changelog 15/10/2022:
+//    "species checks used for Hidden Ability breeding"; forum Hidden Ability Breeding Guide: a HA male with a
+//    regular female of the same evolution line)
 //  - egg moves pass from either parent (PokeMMO, unlike Gen 5 where only the father passed them)
 //  - picking the egg's gender costs the 1:1 price for the common gender, more for the rare one
 //  - a costume (Royal Charizard, Pirate Gible, ...) passes to the egg when the egg is the costumed parent's
@@ -388,13 +391,16 @@
           // Your OT carries on the same way (PokeMMO Wiki, Maintaining Original Trainer): from your caught shiny
           // when the egg is its species, so from the parent of this line (A), or a father of this line (B).
           const otSides = !req.ot || pairing === 'ditto' ? ['A'] : ['B', 'A'];
-          for (const [bA, bB, holder, inc, fewer] of combos) for (const mvSide of mvSides) for (const cosSide of cosSides) for (const otSide of otSides) {
+          // Which parent has the ability: the mother (A). A hidden ability can also come from a father of this
+          // line (B), as PokeMMO checks species, not gender, for it; a regular one can't.
+          const abSides = req.abil && abilityIsHidden && pairing === 'mf' ? ['A', 'B'] : ['A'];
+          for (const [bA, bB, holder, inc, fewer] of combos) for (const mvSide of mvSides) for (const cosSide of cosSides) for (const otSide of otSides) for (const abSide of abSides) {
             if (++work > WORK) { calls = LIMIT + 1; truncated = true; }
             if (calls > LIMIT) break search;
             const needA = req.need & ~(bB >= 0 ? 1 << bB : 0);
             const needB = req.need & ~(bA >= 0 ? 1 << bA : 0);
             const reqA = { kind: 'L', line: m, gender: pairing === 'mf' ? 'F' : 'A',
-              need: needA, nat: holder === 'A', abil: req.abil, mv: req.mv && mvSide === 'A', cos: req.cos && cosSide === 'A', ot: req.ot && otSide === 'A' };
+              need: needA, nat: holder === 'A', abil: req.abil && abSide === 'A', mv: req.mv && mvSide === 'A', cos: req.cos && cosSide === 'A', ot: req.ot && otSide === 'A' };
             // A parent that must be as good as this request can't be bred for it (the search would never
             // end). With fewer braces it can still be one you own or buy: two 6x31 parents need no brace.
             // With opts.swap (a second run, when the first finds no plan) a one-stat parent can also come from
@@ -406,9 +412,10 @@
             let reqB = null, leafB = false;
             if (pairing !== 'ditto') {
               // a father wearing the costume has to be of this line to pass it on
-              const cosB = req.cos && cosSide === 'B', otB = req.ot && otSide === 'B';
-              reqB = { kind: pairing === 'mf' && !cosB && !otB ? 'C' : 'L', line: m, gender: pairing === 'mf' ? 'M' : 'A',
-                need: needB, nat: holder === 'B', abil: false, mv: req.mv && mvSide === 'B', cos: cosB, ot: otB };
+              // (and so does one with the hidden ability)
+              const cosB = req.cos && cosSide === 'B', otB = req.ot && otSide === 'B', abB = req.abil && abSide === 'B';
+              reqB = { kind: pairing === 'mf' && !cosB && !otB && !abB ? 'C' : 'L', line: m, gender: pairing === 'mf' ? 'M' : 'A',
+                need: needB, nat: holder === 'B', abil: abB, mv: req.mv && mvSide === 'B', cos: cosB, ot: otB };
               leafB = asLeaf(reqB);
               if (leafB && !fewer && (!opts.swap || R.length > 1 || !leaf(reqB, avail))) continue;
             }
@@ -438,13 +445,13 @@
               for (let s = 0; s < 6; s++) iv.push(s === bA ? a.iv[s] : s === bB ? b.iv[s] : Math.min(a.iv[s], b.iv[s]));
               const res = {
                 breeds: a.breeds + b.breeds + 1, cost: a.cost + b.cost + stepCost, worth: (a.worth || 0) + (b.worth || 0), value: a.value + b.value,
-                used: a.used + b.used, chance: a.chance * (req.abil ? abilityChance : 1), iv,
+                used: a.used + b.used, chance: a.chance * (b.chance == null ? 1 : b.chance) * (req.abil ? abilityChance : 1), iv,
                 node: { t: 'breed', line: m, gender: req.gender, pairing, a, b, bA, bB, holder,
                   stepCost, gCost, nat: req.nat, abil: req.abil, mv: req.mv, cos: !!req.cos, ot: !!req.ot,
                   // what each parent's spot asks for, so a card can say what else would do there (a parent whose
                   // 31s aren't passed on is only there as a mother, a father or a Ditto)
                   slotA: { need: needA, kind: 'L', gender: reqA.gender, extra: holder === 'A' || reqA.abil || reqA.mv || reqA.cos || reqA.ot },
-                  slotB: reqB ? { need: needB, kind: reqB.kind, gender: reqB.gender, extra: holder === 'B' || reqB.mv || reqB.cos || reqB.ot }
+                  slotB: reqB ? { need: needB, kind: reqB.kind, gender: reqB.gender, extra: holder === 'B' || reqB.abil || reqB.mv || reqB.cos || reqB.ot }
                     : { need: needB, kind: 'L', gender: 'N', ditto: true, extra: holder === 'B' },
                   inc: inc || null, incense: inc ? req.incense : null, baby: inc ? tSpecies.n : null },
               };

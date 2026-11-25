@@ -53,15 +53,27 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
   is still used as is rather than bred again.
   When a search is cut short, "check deeper" runs it again with 4, 16 or 64 times the work (and a longer
   clock, up to 5 minutes) for the same Pokémon and goal; changing anything goes back to the usual search.
+  A plan, once made, is locked for its goal, prices and options (kept in this browser, the last 8 goals): changing
+  your box or rows shows the same plan again instead of searching, with a note that your Pokémon changed and a
+  "Look for a better plan" button (a new search, as deep as the plan's, that only replaces it if it does better).
+  If a Pokémon the plan uses is gone or edited, only its spot changes: another Pokémon that fits it, or a small
+  plan for just that spot; failing that the whole plan is searched again, as deep as before. Lucky rolls and
+  "Mark as obtained" still plan again.
 - **Step by step or as a tree.** Tick breeds off as you go, and the planner shows what is ready to breed next.
   The tree pops out full screen.
+- **Eggs, then hatched.** Each breed has two ticks: **Egg** when you leave the parents at the Daycare (its parents
+  leave your box, and the breeds that made them count as hatched) and **Hatched** when the egg hatches. Eggs on the
+  way are listed in an "Eggs" tray above the steps, each with its breed number, what it'll hatch as and a Hatched
+  button, and breeds that need one say "Waiting on the egg from breed N". Saves from before this (plain Done ticks)
+  load as hatched (`state.done` = hatched, `state.eggs` = in the Daycare).
 - **Lucky rolls.** An egg bred without an Everstone has a 1 in 25 chance of your nature anyway (no Synchronize in
   breeding). After a plan shows, the planner checks each breed that isn't bred for the nature and, where hatching it
   with your nature by chance would save breeds or money, says so under that step. The plan itself stays the
-  guaranteed one. Once you've ticked a breed, "Got a lucky roll?" lets you enter the nature, IVs (and ability) it
-  really hatched with; the rest of the plan is redone from the Pokémon you have now (the ticked breeds become
-  "you hatched it" cards and the Pokémon used to breed them stay out). Undo above the plan, or Clear checkmarks,
-  goes back.
+  guaranteed one. When an egg hatches, "Hatched with a lucky roll?" on it in the Eggs tray (or "Got a lucky roll?"
+  on a hatched breed you still have) lets you enter the nature, IVs (and ability) it really hatched with; the rest
+  of the plan is redone from the Pokémon you have now (the hatched breeds become "you hatched it" cards, eggs still
+  in the Daycare become "your egg, not hatched yet" cards with their own Hatched button, and the Pokémon used to
+  breed them stay out). Undo above the plan, or Clear checkmarks, goes back.
 - **Egg moves and TMs.** It plans who has to know each egg move, or lets you teach it with a TM instead.
 - **Start from a build.** A folding panel above the goal with three tabs: Common builds, Competitive sets and Events.
   Each build is a card (a stripe in its types' colours, nature and item chips, the IVs it needs); clicking one opens
@@ -162,6 +174,20 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
   says when a code is too long and Discord will send it as a file. Older PMB1 / PMBX1 codes still import, and a
   code can be pasted with the rest of the Discord message around it. Natures are stored as their place in
   `NATURES` and species as dex numbers, so that list must not be reordered.
+- **Load the game's export file.** PokeMMO can save every Pokémon you own to a file (Settings › Utilities ›
+  Dump Moddable Resources, tick only "Possessed Pokémon"; it lands in `PokeMMO/dump/resources/dump.zip`). Load that
+  zip (or the `data/monsters.json` inside it) under Import from PokeMMO, or drop it on the panel, and every box
+  comes in with exact IVs, nature, ability, gender, level, moves, nickname, alpha, shiny, costume, eggs and spot.
+  A list of the game's boxes (with a small map of each) lets you untick boxes to leave out and tick "Don't use for
+  breeding" on others. They either replace your boxes by number (game box 1 into your box 1; your box names stay,
+  and a Pokémon seen before by the game's own number keeps its "Don't use" tick and nickname) or go in as new
+  boxes. You pick your trainer name from the OTs found, and those Pokémon get "Caught OT". The party can come in
+  as a box called Party. The zip is read in the browser with `DecompressionStream`; nothing is uploaded. Undo puts
+  your boxes back.
+- **Don't use for breeding.** A tick on a box (under the box) or on one Pokémon (in its editor) keeps it out of
+  the planner and the Build center, so a shiny, PvP or trade box can sit in My box without being bred from. They
+  show faded (a crossed circle on single Pokémon), still count in IV stats and box worth, and the ticks travel in
+  box codes, backups and "Move to another device".
 - **Import from PokeMMO.** Fill the box without typing: share the PokeMMO window with the page, open your PC
   and go through the box a row at a time from its top-left spot. Each Pokémon is read off the box's side panel as
   the cursor reaches it (species, level, gender, IVs, nature, ability, egg moves) and lands in the same spot of
@@ -174,6 +200,12 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
   and hidden abilities with the game's small diamond from its box. The icons are snapped to whole screen pixels at
   any zoom or Windows scaling, so they stay crisp, and get a thin light rim in the dark theme. Held items on builds
   use the item sprites from PokeAPI.
+- **Catch rate.** A fourth tab works out the odds that one ball catches a wild Pokémon or an alpha in PokeMMO:
+  pick the Pokémon, its level, HP and status, and what the fight is like (turn, night or cave, surfing, fishing, Repeat
+  Ball streak, turns asleep), and it ranks every ball by its chance and by what a catch costs, and lists the best ball
+  for each turn of the fight with the odds of having caught it by then. Catch rates are the PokeMMO wiki's own data
+  (starter evolutions 30 and 15, the Beldum line 25/20/15, the roaming legendaries 5, every alpha 10 and the level 100
+  alpha Tyranitar 3). See [Catch rate](#catch-rate).
 - **Works anywhere.** Phone-friendly, light and dark themes, and it can be added to your home screen like
   an app. Nothing to sign up for, and what you enter stays in your browser.
 
@@ -183,7 +215,8 @@ breeds: which parents to pair, what each one holds, which gender to pay for, and
   over. Other IVs are averaged, so the planner doesn't count on them.
 - An Everstone passes the holder's nature and takes its item slot. Both parents are used up.
 - The egg is the mother's species, or the non-Ditto parent's. The ability comes from that parent by chance
-  (80%, or about 60% for a hidden ability; a male or genderless parent only passes it with Ditto). Egg moves
+  (80%, or about 60% for a hidden ability). A hidden ability also passes from a father of the egg's own
+  line, since PokeMMO checks species for it; any other ability only passes from a male or genderless parent with Ditto. Egg moves
   pass from either parent, as long as the egg's species can learn them.
 - Incense babies (Azurill, Wynaut, Munchlax, Mime Jr., Bonsly, Budew, Chingling, Happiny, Mantyke) only
   hatch when a parent holds their incense, which takes that parent's item slot. Otherwise the egg is the
@@ -247,20 +280,25 @@ Every push to `main` builds the site and publishes it to GitHub Pages
 | `src/planner.js` | The breeding search. Also runs in Node: `require('./src/planner.js')`. |
 | `src/builds.js` | The Build center's goal ladders and suggestions, which call the planner. Also runs in Node. |
 | `test/planner.test.js` | Checks for the breeding search (`node test/planner.test.js`). |
+| `src/catch.js` | The Catch rate tab's maths: the catch formula, every ball's rule and the best ball each turn. Also runs in Node. |
+| `data/catch.json` | PokeMMO's catch rates (from the wiki), weights, alpha catch rates and which lines have alphas. See [Catch rate](#catch-rate). |
+| `test/catch.test.js` | Checks for the catch maths (`node test/catch.test.js`). |
 | `docs/screenshot.png`, `docs/screens/` | The screenshots in this README (taken from a local build in the dark theme). |
 | `data/presets.json` | The competitive sets, one per line, for editing by hand. Each set has its StratDex `source` and `basis`; `"verified": true` only for written StratDex sets. |
 | `test/presets.test.js` | Checks every competitive set against the species data (`node test/presets.test.js`). |
 | `data/events.json` | Seasonal event raid builds (Christmas), one per line: the event's text, its raid bosses and the builds for them. See [Event builds](#event-builds). |
 | `test/events.test.js` | Checks the event builds against the species data (`node test/events.test.js`). |
 | `test/builds.test.js`, `test/builds-bench.js` | Checks for the Build center, and a timing run on a made-up box (`node test/builds-bench.js 300`). |
-| `data/species.json` | Every species' types (Gen 5, so no Fairy), egg groups, gender ratio, abilities, egg moves and Gen 5 base stats. |
+| `data/species.json` | Every species' types (Gen 5, so no Fairy), egg groups, gender ratio, abilities, egg moves and Gen 5 base stats. Egg moves are PokeMMO's own (see the next row); Shedinja is marked as unable to breed, as in PokeMMO. |
+| `data/egg-moves-pokemmo.json` | PokeMMO's egg moves per line, copied from MMOBreeder's egg move page (taken from the game client) on 2026-11-24. PokeMMO teaches many main-game egg moves with tutors, so these lists are about a third as long. `src/extract-species.js` uses it. |
 | `data/tms.json` | Which species can learn each TM the page offers. |
 | `data/learners.json` | Which species learn each egg move by level-up, TM or tutor, for the egg move finder. |
 | `data/box-icons.png` | Box icons for all 649 species, 25 per row in dex order. |
 | `data/logo.png` | The Smearguru logo, painted onto Smeargle's box icon by `src/build-logo.py`. |
 | `data/costume-reader.png` | Plain and costumed icons the screen import compares box spots with to see a costume. |
 | `data/unknown-icon.png` | The "?" icon shown for an unknown or empty species (the sheet's own "?" at the end is no longer used). |
-| `data/item-icons.png`, `data/item-icons.json` | Held item icons for builds (Choice Band, Leftovers, Toxic Orb…), from PokeAPI by `src/build-item-icons.py`. |
+| `data/item-icons.png`, `data/item-icons.json` | Held item icons for builds (Choice Band, Leftovers, Toxic Orb…), every item a preset or event set names. `src/build-item-icons.py` takes the Gen 1-5 ones from the Black/White ROM like the breeding items, and later items from PokeAPI. Rerun it with the ROM after adding a set with a new item. |
+| `data/ball-icons.png` | PokeMMO's own icons for the 24 balls on the Catch rate tab, made by `src/build-ball-icons.py` from the Black/White ROM (`python3 src/build-ball-icons.py <rom.nds>`); `src/items.py` turns them into `#ball-<key>` symbols. |
 | `data/move-types.json` | Each move's type, for the type-coloured move tags on build cards (from Pokémon Showdown). |
 | `data/costume-icons.png` | Costumed box icons, made by `src/build-costume-icons.py` (see the costume rule above). |
 | `data/breeding-items.png` | PokeMMO's brace, Everstone and incense icons (the Black/White item icons the game shows), taken from a ROM by `src/build-breeding-icons.py`. That script also prints the game's hidden ability mark used for `HA_ICON` in `src/page.html`. |
@@ -368,6 +406,27 @@ items only), so these are ballparks from guides and player reports:
 | Egg move, 0 Atk/Spe | +$10k each | a guess |
 
 Not counted: secret shinies, event-only alphas (Kanto starters, Suicune, Articuno), which sell for far more.
+
+## Catch rate
+
+PokeMMO uses the Gen 3/4 catch formula with no critical captures and no rounding (Xanarchy on the PokeMMO forums,
+February 2025), so one ball catches with X ÷ 255, where X = (3 × max HP − 2 × HP) ÷ (3 × max HP) × catch rate ×
+ball × status, and always once X reaches 255. Sleep and freeze are ×2; paralysis, burn and poison ×1.5.
+
+- **Catch rates** (`data/catch.json`, `rate` by dex number) are the PokeMMO wiki's
+  [Module:CatchRateData](https://pokemmo.shoutwiki.com/wiki/Module:CatchRateData), copied on 2026-11-24. It matches
+  the main games except where PokeMMO changed them, as staff confirmed on the forums: starter middle stages 30 and
+  final stages 15, the Beldum line 25/20/15, and the roaming Articuno, Zapdos, Moltres, Raikou, Entei and Suicune 5.
+  Species the wiki leaves out (`outside`: legendaries you can't meet in the wild) use the main games' number from
+  [CatchCalc](https://c4vv.github.io/CatchCalc/), which also gives the weights (hectograms) for the Heavy Ball.
+- **Alphas** are 10 whatever the species (`alphaRate`), the level 100 alpha Tyranitar 3, and the raid alphas Articuno
+  and Suicune 0 (no ball works). `alphas` lists which lines appear in the daily alpha swarms, in events or only as
+  limited prizes, from the wiki's [Module:Alpha](https://pokemmo.shoutwiki.com/wiki/Module:Alpha).
+- **Balls** are in `src/catch.js` (`BALLS`, with the wiki's shop prices). Each is marked `wiki`, `player` (Repeat
+  Ball: +0.1 a catch up to ×2.5 at 15; Dream Ball: ×1.5, ×2.5, then ×4 by the third turn asleep) or `guess` (Fast,
+  Heavy and Level Ball, which the wiki only describes loosely). The guessed balls are left out of the best ball
+  unless you tick them in.
+- `node test/catch.test.js` checks the formula against the forum's worked example, the wiki's numbers and the ball rules.
 
 ## Credits
 

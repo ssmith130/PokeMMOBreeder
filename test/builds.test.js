@@ -85,15 +85,15 @@ test('without a Pokémon of the line nothing is suggested; Ditto and Nidorina ar
 test('a hidden ability or egg move in the box adds that version of the build', () => {
   const m = (species, gender, ivs, extra) => ({ ...mon(species, gender, ivs), ...extra });
   const box = [m('Shroomish', 'F', [31, 31, 0, 0, 0, 31], { ability: 'Quick Feet' }), m('Shroomish', 'M', [0, 31, 0, 0, 0, 31], { ability: 'Effect Spore' }),
-    m('Breloom', 'M', [31, 0, 0, 0, 0, 31], { moves: ['False Swipe', 'Spore'] })];
-  assert.deepStrictEqual(Builds.extrasFor(dex, 'Shroomish', box), { ha: 'Quick Feet', moves: ['False Swipe'] }); // Spore isn't an egg move in Gen 5
+    m('Breloom', 'M', [31, 0, 0, 0, 0, 31], { moves: ['Wake-Up Slap', 'Spore'] })];
+  assert.deepStrictEqual(Builds.extrasFor(dex, 'Shroomish', box), { ha: 'Quick Feet', moves: ['Wake-Up Slap'] }); // Spore isn't an egg move in PokeMMO
   const out = Builds.scanLine(dex, 'Shroomish', box, prices, {});
-  const ha = out.find((s) => s.abil === 'Quick Feet' && !s.move), mv = out.find((s) => s.move === 'False Swipe' && !s.abil);
+  const ha = out.find((s) => s.abil === 'Quick Feet' && !s.move), mv = out.find((s) => s.move === 'Wake-Up Slap' && !s.abil);
   assert.ok(ha, 'hidden ability version');
   assert.ok(mv, 'egg move version');
   // both together is where the card starts; the ability has to pass on in that breed, so it's a chance
   const best = out.find((s) => s.best);
-  assert.ok(best && best.abil === 'Quick Feet' && best.move === 'False Swipe' && best.chance < 1);
+  assert.ok(best && best.abil === 'Quick Feet' && best.move === 'Wake-Up Slap' && best.chance < 1);
   // without the hidden ability in the box there's no such version
   assert.ok(!Builds.scanLine(dex, 'Shroomish', box.slice(1), prices, {}).some((s) => s.abil));
 });
@@ -121,9 +121,9 @@ test('a check with GTL buys says what to buy, and buys only where it saves a bre
 
 test("an egg move is only offered when someone can pass it on", () => {
   const m = (species, gender, moves) => ({ ...mon(species, gender, [31, 31, 31, 0, 31, 31]), moves });
-  // Ice Shard isn't an egg move of Swinub's own line, so only a male Piloswine can give it to a Sneasel
-  assert.deepStrictEqual(Builds.extrasFor(dex, 'Sneasel', [mon('Sneasel', 'F', [31, 0, 0, 0, 0, 0]), m('Piloswine', 'F', ['Ice Shard'])]).moves, []);
-  assert.deepStrictEqual(Builds.extrasFor(dex, 'Sneasel', [mon('Sneasel', 'F', [31, 0, 0, 0, 0, 0]), m('Piloswine', 'M', ['Ice Shard'])]).moves, ['Ice Shard']);
+  // Icicle Crash isn't an egg move of Swinub's own line, so only a male Piloswine can give it to a Sneasel
+  assert.deepStrictEqual(Builds.extrasFor(dex, 'Sneasel', [mon('Sneasel', 'F', [31, 0, 0, 0, 0, 0]), m('Piloswine', 'F', ['Icicle Crash'])]).moves, []);
+  assert.deepStrictEqual(Builds.extrasFor(dex, 'Sneasel', [mon('Sneasel', 'F', [31, 0, 0, 0, 0, 0]), m('Piloswine', 'M', ['Icicle Crash'])]).moves, ['Icicle Crash']);
 });
 
 // Beta test pass, 2026-11-21: a box full of one species with lots of 1×31s.
@@ -163,6 +163,23 @@ test('a genderless line with Ditto: Beldum builds', () => {
   const [s] = Builds.scanLine(dex, 'Beldum', box, prices, {});
   assert.ok(s && s.rung >= 0 && s.label === 'Atk and Spe', s && s.label);
   assert.strictEqual(s.breeds, 1);
+});
+
+test('a costume build comes from the Pokémon wearing it, and plain builds leave costumed ones out', () => {
+  const pharaoh = { ...mon('Lucario', 'F', [null, 31, null, null, null, null]), costume: 'Pharaoh' };
+  const box = [pharaoh, mon('Riolu', 'M', [null, null, null, null, null, 31]), mon('Riolu', 'F', [null, 31, null, null, null, null]), mon('Ditto', 'N', [null, null, null, 31, null, 31])];
+  const dressed = Builds.scanLine(dex, 'Riolu@Pharaoh', box, prices);
+  assert.ok(dressed.length && dressed[0].rung >= 0, 'a Pharaoh build');
+  assert.strictEqual(dressed[0].line, 'Riolu@Pharaoh');
+  assert.strictEqual(dressed[0].base, 'Riolu');
+  assert.strictEqual(dressed[0].costume, 'Pharaoh');
+  assert.ok(dressed.filter((s) => s.uses).every((s) => s.uses.includes(pharaoh.boxId)), 'every plan uses the Pharaoh Lucario');
+  // the plain line never uses the costumed one
+  const plain = Builds.scanLine(dex, 'Riolu', box, prices);
+  assert.ok(plain.filter((s) => s.uses).every((s) => !s.uses.includes(pharaoh.boxId)));
+  // without one wearing it there's no costume plan
+  const none = Builds.checkGoal(dex, 'Riolu@Pharaoh', [null, 31, null, null, null, null], '', box.slice(1), prices, { noFallback: true });
+  assert.strictEqual(none.ok, false);
 });
 
 let failed = 0;

@@ -12,7 +12,7 @@
   const ROLE_LABEL = { phys: 'Physical attacker', spec: 'Special attacker', wall: 'Defensive' };
   // Bump when the suggestions change for the same box (rules, ladders, the work cap), so answers the
   // page remembered from an older version are checked again.
-  const VERSION = 10;
+  const VERSION = 13;
   // How much searching each check gets: a fixed amount of work rather than a time limit, so the same box
   // gives the same answer on every computer and every run. The clock is only there to stop a runaway check.
   // Two depths. The quick one (the default) keeps a scan of 4 full boxes around half a minute: QUICK_WORK per
@@ -85,8 +85,10 @@
 
   // The box Pokémon that can take part in breeding this line, best for the goal first, at most 63.
   // mons: [{species, gender, ivs, nature, ability, moves, boxId}]; ability and moves are the goal's, if any.
-  function poolFor(dex, line, goal, nature, mons, cap, ability, moves, diverse) {
-    const L = dex.lines.get(line);
+  // A line can come with a costume, as "Riolu@Pharaoh": a build of that line in that costume, which has to
+  // come down from a Pokémon of the line wearing it (lineKey splits it).
+  function poolFor(dex, key, goal, nature, mons, cap, ability, moves, diverse) {
+    const [line, cos] = lineKey(key), L = dex.lines.get(line);
     const want = moves && moves.length ? moves : null;
     const scored = [];
     for (const m of mons) {
@@ -96,7 +98,11 @@
       if (!ditto && (!M || (s.e.includes('Undiscovered') && !dex.evolveInto(s.n)))) continue; // babies count once evolved
       const same = ml === line;
       if (!ditto && !same && ![...M.groups].some((g) => L.groups.has(g))) continue;
+      // another costume, or a costumed Pokémon in a build without its costume, can't take part
+      const wears = !!cos && same && m.costume === cos;
+      if (m.costume && !wears) continue;
       let score = same ? 3 : ditto ? 2 : 1, hits = 0;
+      if (wears) { hits++; score += 1000; } // the costume comes from it alone
       m.ivs.forEach((v, i) => { if (Planner.meets(v, goal[i])) { hits++; score += 4; } });
       if (nature && m.nature === nature) { hits++; score += 6; } // worth more than one IV: only an owned one saves buying it
       // the goal's ability (from its own line) or egg moves: without them in the pool there's no plan at all
@@ -110,16 +116,18 @@
     // What each one brings, so a full box still gives the planner mothers, fathers and every stat the goal needs.
     const keysOf = ([, m]) => {
       const ditto = m.species === 'Ditto', who = ditto ? 'D' : (dex.lineOf(m.species) === line ? '' : 'x') + m.gender, out = [who];
+      if (m.costume) out.push('cos' + m.boxId);
       m.ivs.forEach((v, i) => { if (Planner.meets(v, goal[i])) out.push(who + i); });
       if (nature && m.nature === nature) out.push(who + 'n');
       return out;
     };
     // diverse: a mix (see pickDiverse) rather than the top scores, the best pool for a box of mostly one species
     const picked = (diverse ? Planner.pickDiverse(scored, cap || 63, keysOf) : scored.slice(0, cap || 63)).map((x) => ({ species: x[1].species, isDitto: x[1].species === 'Ditto', gender: x[1].species === 'Ditto' ? 'N' : x[1].gender,
-      ivs: x[1].ivs.slice(), nature: x[1].nature || '', ability: x[1].ability || '', moves: want ? want.filter((mv) => knows(x[1], mv)) : [], boxId: x[1].boxId }));
+      ivs: x[1].ivs.slice(), nature: x[1].nature || '', ability: x[1].ability || '', moves: want ? want.filter((mv) => knows(x[1], mv)) : [], costume: x[1].costume || '', boxId: x[1].boxId }));
     picked.left = scored.length - picked.length; // how many more could have helped
     return picked;
   }
+  const lineKey = (key) => { const i = String(key).indexOf('@'); return i < 0 ? [key, ''] : [key.slice(0, i), key.slice(i + 1)]; };
   const knows = (m, mv) => (m.moves || []).some((x) => String(x).toLowerCase() === mv.toLowerCase());
 
   // The line's hidden ability (from the species the line is named after).
@@ -150,43 +158,44 @@
 
   // A quick check before the planner runs: something in the pool has each IV the goal needs (and the
   // nature), and there's a Pokémon of the line itself. When buying is allowed a 1×31 fills any one gap.
-  function missing(dex, line, goal, nature, pool, buy, ability, moves) {
+  function missing(dex, line, goal, nature, pool, buy, ability, moves, cos) {
     const gaps = [];
     goal.forEach((v, i) => { if (v != null && !pool.some((p) => Planner.meets(p.ivs[i], v))) gaps.push(i); });
     const noNature = !!nature && !pool.some((p) => p.nature === nature);
     const noLine = !pool.some((p) => !p.isDitto && dex.lineOf(p.species) === line);
     // an ability or egg move can't be bought, so these block even with buying allowed
     const noExtra = (!!ability && !pool.some((p) => p.ability === ability && dex.lineOf(p.species) === line))
-      || (!!(moves && moves.length) && !pool.some((p) => moves.every((mv) => p.moves.includes(mv))));
+      || (!!(moves && moves.length) && !pool.some((p) => moves.every((mv) => p.moves.includes(mv))))
+      || (!!cos && !pool.some((p) => p.costume === cos && dex.lineOf(p.species) === line));
     return { gaps, noNature, noLine, blocked: noExtra || (!buy && (gaps.length > 0 || noNature || noLine)) };
   }
 
   // One short planner run. A plan found before the time runs out means yes (maybe not the fewest
   // breeds: the planner tab looks longer); no plan and time to spare means no; no plan in time, maybe.
-  function tryGoal(dex, line, goal, nature, mons, prices, opts, ability = '', moves = []) {
-    const cap = opts.cap || 24;
-    let pool = poolFor(dex, line, goal, nature, mons, cap, ability, moves);
+  function tryGoal(dex, key, goal, nature, mons, prices, opts, ability = '', moves = []) {
+    const cap = opts.cap || 24, [line, cos] = lineKey(key);
+    let pool = poolFor(dex, key, goal, nature, mons, cap, ability, moves);
     // A box with more Pokémon than the pool takes (a box of 60 Pawniard) can still have what a goal needs
     // when the best-scoring 24 don't (all males, or no one with the goal's Speed): then a mix of them.
-    let miss = missing(dex, line, goal, nature, pool, opts.buy, ability, moves), mixed = false;
+    let miss = missing(dex, line, goal, nature, pool, opts.buy, ability, moves, cos), mixed = false;
     if (miss.blocked && pool.left) {
-      const mix = poolFor(dex, line, goal, nature, mons, cap, ability, moves, true);
-      const m2 = missing(dex, line, goal, nature, mix, opts.buy, ability, moves);
+      const mix = poolFor(dex, key, goal, nature, mons, cap, ability, moves, true);
+      const m2 = missing(dex, line, goal, nature, mix, opts.buy, ability, moves, cos);
       if (!m2.blocked) { pool = mix; miss = m2; mixed = true; }
-      else miss = missing(dex, line, goal, nature, poolFor(dex, line, goal, nature, mons, FULL_POOL, ability, moves, true), opts.buy, ability, moves);
+      else miss = missing(dex, line, goal, nature, poolFor(dex, key, goal, nature, mons, FULL_POOL, ability, moves, true), opts.buy, ability, moves, cos);
     }
     if (miss.blocked) return { ok: false, miss, ms: 0 };
     const t0 = Date.now();
     const run = (p) => Planner.plan({ dex, prices, pool: p,
-      target: { species: line, ivs: goal.slice(), gender: 'A', nature: nature || '', ability, abilityHidden: !!ability && ability === hiddenOf(dex, line), moves: moves.slice() },
+      target: { species: line, ivs: goal.slice(), gender: 'A', nature: nature || '', ability, abilityHidden: !!ability && ability === hiddenOf(dex, line), moves: moves.slice(), costume: cos },
       opts: { mode: opts.mode || 'breeds', buy: !!opts.buy, buyIV: opts.buyIV, buyNat: opts.buyNat, work: opts.work || (opts.deep ? DEEP_WORK : QUICK_WORK), timeLimit: opts.timeLimit || 10000 } });
     let out = run(pool);
     // No plan from the 24 picked, but more could help: try a mix of 24, then up to 63 (a 5×31 with a nature
     // from 1×31s takes about 30 breeds, so it needs more parents than 24).
     if (!out.result && !out.truncated && pool.left) {
-      if (!mixed) out = run(poolFor(dex, line, goal, nature, mons, cap, ability, moves, true));
+      if (!mixed) out = run(poolFor(dex, key, goal, nature, mons, cap, ability, moves, true));
       // the wide run only counts when it finds a plan: running out of work there isn't worth a "cut short"
-      if (!out.result && !out.truncated) { const wide = run(poolFor(dex, line, goal, nature, mons, FULL_POOL, ability, moves, true)); if (wide.result) out = wide; }
+      if (!out.result && !out.truncated) { const wide = run(poolFor(dex, key, goal, nature, mons, FULL_POOL, ability, moves, true)); if (wide.result) out = wide; }
     }
     const ms = Date.now() - t0;
     if (!out.result) return { ok: false, miss, ms, slow: !!out.truncated };
@@ -197,7 +206,7 @@
       else if (n.t === 'buy') {
         buys.push(n.ditto ? 'Ditto' : n.line);
         // what to look for on the GTL: species, how many 31s, with your nature or not, and the gender
-        buyList.push({ species: n.ditto ? 'Ditto' : n.line, count: n.count || 1, nat: n.nat ? nature : '', gender: n.ditto ? 'N' : n.gender, any: n.kind === 'C' });
+        buyList.push({ species: n.ditto ? 'Ditto' : n.line, count: n.count || 1, nat: n.nat ? nature : '', gender: n.ditto ? 'N' : n.gender, any: n.kind === 'C', stats: (n.stats || [n.stat]).filter((x) => x != null) });
       } else if (n.t === 'breed') { walk(n.a); walk(n.b); }
     })(r);
     return { ok: true, ms, breeds: r.breeds, cost: r.cost, chance: r.chance, uses, buys, buyList, rough: !!out.truncated };
@@ -225,14 +234,16 @@
 
   // Every suggestion for one line: per role, the highest rung the boxes can make, the Everstone
   // version of it when a fitting nature is in the boxes, and what the next rung up is missing.
-  function scanLine(dex, line, mons, prices, opts = {}) {
-    const L = dex.lines.get(line);
+  // key: a line, or a line in a costume ("Riolu@Pharaoh"); its cards keep the key as their line, with the
+  // line itself as base and the costume.
+  function scanLine(dex, key, mons, prices, opts = {}) {
+    const [line, cos] = lineKey(key), L = dex.lines.get(line);
     if (!L || !L.groups.size || line === 'Ditto') return [];
     const out = [], stats = { ms: 0, runs: 0 }, tried = new Map();
     // Both roles of a line share goals (6×31), so each goal is only checked once.
     const attempt = (goal, nature, ability = '', moves = []) => {
       const k = [goal.join(), nature, ability, moves.join('+')].join('|');
-      if (!tried.has(k)) { const r = tryGoal(dex, line, goal, nature, mons, prices, opts, ability, moves); stats.ms += r.ms; stats.runs += r.ms ? 1 : 0; tried.set(k, r); }
+      if (!tried.has(k)) { const r = tryGoal(dex, key, goal, nature, mons, prices, opts, ability, moves); stats.ms += r.ms; stats.runs += r.ms ? 1 : 0; tried.set(k, r); }
       return tried.get(k);
     };
     const extra = extrasFor(dex, line, mons);
@@ -241,8 +252,8 @@
       const [k, res, fail] = climb(rungs, '', attempt);
       const next = fail && { at: fail.at, label: rungs[fail.at].label, ivs: rungs[fail.at].ivs,
         gaps: fail.res.miss.gaps.map((i) => LABEL[i]), noLine: fail.res.miss.noLine, slow: !!fail.res.slow };
-      if (k < 0) { if (next && !next.noLine) out.push({ line, role, roleLabel: ROLE_LABEL[role], forSpecies, ability: forSpecies.ability || '', rung: -1, of: rungs.length, next }); continue; }
-      const sug = { line, role, roleLabel: ROLE_LABEL[role], forSpecies, ability: forSpecies.ability || '', rung: k, of: rungs.length, label: rungs[k].label,
+      if (k < 0) { if (next && !next.noLine) out.push({ line: key, base: line, costume: cos, role, roleLabel: ROLE_LABEL[role], forSpecies, ability: forSpecies.ability || '', rung: -1, of: rungs.length, next }); continue; }
+      const sug = { line: key, base: line, costume: cos, role, roleLabel: ROLE_LABEL[role], forSpecies, ability: forSpecies.ability || '', rung: k, of: rungs.length, label: rungs[k].label,
         ivs: rungs[k].ivs, nature: '', abil: '', move: '', ...res, next };
       out.push(sug);
       // No nature versions here: each card starts on its recommended nature, which the page checks on its own.
@@ -280,7 +291,7 @@
   const GTL_FALLBACK = { buy: true, buyIV: [1, 2, 3], buyNat: [1, 2, 3], mode: 'cost' };
   // opts.deep: a goal that ran out of work before any plan turned up gets a second, longer run (BIG_WORK) first.
   // cut: the box-only search was cut short, so a deeper check might do better.
-  function checkGoal(dex, line, goal, nature, mons, prices, opts = {}, ability = '', moves = []) {
+  function checkGoal(dex, line, goal, nature, mons, prices, opts = {}, ability = '', moves = []) { // line: as in scanLine
     opts = { ...opts, work: opts.work || (opts.deep ? CHECK_WORK : QUICK_CHECK), timeLimit: opts.timeLimit || 20000 };
     let r = tryGoal(dex, line, goal, nature, mons, prices, opts, ability, moves);
     if (opts.deep && !r.ok && r.slow && opts.work < BIG_WORK) r = tryGoal(dex, line, goal, nature, mons, prices, { ...opts, work: BIG_WORK, timeLimit: 40000 }, ability, moves);
@@ -291,7 +302,8 @@
     // fills the gaps and makes the search far smaller, so this finds one in a second or two where the box alone
     // was too big to check (a 5×31 with a nature, mostly). An ability or egg move can't be bought, so a build
     // missing one stays without a plan.
-    const b = tryGoal(dex, line, goal, nature, mons, prices, { ...opts, ...GTL_FALLBACK }, ability, moves);
+    // opts.sizes: the buy sizes the Build center allows (1, 2 and/or 3 31s); all three when not given
+    const b = tryGoal(dex, line, goal, nature, mons, prices, { ...opts, ...GTL_FALLBACK, ...(opts.sizes ? { buyIV: opts.sizes, buyNat: opts.sizes } : {}) }, ability, moves);
     // boxSlow: the box-only run was cut short rather than finding nothing, so the card says which
     return b.ok ? { ...b, bought: true, boxSlow: !!r.slow, cut } : { ok: false, slow: !!(r.slow || b.slow), cut };
   }
@@ -344,7 +356,7 @@
     return (fb - fa) || ((a.breeds || 0) - (b.breeds || 0)) || ((a.cost || 0) - (b.cost || 0)) || (a.nature ? 1 : 0) - (b.nature ? 1 : 0);
   }
 
-  const api = { VERSION, rolesOf, recommendNatures, ladder, poolFor, scanLine, checkGoal, linesIn, rank, goalText, hiddenOf, extrasFor, ROLE_LABEL, ROLE_NATURES: NATURES };
+  const api = { VERSION, rolesOf, recommendNatures, ladder, poolFor, scanLine, checkGoal, linesIn, rank, goalText, hiddenOf, extrasFor, ROLE_LABEL, ROLE_NATURES: NATURES, lineKey };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Builds = api;
 })(typeof window !== 'undefined' ? window : globalThis);

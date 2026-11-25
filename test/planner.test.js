@@ -441,6 +441,40 @@ test('with no plain one, the one used is still a single breed and the spot says 
   assert.deepStrictEqual(r.node.slotA, { need: 0, kind: 'L', gender: 'A', extra: false }); // with a Ditto, either gender
 });
 
+// Rule fixes 2026-11-24 (PokeMMO checks species, not gender, for a hidden ability; PokeMMO's own egg moves;
+// Shedinja can't breed).
+test('a hidden-ability male passes it to an egg of his line without Ditto', () => {
+  const r = run({ species: 'Ralts', ivs: [31, 31, null, null, null, null], ability: 'Telepathy', abilityHidden: true },
+    [mon('Ralts', 'M', [31, 0, 0, 0, 0, 0], { ability: 'Telepathy' }), mon('Ralts', 'F', [0, 31, 0, 0, 0, 0], { ability: 'Trace' })]);
+  assert.strictEqual(r.breeds, 1);
+  assert.strictEqual(r.node.pairing, 'mf');
+  assert.ok(Math.abs(r.chance - prices.haChance) < 1e-9, `chance ${r.chance}`);
+});
+test('a hidden-ability male of another line still can not pass it', () => {
+  const out = Planner.plan({ dex, prices, target: { species: 'Ralts', ivs: [31, 31, null, null, null, null], ability: 'Telepathy', abilityHidden: true, moves: [] },
+    pool: [mon('Kirlia', 'F', [0, 31, 0, 0, 0, 0], { ability: 'Trace' }), mon('Gardevoir', 'F', [0, 0, 0, 0, 0, 0]), mon('Drowzee', 'M', [31, 0, 0, 0, 0, 0], { ability: 'Insomnia' })],
+    opts: { mode: 'breeds', buy: false } });
+  assert.ok(!out.result, 'no parent of the line has Telepathy');
+});
+test('a regular ability on a male still needs Ditto', () => {
+  const out = Planner.plan({ dex, prices, target: { species: 'Ralts', ivs: [31, 31, null, null, null, null], ability: 'Trace', abilityHidden: false, moves: [] },
+    pool: [mon('Ralts', 'M', [31, 0, 0, 0, 0, 0], { ability: 'Trace' }), mon('Ralts', 'F', [0, 31, 0, 0, 0, 0], { ability: 'Synchronize' })], opts: { mode: 'breeds', buy: false } });
+  assert.ok(!out.result, 'a regular ability passes from the mother or a Ditto partner only');
+});
+test('Shedinja can not breed, even with Ditto', () => {
+  const out = Planner.plan({ dex, prices, target: { species: 'Nincada', ivs: [31, 31, null, null, null, null], moves: [] },
+    pool: [mon('Shedinja', 'N', [31, 0, 0, 0, 0, 0]), { ...mon('Ditto', 'N', [0, 31, 0, 0, 0, 0]), isDitto: true }], opts: { mode: 'breeds', buy: false } });
+  assert.ok(!out.result, 'Shedinja is not a parent');
+});
+test('egg moves are PokeMMO\'s own lists', () => {
+  const ch = dex.lines.get('Charmander').moves, zig = dex.lines.get('Zigzagoon').moves;
+  assert.ok(!ch.has('Dragon Dance'), 'Dragon Dance is a tutor move in PokeMMO');
+  assert.ok(ch.has('Belly Drum'));
+  assert.ok(zig.has('Extreme Speed'), 'Extreme Speed is a Zigzagoon egg move in PokeMMO');
+  const em = require('../data/egg-moves-pokemmo.json');
+  assert.strictEqual(Object.values(em).reduce((a, m) => a + m.length, 0), 954);
+});
+
 let failed = 0;
 for (const [name, fn] of tests) {
   try { fn(); console.log('ok   ' + name); } catch (e) { failed++; console.log('FAIL ' + name + '\n     ' + e.message); }
