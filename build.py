@@ -71,6 +71,8 @@ def png(path):
 sheet = png('data/box-icons.png')
 page = (page.replace('/*PLANNER*/', read('src/planner.js'))
             .replace('/*BUILDS*/', read('src/builds.js'))
+            .replace('/*CATCH*/', read('src/catch.js'))  # catch odds and the ball rules (Catch rate tab)
+            .replace("/*CATCH_DATA*/{ rate: [], weight: [], alphaRate: { default: 10 }, alphas: { swarm: [], event: [], limited: [] } }", read('data/catch.json'))  # PokeMMO catch rates (wiki), weights, alpha lists
             .replace('/*SPECIES*/[]', read('data/species.json'))
             .replace('/*TMS*/{}', read('data/tms.json'))
             .replace('/*LEARNERS*/{}', read('data/learners.json'))

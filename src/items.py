@@ -1,5 +1,6 @@
 """The item icons: the six power items (braces), the Everstone and the nine incenses, and the held items on
-build cards (data/item-icons.png, symbols #hi-N in data/item-icons.json order).
+build cards (data/item-icons.png, symbols #hi-N in data/item-icons.json order), and the balls on the Catch
+rate tab (data/ball-icons.png, symbols #ball-<key>).
 
 They are PokeMMO's own icons (the Black/White item icons the game shows), taken from a ROM by
 src/build-breeding-icons.py into data/breeding-items.png: one row of 24x24 cells. build.py puts symbols()
@@ -23,6 +24,10 @@ DATA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
 SHEET = os.path.join(DATA, 'breeding-items.png')
 # the held items on build cards (src/build-item-icons.py): symbols #hi-0, #hi-1... in item-icons.json order
 HELD = os.path.join(DATA, 'item-icons.png')
+# the balls on the Catch rate tab (src/build-ball-icons.py): symbols #ball-<key>, keys as in src/catch.js
+BALL_SHEET = os.path.join(DATA, 'ball-icons.png')
+BALLS = ['poke', 'great', 'ultra', 'master', 'safari', 'net', 'dive', 'nest', 'repeat', 'timer', 'luxury', 'premier',
+         'dusk', 'heal', 'quick', 'cherish', 'lure', 'level', 'moon', 'heavy', 'fast', 'friend', 'love', 'dream']
 
 
 def _read_png(path):
@@ -87,7 +92,8 @@ def _symbols(path, ids):
 def symbols():
     """Every icon as a <symbol>, in one hidden <svg> to put in the page once."""
     w = _read_png(HELD)[0]
-    parts = _symbols(SHEET, [f'it-{n}' for n in NAMES]) + _symbols(HELD, [f'hi-{k}' for k in range(w // CELL)])
+    parts = (_symbols(SHEET, [f'it-{n}' for n in NAMES]) + _symbols(HELD, [f'hi-{k}' for k in range(w // CELL)])
+             + _symbols(BALL_SHEET, [f'ball-{k}' for k in BALLS]))
     return ('<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true">'
             + ''.join(parts) + '</svg>')
 

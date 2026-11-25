@@ -12,7 +12,7 @@
   const ROLE_LABEL = { phys: 'Physical attacker', spec: 'Special attacker', wall: 'Defensive' };
   // Bump when the suggestions change for the same box (rules, ladders, the work cap), so answers the
   // page remembered from an older version are checked again.
-  const VERSION = 12;
+  const VERSION = 13;
   // How much searching each check gets: a fixed amount of work rather than a time limit, so the same box
   // gives the same answer on every computer and every run. The clock is only there to stop a runaway check.
   // Two depths. The quick one (the default) keeps a scan of 4 full boxes around half a minute: QUICK_WORK per
@@ -206,7 +206,7 @@
       else if (n.t === 'buy') {
         buys.push(n.ditto ? 'Ditto' : n.line);
         // what to look for on the GTL: species, how many 31s, with your nature or not, and the gender
-        buyList.push({ species: n.ditto ? 'Ditto' : n.line, count: n.count || 1, nat: n.nat ? nature : '', gender: n.ditto ? 'N' : n.gender, any: n.kind === 'C' });
+        buyList.push({ species: n.ditto ? 'Ditto' : n.line, count: n.count || 1, nat: n.nat ? nature : '', gender: n.ditto ? 'N' : n.gender, any: n.kind === 'C', stats: (n.stats || [n.stat]).filter((x) => x != null) });
       } else if (n.t === 'breed') { walk(n.a); walk(n.b); }
     })(r);
     return { ok: true, ms, breeds: r.breeds, cost: r.cost, chance: r.chance, uses, buys, buyList, rough: !!out.truncated };
@@ -302,7 +302,8 @@
     // fills the gaps and makes the search far smaller, so this finds one in a second or two where the box alone
     // was too big to check (a 5×31 with a nature, mostly). An ability or egg move can't be bought, so a build
     // missing one stays without a plan.
-    const b = tryGoal(dex, line, goal, nature, mons, prices, { ...opts, ...GTL_FALLBACK }, ability, moves);
+    // opts.sizes: the buy sizes the Build center allows (1, 2 and/or 3 31s); all three when not given
+    const b = tryGoal(dex, line, goal, nature, mons, prices, { ...opts, ...GTL_FALLBACK, ...(opts.sizes ? { buyIV: opts.sizes, buyNat: opts.sizes } : {}) }, ability, moves);
     // boxSlow: the box-only run was cut short rather than finding nothing, so the card says which
     return b.ok ? { ...b, bought: true, boxSlow: !!r.slow, cut } : { ok: false, slow: !!(r.slow || b.slow), cut };
   }
